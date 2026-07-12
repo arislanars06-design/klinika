@@ -113,6 +113,33 @@ class ComplaintsBlock(QWidget):
         note = self.note_edit.toPlainText().strip()
         return codes, details, note
 
+    def set_values(
+        self,
+        codes: list[str] | None,
+        details: dict[str, str] | None = None,
+        note: str | None = None,
+    ) -> None:
+        """Populate the widget from a saved payload (used by reception edit mode)."""
+        codes = set(codes or [])
+        details = details or {}
+        for code, box in self._boxes.items():
+            box.blockSignals(True)
+            box.setChecked(code in codes)
+            box.blockSignals(False)
+        for code, combo in self._discharge_boxes.items():
+            combo.blockSignals(True)
+            combo.setEnabled(code in codes)
+            if code in details:
+                idx = combo.findData(details[code])
+                combo.setCurrentIndex(idx if idx >= 0 else 0)
+            else:
+                combo.setCurrentIndex(0)
+            combo.blockSignals(False)
+        self.note_edit.blockSignals(True)
+        self.note_edit.setPlainText(note or "")
+        self.note_edit.blockSignals(False)
+        self._update_count()
+
     def clear(self) -> None:
         for box in self._boxes.values():
             box.setChecked(False)

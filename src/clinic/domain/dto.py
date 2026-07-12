@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 
-from clinic.db.models import Doctor, Patient, Reception, Service
+from clinic.db.models import CashierRecord, Doctor, Patient, Reception, Service
 
 
 @dataclass
@@ -140,13 +140,183 @@ class ReceptionInput:
     lor_status: dict | None = None
     diagnosis: str = ""
     recommendation: str | None = None
+    # Optional — set when editing an existing reception.
+    reception_id: int | None = None
+
+
+# ============================================================================
+# Cashier
+# ============================================================================
+
+
+@dataclass
+class CashierRecordDTO:
+    """One paid line-item (a single service on a single visit)."""
+
+    id: int
+    patient_id: int
+    reception_id: int | None
+    service_id: int
+    service_name_uz: str
+    service_name_ru: str
+    quantity: int
+    price_at_moment: Decimal
+    total: Decimal
+    paid_at: datetime
+    note: str | None
+
+    @classmethod
+    def from_orm(cls, r: CashierRecord) -> CashierRecordDTO:
+        svc = r.service
+        return cls(
+            id=r.id,
+            patient_id=r.patient_id,
+            reception_id=r.reception_id,
+            service_id=r.service_id,
+            service_name_uz=svc.name_uz if svc else "",
+            service_name_ru=svc.name_ru if svc else "",
+            quantity=r.quantity,
+            price_at_moment=Decimal(r.price_at_moment),
+            total=Decimal(r.total),
+            paid_at=r.paid_at,
+            note=r.note,
+        )
+
+    def service_name(self, lang: str) -> str:
+        return self.service_name_ru if lang == "ru" else self.service_name_uz
+
+
+@dataclass
+class CashierItemInput:
+    """One line-item on the cashier form (service + quantity)."""
+
+    service_id: int
+    quantity: int = 1
+
+
+@dataclass
+class CashierPaymentInput:
+    """A complete cashier operation (one or more line-items in a single receipt)."""
+
+    patient_id: int
+    reception_id: int | None
+    items: list[CashierItemInput] = field(default_factory=list)
+    note: str | None = None
+
+
+# ============================================================================
+# Patient history / search
+# ============================================================================
+
+
+@dataclass
+class PatientSummaryDTO:
+    """Row in the Patient History table — patient + last reception summary."""
+
+    patient: PatientDTO
+    last_reception_date: datetime | None
+
+    @property
+    def age(self) -> int:
+        return datetime.now().year - self.patient.birth_year
+
+
+@dataclass
+class PatientHistoryPage:
+    """One page of paginated patient results."""
+
+    items: list[PatientSummaryDTO]
+    total: int
+    page: int  # 1-based
+    page_size: int
+
+    @property
+    def page_count(self) -> int:
+        if self.page_size <= 0:
+            return 1
+        return max(1, (self.total + self.page_size - 1) // self.page_size)
+
+
+@dataclass
+class PatientDetail:
+    """Everything the Patient Card dialog needs about one patient."""
+
+    patient: PatientDTO
+    receptions: list[ReceptionDTO]
+    payments: list[CashierRecordDTO]
+    doctor_names: dict[int, str] = field(default_factory=dict)
+
+    @property
+    def total_paid(self) -> Decimal:
+        return sum((p.total for p in self.payments), Decimal("0"))
+
+
+# ============================================================================
+# Statistics
+# ============================================================================
+
+
+@dataclass
+class DiagnosisCount:
+    diagnosis: str
+    count: int
+
+
+@dataclass
+class DayPoint:
+    """One (date, value) sample on a chart timeline."""
+
+    date: str  # ISO YYYY-MM-DD
+    value: float  # count of receptions or revenue in currency
+
+
+@dataclass
+class PatientStats:
+    total_patients: int
+    new_patients: int
+    repeat_receptions: int
+    top_diagnoses: list[DiagnosisCount]
+    by_day: list[DayPoint]  # reception count per day
+
+
+@dataclass
+class ServiceRevenue:
+    service_id: int
+    name_uz: str
+    name_ru: str
+    units_sold: int
+    revenue: Decimal
+
+    def display_name(self, lang: str) -> str:
+        return self.name_ru if lang == "ru" else self.name_uz
+
+
+@dataclass
+class CashierStats:
+    total_revenue: Decimal
+    payment_count: int
+    receipts_count: int
+    average_receipt: Decimal
+    by_service: list[ServiceRevenue]
+    by_day: list[DayPoint]  # revenue per day
 
 
 __all__ = [
+    "CashierItemInput",
+    "CashierPaymentInput",
+    "CashierRecordDTO",
+    "CashierStats",
+    "DayPoint",
+    "DiagnosisCount",
     "DoctorDTO",
     "PatientDTO",
+    "PatientDetail",
+    "PatientHistoryPage",
     "PatientInput",
+    "PatientStats",
+    "PatientSummaryDTO",
     "ReceptionDTO",
     "ReceptionInput",
     "ServiceDTO",
+    "ServiceRevenue",
 ]

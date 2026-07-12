@@ -114,6 +114,25 @@ class PatientBlock(QWidget):
         self._completer_model.setStringList([])
         self._update_status_label()
 
+    def set_patient(self, dto: PatientDTO) -> None:
+        """Load an existing patient into the form silently (no ``changed`` emit)."""
+        self._patient_id = dto.id
+        self.name_edit.blockSignals(True)
+        self.year_edit.blockSignals(True)
+        self.address_edit.blockSignals(True)
+        self.phone_edit.blockSignals(True)
+        try:
+            self.name_edit.setText(dto.full_name)
+            self.year_edit.setValue(dto.birth_year)
+            self.address_edit.setText(dto.address or "")
+            self.phone_edit.setText(dto.phone or "")
+        finally:
+            self.name_edit.blockSignals(False)
+            self.year_edit.blockSignals(False)
+            self.address_edit.blockSignals(False)
+            self.phone_edit.blockSignals(False)
+        self._update_status_label()
+
     def set_error(self, field: str, has_error: bool) -> None:
         """Highlight a field when validation fails."""
         widget = {

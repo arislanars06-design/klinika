@@ -2,16 +2,34 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from loguru import logger
 
 from clinic.db.database import session_scope
-from clinic.db.repository import PatientRepository
-from clinic.domain.dto import PatientDTO, PatientInput
+from clinic.db.repository import (
+    ANY_FIELD_SEARCH,
+    CashierRepository,
+    PatientRepository,
+    PatientSearchField,
+    ReceptionRepository,
+)
+from clinic.domain.dto import (
+    CashierRecordDTO,
+    PatientDetail,
+    PatientDTO,
+    PatientHistoryPage,
+    PatientInput,
+    PatientSummaryDTO,
+    ReceptionDTO,
+)
 from clinic.infrastructure.validators import (
     validate_birth_year,
     validate_full_name,
     validate_phone,
 )
+
+PAGE_SIZE_DEFAULT = 20
 
 
 def search(query: str, *, limit: int = 20) -> list[PatientDTO]:
@@ -24,10 +42,71 @@ def search(query: str, *, limit: int = 20) -> list[PatientDTO]:
         return [PatientDTO.from_orm(p) for p in rows]
 
 
+def paginated_search(
+    *,
+    text: str | None = None,
+    search_in: PatientSearchField = ANY_FIELD_SEARCH,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    page: int = 1,
+    page_size: int = PAGE_SIZE_DEFAULT,
+) -> PatientHistoryPage:
+    """Return the paginated patient list for the history screen.
+
+    ``date_from`` / ``date_to`` filter by *last reception* date so the history
+    view emphasises recent activity.
+    """
+    page = max(1, page)
+    page_size = max(1, min(200, page_size))
+    offset = (page - 1) * page_size
+
+    with session_scope() as session:
+        repo = PatientRepository(session)
+        rows, total = repo.paginated_search(
+            text=text,
+            search_in=search_in,
+            date_from=date_from,
+            date_to=date_to,
+            limit=page_size,
+            offset=offset,
+        )
+        last_map = repo.last_reception_map([p.id for p in rows])
+        summaries = [
+            PatientSummaryDTO(
+                patient=PatientDTO.from_orm(p),
+                last_reception_date=last_map.get(p.id),
+            )
+            for p in rows
+        ]
+        return PatientHistoryPage(
+            items=summaries, total=total, page=page, page_size=page_size
+        )
+
+
 def get(patient_id: int) -> PatientDTO | None:
     with session_scope() as session:
         row = PatientRepository(session).get(patient_id)
         return PatientDTO.from_orm(row) if row else None
+
+
+def get_detail(patient_id: int) -> PatientDetail | None:
+    """Load everything the Patient Card dialog needs in a single transaction."""
+    with session_scope() as session:
+        patient = PatientRepository(session).get(patient_id)
+        if patient is None:
+            return None
+        rec_rows = ReceptionRepository(session).list_for_patient(patient_id)
+        cash_rows = CashierRepository(session).list_for_patient(patient_id)
+        doctor_names: dict[int, str] = {}
+        for r in rec_rows:
+            if r.doctor is not None:
+                doctor_names[r.doctor_id] = r.doctor.full_name
+        return PatientDetail(
+            patient=PatientDTO.from_orm(patient),
+            receptions=[ReceptionDTO.from_orm(r) for r in rec_rows],
+            payments=[CashierRecordDTO.from_orm(c) for c in cash_rows],
+            doctor_names=doctor_names,
+        )
 
 
 def find_or_create(data: PatientInput) -> tuple[PatientDTO, bool]:
@@ -88,5 +167,9 @@ def update(patient_id: int, data: PatientInput) -> PatientDTO | None:
 
 
 def delete(patient_id: int) -> bool:
+    """Delete the patient and cascade to all receptions/payments."""
     with session_scope() as session:
-        return PatientRepository(session).delete(patient_id)
+        if PatientRepository(session).delete(patient_id):
+            logger.info("Patient {} deleted (cascade)", patient_id)
+            return True
+        return False

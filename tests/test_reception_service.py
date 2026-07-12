@@ -102,3 +102,57 @@ def test_saves_lor_status_json() -> None:
     fresh = reception_service.get(reception.id)
     assert fresh is not None
     assert fresh.lor_status == lor
+
+
+
+
+# ============================================================
+# Update + delete
+# ============================================================
+
+
+def test_update_changes_fields() -> None:
+    doctor = doctor_service.create(full_name="Karimov Ali")
+    reception, patient, _ = reception_service.save(_base_input(doctor.id))
+
+    new_input = _base_input(
+        doctor.id,
+        patient=PatientInput(
+            full_name="Aliyev Anvar", birth_year=1990, phone="+998901112233"
+        ),
+        patient_id=patient.id,
+        diagnosis="Updated diagnosis",
+        complaints_codes=["ear_pain", "nose_congestion"],
+        complaints_note="new note",
+    )
+    updated_reception, updated_patient = reception_service.update(reception.id, new_input)
+    assert updated_reception.id == reception.id
+    assert updated_reception.diagnosis == "Updated diagnosis"
+    assert set(updated_reception.complaints_codes) == {"ear_pain", "nose_congestion"}
+    assert updated_reception.complaints_note == "new note"
+    assert updated_patient.phone == "+998901112233"
+
+
+def test_update_validation_error_bubbles() -> None:
+    doctor = doctor_service.create(full_name="Karimov Ali")
+    reception, patient, _ = reception_service.save(_base_input(doctor.id))
+    with pytest.raises(ValidationError) as exc:
+        reception_service.update(
+            reception.id,
+            _base_input(doctor.id, patient_id=patient.id, diagnosis=""),
+        )
+    assert "diagnosis" in exc.value.errors
+
+
+def test_update_missing_reception_raises() -> None:
+    doctor = doctor_service.create(full_name="Karimov Ali")
+    with pytest.raises(ValidationError):
+        reception_service.update(9999, _base_input(doctor.id))
+
+
+def test_delete_reception_returns_true() -> None:
+    doctor = doctor_service.create(full_name="Karimov Ali")
+    reception, _, _ = reception_service.save(_base_input(doctor.id))
+    assert reception_service.delete(reception.id) is True
+    assert reception_service.get(reception.id) is None
+    assert reception_service.delete(reception.id) is False
