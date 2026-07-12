@@ -1,0 +1,66 @@
+{
+  "sections": [
+    {
+      "code": "ear",
+      "icon": "\ud83d\udc42",
+      "name": { "uz": "QULOQ", "ru": "УШИ" },
+      "items": [
+        {
+          "code": "ear_cosmetic",
+          "uz": "Quloq suprasida kosmetik nuqson (shalpang quloqlik, deformatsiya, o'sma, otogematoma)",
+          "ru": "Ушная раковина — косметический дефект (лопоухость, деформация, новообразование, отогематома)"
+        },
+        { "code": "ear_pain",          "uz": "Quloqda og'riq",       "ru": "Боль в ухе" },
+        { "code": "ear_noise",         "uz": "Quloqda shovqin",      "ru": "Шум в ушах" },
+        { "code": "ear_hearing_loss",  "uz": "Eshitish pasayishi",   "ru": "Снижение слуха" },
+        { "code": "ear_congestion",    "uz": "Quloq bitishi",        "ru": "Заложенность уха" },
+        { "code": "ear_discharge",     "uz": "Quloqdan ajralma kelishi", "ru": "Выделения из уха", "has_discharge_type": true },
+        { "code": "ear_itching",       "uz": "Quloqda qichishish",   "ru": "Зуд в ухе" },
+        { "code": "ear_discomfort",    "uz": "Quloqda noqulaylik hissi", "ru": "Чувство дискомфорта" }
+      ]
+    },
+    {
+      "code": "nose",
+      "icon": "\ud83d\udc43",
+      "name": { "uz": "BURUN VA YONDOSH BURUN BO'SHLIQLARI", "ru": "НОС И ОКОЛОНОСОВЫЕ ПАЗУХИ" },
+      "items": [
+        { "code": "nose_cosmetic",       "uz": "Kosmetik nuqson yoki hosila", "ru": "Косметический дефект, образования" },
+        { "code": "nose_congestion",     "uz": "Burun bitishi",              "ru": "Заложенность носа" },
+        { "code": "nose_breathing",      "uz": "Burun orqali nafas olishning qiyinlashishi", "ru": "Затруднение дыхания через нос" },
+        { "code": "nose_discharge",      "uz": "Burundan ajralma kelishi",   "ru": "Выделения из носа", "has_discharge_type": true },
+        { "code": "nose_itching",        "uz": "Burunda qichishish",         "ru": "Зуд в носу" },
+        { "code": "nose_pain",           "uz": "Burun og'rig'i",             "ru": "Боль в носу" },
+        { "code": "nose_trigeminal_pain","uz": "Uch shoxli nervning I\u2013II shoxlari chiqish nuqtalarida og'riq", "ru": "Болезненность точек выхода I\u2013II ветвей тройничного нерва" },
+        { "code": "nose_face_heaviness", "uz": "Yuz sohasida og'irlik hissi", "ru": "Тяжесть в области лица" }
+      ]
+    },
+    {
+      "code": "pharynx",
+      "icon": "\ud83d\ude2e",
+      "name": { "uz": "HALQUM", "ru": "ГЛОТКА" },
+      "items": [
+        { "code": "pharynx_pain",         "uz": "Tomoq og'rig'i",              "ru": "Боль в горле" },
+        { "code": "pharynx_tickling",     "uz": "Qirilish yoki achishish hissi", "ru": "Першение" },
+        { "code": "pharynx_itching",      "uz": "Qichishish",                  "ru": "Зуд" },
+        { "code": "pharynx_lump",         "uz": "\u00abTomoqda tugun\u00bb hissi", "ru": "Чувство \u00abкомка\u00bb" },
+        { "code": "pharynx_foreign_body", "uz": "\u00abBegona jism\u00bb hissi", "ru": "Чувство инородного тела" },
+        { "code": "pharynx_discharge",    "uz": "Ajralma",                     "ru": "Отделяемое", "has_discharge_type": true },
+        { "code": "pharynx_swallowing",   "uz": "Yutishning qiyinlashishi",    "ru": "Затрудненное глотание" },
+        { "code": "pharynx_cough",        "uz": "Yo'tal",                      "ru": "Кашель" }
+      ]
+    },
+    {
+      "code": "larynx",
+      "icon": "\ud83d\udde3",
+      "name": { "uz": "HIQILDOQ", "ru": "ГОРТАНЬ" },
+      "items": [
+        { "code": "larynx_voice_change",  "uz": "Ovoz funksiyasining o'zgarishi (xirillash, bo'g'ilish, ovoz yo'qolishi)", "ru": "Изменение голосовой функции (охриплость, осиплость, афония)" },
+        { "code": "larynx_cough",         "uz": "Yo'tal",                       "ru": "Кашель" },
+        { "code": "larynx_pain",          "uz": "Og'riq",                       "ru": "Боль" },
+        { "code": "larynx_foreign_body",  "uz": "Begona jism hissi",            "ru": "Чувство инородного тела" },
+        { "code": "larynx_breathing",     "uz": "Nafas olishning qiyinlashishi","ru": "Затрудненное дыхание" },
+        { "code": "larynx_swallowing",    "uz": "Yutishning qiyinlashishi",     "ru": "Затрудненное глотание" }
+      ]
+    }
+  ]
+}
