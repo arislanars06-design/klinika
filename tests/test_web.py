@@ -9,19 +9,7 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
-def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
-    monkeypatch.setenv("CLINIC_DATA_DIR", str(tmp_path / "data"))
-
-    # Rebuild settings + DB engine so each test gets a fresh SQLite file
-    from clinic import config as cfg
-
-    cfg.settings = cfg.Settings()  # type: ignore[assignment]
-
-    from clinic.db import database as db_module
-
-    db_module.engine = db_module._make_engine()
-    db_module.SessionLocal.configure(bind=db_module.engine)
-
+def client() -> TestClient:
     from clinic.web.app import create_app
 
     return TestClient(create_app())

@@ -7,18 +7,7 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def _isolated_data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Redirect data/logs/backups to a per-test tmp dir so we never touch the real DB."""
-    monkeypatch.setenv("CLINIC_DATA_DIR", str(tmp_path / "data"))
-    from clinic import config as cfg
-
-    cfg.settings = cfg.Settings()  # type: ignore[assignment]
-    # Rebind the reference on already-imported modules
-    from clinic.db import database as db_module
-
-    db_module.engine = db_module._make_engine()
-    db_module.SessionLocal.configure(bind=db_module.engine)
+# Data-dir isolation is handled by tests/conftest.py::_isolate_clinic_state.
 
 
 def test_config_paths_are_writable() -> None:

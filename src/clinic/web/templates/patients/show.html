@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}{{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="/patients" class="text-sm text-slate-500 hover:underline">← {{ 'patients.title' | t(lang) }}</a>
+</div>
+
+{% if flash %}
+<div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+  ✓ {{ 'info.saved' | t(lang) }}
+</div>
+{% endif %}
+
+<div class="rounded-xl border bg-white p-6">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">{{ patient.full_name }}</h1>
+      <div class="mt-1 text-slate-500">
+        {{ patient.birth_year }} y. ({{ current_year - patient.birth_year }} {{ 'yosh' if lang == 'uz' else 'лет' }})
+      </div>
+      <div class="mt-2 text-sm text-slate-600">
+        {% if patient.phone %}📞 {{ patient.phone }} · {% endif %}
+        {% if patient.address %}📍 {{ patient.address }}{% endif %}
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <a href="/reception?patient_id={{ patient.id }}" class="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600">+ {{ 'menu.start_reception' | t(lang) }}</a>
+      <a href="/cashier?patient_id={{ patient.id }}" class="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50">💰 {{ 'menu.cashier' | t(lang) }}</a>
+      <form method="post" action="/patients/{{ patient.id }}/delete" onsubmit="return confirm('{% if lang == 'ru' %}Удалить пациента и всю его историю?{% else %}Bemorni va uning barcha tarixini o\\'chirasizmi?{% endif %}')">
+        <button class="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-red-600 hover:bg-red-50">🗑</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <div>
+    <h2 class="mb-3 text-lg font-semibold">
+      {% if lang == 'ru' %}Приёмы{% else %}Qabullar tarixi{% endif %}
+      <span class="text-sm font-normal text-slate-400">({{ receptions|length }})</span>
+    </h2>
+    <div class="space-y-2">
+      {% for r in receptions %}
+      <div class="rounded-lg border bg-white p-4">
+        <div class="flex items-center justify-between gap-2">
+          <div class="font-semibold text-slate-900">{{ r.reception_date.strftime('%d.%m.%Y %H:%M') }}</div>
+          <div class="flex gap-1 text-xs">
+            <a href="/reception/{{ r.id }}" class="rounded border px-2 py-1 hover:bg-slate-50">✏</a>
+            <a href="/reception/{{ r.id }}/print" class="rounded border px-2 py-1 hover:bg-slate-50">🖨</a>
+          </div>
+        </div>
+        <div class="mt-1 text-sm text-slate-700"><span class="font-medium">{{ 'reception.diagnosis' | t(lang) }}:</span> {{ r.diagnosis }}</div>
+        <div class="mt-1 text-xs text-slate-500">{{ r.doctor.full_name }}</div>
+      </div>
+      {% else %}
+      <div class="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-slate-400">—</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <h2 class="mb-3 text-lg font-semibold">
+      💰 {% if lang == 'ru' %}Оплаты{% else %}To'lovlar{% endif %}
+      <span class="text-sm font-normal text-slate-400">{{ payments_total }} {{ 'cashier.currency' | t(lang) }}</span>
+    </h2>
+    <div class="space-y-2">
+      {% for p in payments %}
+      <div class="rounded-lg border bg-white p-3 text-sm">
+        <div class="flex items-center justify-between">
+          <div>{{ p.service.name_uz if lang == 'uz' else p.service.name_ru }}</div>
+          <div class="font-semibold">{{ p.total }} {{ 'cashier.currency' | t(lang) }}</div>
+        </div>
+        <div class="text-xs text-slate-400">{{ p.paid_at.strftime('%d.%m.%Y') }} · {{ p.quantity }} × {{ p.price_at_moment }}</div>
+      </div>
+      {% else %}
+      <div class="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-slate-400">—</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

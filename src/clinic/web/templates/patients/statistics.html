@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}📊 {{ 'patients.statistics' | t(lang) }}{% endblock %}
+
+{% block content %}
+<a href="/patients" class="text-sm text-slate-500 hover:underline">← {{ 'patients.title' | t(lang) }}</a>
+<h1 class="mt-1 text-2xl font-bold text-slate-900">📊 {{ 'patients.statistics' | t(lang) }}</h1>
+
+{% include 'partials/period_picker.html' %}
+
+<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="rounded-xl border bg-white p-4">
+    <div class="text-xs text-slate-500">{% if lang == 'ru' %}Всего приёмов{% else %}Jami qabullar{% endif %}</div>
+    <div class="mt-1 text-3xl font-bold text-slate-900">{{ stats.total_receptions }}</div>
+  </div>
+  <div class="rounded-xl border bg-white p-4">
+    <div class="text-xs text-slate-500">{% if lang == 'ru' %}Уникальных{% else %}Noyob bemorlar{% endif %}</div>
+    <div class="mt-1 text-3xl font-bold text-slate-900">{{ stats.unique_patients }}</div>
+  </div>
+  <div class="rounded-xl border bg-white p-4">
+    <div class="text-xs text-slate-500">{% if lang == 'ru' %}Новых{% else %}Yangi bemorlar{% endif %}</div>
+    <div class="mt-1 text-3xl font-bold text-emerald-600">{{ stats.new_patients }}</div>
+  </div>
+  <div class="rounded-xl border bg-white p-4">
+    <div class="text-xs text-slate-500">{% if lang == 'ru' %}Повторные{% else %}Takroriy{% endif %}</div>
+    <div class="mt-1 text-3xl font-bold text-slate-900">{{ stats.returning_receptions }}</div>
+  </div>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <div class="rounded-xl border bg-white p-5">
+    <h2 class="text-lg font-semibold">🩺 {% if lang == 'ru' %}TOP диагнозов{% else %}TOP tashxislar{% endif %}</h2>
+    <ol class="mt-3 space-y-1 text-sm">
+      {% for name, count in stats.top_diagnoses %}
+      <li class="flex justify-between border-b py-1"><span>{{ loop.index }}. {{ name }}</span><span class="font-semibold">{{ count }}</span></li>
+      {% else %}<li class="text-slate-400">—</li>{% endfor %}
+    </ol>
+  </div>
+  <div class="rounded-xl border bg-white p-5">
+    <h2 class="text-lg font-semibold">📋 {% if lang == 'ru' %}TOP жалоб{% else %}TOP shikoyatlar{% endif %}</h2>
+    <ol class="mt-3 space-y-1 text-sm">
+      {% for code, count in stats.top_complaints %}
+      <li class="flex justify-between border-b py-1"><span>{{ loop.index }}. {{ code }}</span><span class="font-semibold">{{ count }}</span></li>
+      {% else %}<li class="text-slate-400">—</li>{% endfor %}
+    </ol>
+  </div>
+</div>
+
+<div class="mt-6">
+  <a href="/patients/statistics/export?period={{ period }}&start_raw={{ start.strftime('%Y-%m-%d') }}&end_raw={{ end.strftime('%Y-%m-%d') }}"
+     class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+    📄 {{ 'stats.export_word' | t(lang) }}
+  </a>
+</div>
+{% endblock %}

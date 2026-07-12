@@ -25,14 +25,31 @@ STATIC_DIR: Path = WEB_DIR / "static"
 
 def _configure_templates() -> Jinja2Templates:
     """Build a Jinja2 environment aware of our translator and lang cookie."""
+    import json as _json
+    from decimal import Decimal
+
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     def _t(key: str, lang: str = "uz", **fmt: object) -> str:
         return translator.t(key, lang, **fmt)
 
+    def _tojson(value: object) -> str:
+        """Serialize ORM rows / Decimals to JSON for Alpine.js x-data."""
+
+        def default(obj: object) -> object:
+            if isinstance(obj, Decimal):
+                return str(obj)
+            if hasattr(obj, "__table__"):
+                cols = [c.name for c in obj.__table__.columns]
+                return {c: getattr(obj, c) for c in cols}
+            return str(obj)
+
+        return _json.dumps(value, default=default, ensure_ascii=False)
+
     templates.env.globals["supported_languages"] = SUPPORTED_LANGUAGES
     templates.env.globals["language_cookie"] = LANGUAGE_COOKIE
     templates.env.filters["t"] = _t  # {{ 'menu.start_reception' | t(lang) }}
+    templates.env.filters["tojson"] = _tojson
     return templates
 
 
