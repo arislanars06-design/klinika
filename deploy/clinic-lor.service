@@ -1,0 +1,17 @@
+[Unit]
+Description=Klinika LOR web app
+After=network.target
+
+[Service]
+Type=simple
+User=clinic
+Group=clinic
+WorkingDirectory=/opt/clinic-lor
+Environment="CLINIC_DATA_DIR=/opt/clinic-lor/data"
+Environment="CLINIC_LOG_LEVEL=INFO"
+ExecStart=/opt/clinic-lor/.venv/bin/python -m clinic.main --host 0.0.0.0
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

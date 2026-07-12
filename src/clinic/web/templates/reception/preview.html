@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}🖨 {{ 'reception.print' | t(lang) }}{% endblock %}
+
+{% block head %}
+<style>
+  /* Screen: light chrome around the sheet. Print: just the sheet. */
+  .sheet {
+    background: white;
+    padding: 40px 48px;
+    max-width: 780px;
+    margin: 0 auto;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    line-height: 1.55;
+    color: #111;
+  }
+  .sheet h1, .sheet h2, .sheet h3 { color: #111; }
+  .sheet .clinic-name { font-size: 1.4rem; font-weight: 700; text-align: center; }
+  .sheet .clinic-meta { text-align: center; color: #555; font-size: 0.9rem; }
+  .sheet .title { text-align: center; font-weight: 700; margin: 1.5rem 0; letter-spacing: 0.05em; }
+  .sheet .kv { margin: 4px 0; }
+  .sheet .kv b { display: inline-block; min-width: 140px; }
+  .sheet .section { margin-top: 1rem; }
+  .sheet .section h3 { font-size: 1rem; margin-bottom: 4px; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
+  .sheet .section p { margin: 4px 0; white-space: pre-line; }
+  .sheet .signature { margin-top: 3rem; }
+  .no-print { }
+
+  @media print {
+    body { background: white !important; }
+    header, footer, .no-print { display: none !important; }
+    main { padding: 0 !important; max-width: 100% !important; }
+    .sheet {
+      box-shadow: none;
+      padding: 0 !important;
+      max-width: 100%;
+    }
+    @page { margin: 15mm; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="no-print mb-6 flex flex-wrap items-center justify-between gap-2">
+  <a href="/patients/{{ reception.patient_id }}" class="text-sm text-slate-500 hover:underline">
+    ← {{ 'common.back' | t(lang) }}
+  </a>
+  <div class="flex gap-2">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+    >🖨 {{ 'reception.print' | t(lang) }}</button>
+    <a
+      href="/reception/{{ reception.id }}/print"
+      class="rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+    >📄 Word (.docx)</a>
+    <a
+      href="/reception/{{ reception.id }}"
+      class="rounded-lg border bg-white px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+    >✏ {{ 'common.edit' | t(lang) }}</a>
+  </div>
+</div>
+
+<div class="sheet">
+  <div class="clinic-name">{{ clinic.name }}</div>
+  {% if clinic.address or clinic.phone %}
+  <div class="clinic-meta">
+    {{ clinic.address }}{% if clinic.address and clinic.phone %} • {% endif %}{{ clinic.phone }}
+  </div>
+  {% endif %}
+
+  <div class="title">
+    {% if lang == 'ru' %}ПРИЁМНЫЙ ЛИСТ{% else %}QABUL VARAQASI{% endif %}
+  </div>
+
+  <div class="kv"><b>{{ 'reception.date' | t(lang) }}:</b> {{ reception.reception_date.strftime('%d.%m.%Y %H:%M') }}</div>
+  <div class="kv"><b>{{ 'reception.patient.full_name' | t(lang) }}:</b> {{ reception.patient.full_name }}</div>
+  <div class="kv">
+    <b>{{ 'reception.patient.birth_year' | t(lang) }}:</b>
+    {{ reception.patient.birth_year }}
+    ({{ current_year - reception.patient.birth_year }} {% if lang == 'ru' %}лет{% else %}yosh{% endif %})
+  </div>
+  {% if reception.patient.address %}
+  <div class="kv"><b>{{ 'reception.patient.address' | t(lang) }}:</b> {{ reception.patient.address }}</div>
+  {% endif %}
+
+  {% for label_key, body_key in [
+    ('reception.complaints', 'complaints'),
+    ('reception.anamnesis', 'anamnesis'),
+    ('reception.lor_status', 'lor_status'),
+    ('reception.diagnosis', 'diagnosis'),
+    ('reception.recommendation', 'recommendation'),
+  ] %}
+    {% if body[body_key] %}
+    <div class="section">
+      <h3>{{ label_key | t(lang) }}</h3>
+      <p>{{ body[body_key] }}</p>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  <div class="signature">
+    <div><b>{{ 'reception.doctor' | t(lang) }}:</b> {{ reception.doctor.full_name }}</div>
+    <div style="margin-top: 2rem;">
+      {% if lang == 'ru' %}Подпись{% else %}Imzo{% endif %}: _______________________
+    </div>
+  </div>
+</div>
+{% endblock %}

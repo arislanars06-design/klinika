@@ -1,21 +1,13 @@
-"""Skeleton smoke tests: config, DB, catalogs, translator all import & work."""
+"""Skeleton smoke tests for config, DB, catalogs, translator, and web routes."""
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def _isolated_data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Redirect data/logs/backups to a per-test tmp dir so we never touch the real DB."""
-    monkeypatch.setenv("CLINIC_DATA_DIR", str(tmp_path / "data"))
-    # Reload the settings module so the env var is picked up
-    from clinic import config as cfg
-
-    cfg.settings = cfg.Settings()  # type: ignore[assignment]
+# Data-dir isolation is handled by tests/conftest.py::_isolate_clinic_state.
 
 
 def test_config_paths_are_writable() -> None:
@@ -52,15 +44,13 @@ def test_catalogs_load() -> None:
     assert len(discharge["types"]) >= 8
 
 
-def test_translator_returns_uz_by_default(tmp_path: Path) -> None:
-    from clinic.i18n.translator import Translator
+def test_translator_returns_uz_by_default() -> None:
+    from clinic.i18n.translator import t
 
-    tr = Translator()
-    assert tr.language == "uz"
-    assert tr.t("menu.start_reception") == "Qabulni boshlash"
-
-    tr.set_language("ru")
-    assert tr.t("menu.start_reception") == "Начать приём"
+    assert t("menu.start_reception", "uz") == "Qabulni boshlash"
+    assert t("menu.start_reception", "ru") == "Начать приём"
+    # Fallback to Uzbek then to raw key
+    assert t("nope.does.not.exist", "ru") == "nope.does.not.exist"
 
 
 def test_init_db_creates_tables() -> None:

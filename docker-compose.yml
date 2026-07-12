@@ -1,0 +1,20 @@
+# Docker Compose for a single-clinic deployment.
+# Run:  docker compose up -d
+# The DB, backups, and Word templates live under ./data and ./templates
+# so the whole clinic state is a set of files you can back up with rsync.
+
+version: "3.9"
+
+services:
+  clinic:
+    build: .
+    image: clinic-lor-web:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+      - ./templates:/app/templates:ro
+    environment:
+      CLINIC_LOG_LEVEL: INFO
+      CLINIC_DEFAULT_LANGUAGE: uz

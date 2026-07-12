@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% set is_edit = reception is not none %}
+{% set p = prefill or {} %}
+
+{% macro val(field, default='') -%}
+  {%- if is_edit -%}
+    {%- if field == 'full_name' -%}{{ reception.patient.full_name }}
+    {%- elif field == 'birth_year' -%}{{ reception.patient.birth_year }}
+    {%- elif field == 'address' -%}{{ reception.patient.address or '' }}
+    {%- elif field == 'doctor_id' -%}{{ reception.doctor_id }}
+    {%- elif field == 'diagnosis' -%}{{ reception.diagnosis }}
+    {%- elif field == 'recommendation' -%}{{ reception.recommendation or '' }}
+    {%- elif field == 'anamnesis' -%}{{ reception.anamnesis or '' }}
+    {%- elif field == 'complaints_note' -%}{{ reception.complaints_note or '' }}
+    {%- endif -%}
+  {%- else -%}
+    {{ p.get(field, default) }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% if is_edit %}
+  {% set selected_codes = reception.complaints_codes or [] %}
+  {% set selected_details = reception.complaints_details or {} %}
+  {% set saved_lor = reception.lor_status or {} %}
+{% else %}
+  {% set _codes = p.get('complaints_codes', []) %}
+  {% set selected_codes = _codes if _codes is iterable and _codes is not string else ([_codes] if _codes else []) %}
+  {% set selected_details = {} %}
+  {% set saved_lor = {} %}
+{% endif %}
+
+{% block title %}{{ 'menu.start_reception' | t(lang) }}{% endblock %}
+
+{% block content %}
+<form
+  method="post"
+  action="{% if is_edit %}/reception/{{ reception.id }}{% else %}/reception{% endif %}"
+  x-data="{
+    complaintsCount: {{ selected_codes|length }},
+    onComplaintToggle(el){
+      this.complaintsCount += el.checked ? 1 : -1;
+    },
+  }"
+  class="space-y-6"
+>
+  <div class="flex items-start justify-between">
+    <div>
+      <a href="/" class="text-sm text-slate-500 hover:underline">← {{ 'common.back' | t(lang) }}</a>
+      <h1 class="mt-1 text-2xl font-bold text-slate-900">{{ 'reception.title' | t(lang) }}</h1>
+    </div>
+    <div class="text-right">
+      <label class="block text-xs font-medium text-slate-500">{{ 'reception.date' | t(lang) }}</label>
+      <input
+        type="datetime-local"
+        name="reception_date"
+        value="{{ (reception.reception_date.strftime('%Y-%m-%dT%H:%M') if is_edit else (p.get('reception_date') or today)) }}"
+        class="mt-1 rounded-lg border px-3 py-2 text-sm"
+      />
+    </div>
+  </div>
+
+  {% if errors %}
+  <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+    <div class="font-semibold">{{ 'error.title' | t(lang) }}</div>
+    <ul class="mt-1 list-disc pl-5">
+      {% for e in errors %}<li>{{ e | t(lang) }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {# ----- Patient block (phone field removed per request) ----- #}
+  <fieldset class="rounded-xl border bg-white p-5">
+    <legend class="px-2 text-sm font-semibold text-slate-700">
+      {{ 'reception.patient' | t(lang) }}
+    </legend>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="sm:col-span-2 relative">
+        <label class="mb-1 block text-sm font-medium">{{ 'reception.patient.full_name' | t(lang) }} *</label>
+        <input
+          x-ref="name"
+          name="patient_full_name"
+          value="{{ val('full_name') }}"
+          required minlength="5"
+          hx-get="/reception/search-patient"
+          hx-trigger="input changed delay:250ms, focus"
+          hx-target="#patient-suggestions"
+          hx-swap="innerHTML"
+          hx-include="this"
+          name="q"
+          class="w-full rounded-lg border px-3 py-2"
+        />
+        <input x-ref="patientId" type="hidden" name="patient_id" value="{{ reception.patient.id if is_edit else '' }}" />
+        <div id="patient-suggestions" class="relative">
+          {# suggestions injected by HTMX #}
+        </div>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">{{ 'reception.patient.birth_year' | t(lang) }} *</label>
+        <input
+          x-ref="birth"
+          type="number" name="patient_birth_year"
+          value="{{ val('birth_year') }}"
+          min="1900" max="{{ current_year }}"
+          required
+          class="w-full rounded-lg border px-3 py-2"
+        />
+      </div>
+
+      <div class="sm:col-span-3">
+        <label class="mb-1 block text-sm font-medium">{{ 'reception.patient.address' | t(lang) }}</label>
+        <input x-ref="address" name="patient_address" value="{{ val('address') }}" class="w-full rounded-lg border px-3 py-2" />
+      </div>
+    </div>
+  </fieldset>
+
+  {# ----- Complaints ----- #}
+  <fieldset class="rounded-xl border bg-white p-5">
+    <legend class="px-2 text-sm font-semibold text-slate-700">
+      {{ 'reception.complaints' | t(lang) }}
+      <span class="ml-2 text-xs text-slate-400">
+        <span x-text="complaintsCount"></span> {{ 'reception.complaints.selected' | t(lang, count='') | replace('{count}', '') }}
+      </span>
+    </legend>
+
+    <div class="space-y-4">
+      {% for section in complaints.sections %}
+      <details class="rounded-lg border bg-slate-50 open:bg-white" {% if section['items'] | selectattr('code', 'in', selected_codes) | list %}open{% endif %}>
+        <summary class="cursor-pointer px-4 py-2 font-medium text-slate-800">
+          {{ section.icon }} {{ section.name[lang] }}
+        </summary>
+        <div class="grid gap-2 border-t px-4 py-3 sm:grid-cols-2">
+          {% for item in section['items'] %}
+          <label class="flex items-start gap-2 rounded p-1 hover:bg-slate-50">
+            <input
+              type="checkbox"
+              name="complaints_codes"
+              value="{{ item.code }}"
+              {% if item.code in selected_codes %}checked{% endif %}
+              @change="onComplaintToggle($event.target)"
+              class="mt-1"
+            />
+            <span class="text-sm text-slate-800">
+              {{ item[lang] }}
+              {% if item.has_discharge_type %}
+              <select name="discharge__{{ item.code }}" class="ml-2 rounded border px-1 py-0.5 text-xs">
+                <option value="">— {{ 'reception.complaints.discharge_type' | t(lang) }} —</option>
+                {% for d in discharge_types.types %}
+                <option value="{{ d.code }}" {% if selected_details.get(item.code) == d.code %}selected{% endif %}>{{ d[lang] }}</option>
+                {% endfor %}
+              </select>
+              {% endif %}
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </details>
+      {% endfor %}
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">{{ 'reception.complaints.additional' | t(lang) }}</label>
+        <textarea name="complaints_note" rows="2" class="w-full rounded-lg border px-3 py-2">{{ val('complaints_note') }}</textarea>
+      </div>
+    </div>
+  </fieldset>
+
+  {# ----- Anamnesis ----- #}
+  <fieldset class="rounded-xl border bg-white p-5">
+    <legend class="px-2 text-sm font-semibold text-slate-700">{{ 'reception.anamnesis' | t(lang) }}</legend>
+    <textarea name="anamnesis" rows="2" class="w-full rounded-lg border px-3 py-2">{{ val('anamnesis') }}</textarea>
+  </fieldset>
+
+  {# ----- LOR STATUS (structured) ----- #}
+  {% include 'reception/_lor_status.html' %}
+
+  {# ----- Diagnosis + Recommendation + Doctor ----- #}
+  <div class="grid gap-4 sm:grid-cols-2">
+    <fieldset class="rounded-xl border bg-white p-5">
+      <legend class="px-2 text-sm font-semibold text-slate-700">{{ 'reception.diagnosis' | t(lang) }} *</legend>
+      <textarea name="diagnosis" rows="3" required class="w-full rounded-lg border px-3 py-2">{{ val('diagnosis') }}</textarea>
+    </fieldset>
+
+    <fieldset class="rounded-xl border bg-white p-5">
+      <legend class="px-2 text-sm font-semibold text-slate-700">{{ 'reception.recommendation' | t(lang) }}</legend>
+      <textarea name="recommendation" rows="3" class="w-full rounded-lg border px-3 py-2">{{ val('recommendation') }}</textarea>
+    </fieldset>
+  </div>
+
+  <fieldset class="rounded-xl border bg-white p-5">
+    <legend class="px-2 text-sm font-semibold text-slate-700">{{ 'reception.doctor' | t(lang) }} *</legend>
+    {% if doctors %}
+    <select name="doctor_id" required class="rounded-lg border px-3 py-2">
+      <option value="">—</option>
+      {% for d in doctors %}
+      <option value="{{ d.id }}" {% if val('doctor_id')|string == d.id|string %}selected{% endif %}>
+        {{ d.full_name }}{% if d.phone %} — {{ d.phone }}{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+    {% else %}
+    <div class="text-sm text-amber-700">
+      {% if lang == 'ru' %}Добавьте врача в{% else %}Shifokor qo'shing:{% endif %}
+      <a href="/settings" class="font-medium underline">{{ 'menu.settings' | t(lang) }}</a>.
+    </div>
+    {% endif %}
+  </fieldset>
+
+  <div class="flex flex-wrap gap-2 pt-2">
+    <button type="submit" name="_next" value="patient" class="rounded-lg bg-brand-500 px-4 py-2 font-semibold text-white hover:bg-brand-600">
+      💾 {{ 'reception.save' | t(lang) }}
+    </button>
+    {% if is_edit %}
+    <a href="/reception/{{ reception.id }}/preview" class="rounded-lg border bg-white px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50">
+      🖨 {{ 'reception.print' | t(lang) }}
+    </a>
+    {% endif %}
+    <button type="submit" name="_next" value="cashier" class="rounded-lg border bg-white px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50">
+      💰 {{ 'reception.to_cashier' | t(lang) }}
+    </button>
+  </div>
+</form>
+{% endblock %}

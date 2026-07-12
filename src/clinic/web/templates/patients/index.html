@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'patients.title' | t(lang) }}{% endblock %}
+
+{% block content %}
+<div class="flex items-start justify-between">
+  <div>
+    <a href="/" class="text-sm text-slate-500 hover:underline">← {{ 'common.back' | t(lang) }}</a>
+    <h1 class="mt-1 text-2xl font-bold text-slate-900">{{ 'patients.title' | t(lang) }}</h1>
+  </div>
+  <div class="flex gap-2">
+    <a href="/patients/statistics" class="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50">📊 {{ 'patients.statistics' | t(lang) }}</a>
+    <a href="/reception" class="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600">+ {{ 'menu.start_reception' | t(lang) }}</a>
+  </div>
+</div>
+
+{% if flash == 'deleted' %}
+<div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+  ✓ {{ 'info.deleted' | t(lang) }}
+</div>
+{% endif %}
+
+<form method="get" class="mt-6 flex gap-2">
+  <input
+    type="search" name="q" value="{{ q }}"
+    placeholder="{{ 'patients.search' | t(lang) }} — F.I.O, {{ 'reception.patient.phone' | t(lang) | lower }}…"
+    class="flex-1 rounded-lg border px-3 py-2"
+  />
+  <button class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white">🔎</button>
+  {% if q %}<a href="/patients" class="rounded-lg border px-4 py-2 text-sm">✕</a>{% endif %}
+</form>
+
+<div class="mt-6 overflow-hidden rounded-xl border bg-white">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 text-left">
+      <tr>
+        <th class="px-4 py-2">#</th>
+        <th class="px-4 py-2">{{ 'reception.patient.full_name' | t(lang) }}</th>
+        <th class="px-4 py-2">{{ 'reception.patient.birth_year' | t(lang) }}</th>
+        <th class="px-4 py-2">{{ 'reception.patient.phone' | t(lang) }}</th>
+        <th class="px-4 py-2 text-right">—</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for p in patients %}
+      <tr class="hover:bg-slate-50">
+        <td class="px-4 py-2 text-slate-400">{{ loop.index + (page - 1) * limit }}</td>
+        <td class="px-4 py-2 font-medium"><a href="/patients/{{ p.id }}" class="text-brand-600 hover:underline">{{ p.full_name }}</a></td>
+        <td class="px-4 py-2">{{ p.birth_year }} <span class="text-slate-400">({{ current_year - p.birth_year }})</span></td>
+        <td class="px-4 py-2 text-slate-600">{{ p.phone or '—' }}</td>
+        <td class="px-4 py-2 text-right">
+          <a href="/patients/{{ p.id }}" class="text-xs text-slate-500 hover:text-brand-600">👁</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">— {% if q %}{{ 'info.deleted' | t(lang) if false else 'Nothing found' }}{% endif %} —</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-4 flex items-center justify-between text-sm text-slate-500">
+  <span>{{ 'patients.total' | t(lang, count=total) }}</span>
+  {% set pages = (total + limit - 1) // limit %}
+  {% if pages > 1 %}
+  <nav class="flex gap-1">
+    {% if page > 1 %}<a href="?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}" class="rounded border px-2 py-1">◀</a>{% endif %}
+    <span class="rounded border bg-slate-50 px-2 py-1">{{ page }} / {{ pages }}</span>
+    {% if page < pages %}<a href="?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}" class="rounded border px-2 py-1">▶</a>{% endif %}
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

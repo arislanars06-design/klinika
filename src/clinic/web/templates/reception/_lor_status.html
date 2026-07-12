@@ -1,0 +1,284 @@
+{# Structured LOR STATUS form built from ``catalogs/lor_status.json``.
+
+Field naming convention (parsed server-side in reception.py):
+  lor__{method}__{section}__{field}          — single value (radio/side/degree)
+  lor__{method}__{section}__{field}[]        — multi value (checkbox_multi)
+  lor__otoscopy__{ear}__{section}__{field}   — per-ear (AD/AS)
+
+Alpine tracks every input's live value under `formValues` keyed by the same
+path so `visible_when` conditions can hide/show dependent fields.
+#}
+
+{% macro _key(method, section_code, field_code, ear=None) -%}
+  {%- if ear -%}lor__{{ method }}__{{ ear }}__{{ section_code }}__{{ field_code }}
+  {%- else -%}lor__{{ method }}__{{ section_code }}__{{ field_code }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro _dot_scope(method, section_code, ear=None) -%}
+  {%- if ear -%}{{ method }}.{{ ear }}.{{ section_code }}
+  {%- else -%}{{ method }}.{{ section_code }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro render_field(method, section, field, saved, ear=None) %}
+  {% set key = _key(method, section.code, field.code, ear) %}
+  {% set scope = _dot_scope(method, section.code, ear) %}
+  {% set dotkey = scope ~ '.' ~ field.code %}
+  {% set saved_value = saved.get(field.code) if saved else None %}
+
+  <div
+    class="mt-2"
+    {% if field.visible_when %}
+      x-show="isVisible({{ field.visible_when | tojson }}, '{{ scope }}')"
+      x-cloak
+    {% endif %}
+  >
+    <div class="mb-1 text-xs font-medium text-slate-500">
+      {{ field.label[lang] if field.label else field.code | replace('_', ' ') | capitalize }}
+    </div>
+
+    {# ----- radio ------------------------------------------------------- #}
+    {% if field.type == 'radio' %}
+      <div class="flex flex-wrap gap-x-4 gap-y-1">
+        {% for opt in field.options %}
+        <label class="inline-flex items-center gap-1 text-sm">
+          <input
+            type="radio" name="{{ key }}" value="{{ opt.code }}"
+            {% if opt.is_norm %}data-norm="1"{% endif %}
+            {% if saved_value == opt.code %}checked{% endif %}
+            @change="setVal('{{ dotkey }}', $event.target.value)"
+            x-init="if ($el.checked) setVal('{{ dotkey }}', '{{ opt.code }}')"
+          />
+          <span class="{% if opt.is_norm %}text-emerald-700{% endif %}">{{ opt[lang] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+    {# ----- checkbox_multi ---------------------------------------------- #}
+    {% elif field.type == 'checkbox_multi' %}
+      <div class="flex flex-wrap gap-x-3 gap-y-1">
+        {% for opt in field.options %}
+        <label class="inline-flex items-center gap-1 text-sm">
+          <input
+            type="checkbox" name="{{ key }}[]" value="{{ opt.code }}"
+            {% if opt.is_norm %}data-norm="1"{% endif %}
+            {% if saved_value is iterable and saved_value is not string and opt.code in saved_value %}checked{% endif %}
+            @change="toggleMulti('{{ dotkey }}', $event.target.value, $event.target.checked)"
+            x-init="if ($el.checked) toggleMulti('{{ dotkey }}', '{{ opt.code }}', true)"
+          />
+          <span class="{% if opt.is_norm %}text-emerald-700{% endif %}">{{ opt[lang] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+    {# ----- side (Chap / O'ng / Ikkalasi) ------------------------------- #}
+    {% elif field.type == 'side' %}
+      <div class="flex gap-2 text-sm">
+        {% for s in lor_status.sides %}
+        <label class="inline-flex items-center gap-1">
+          <input
+            type="radio" name="{{ key }}" value="{{ s.code }}"
+            {% if saved_value == s.code %}checked{% endif %}
+            @change="setVal('{{ dotkey }}', $event.target.value)"
+          />
+          <span>{{ s[lang] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+    {# ----- degree (Yo'q / I / II / III) -------------------------------- #}
+    {% elif field.type == 'degree' %}
+      <div class="flex gap-2 text-sm">
+        {% for d in lor_status.degrees %}
+        <label class="inline-flex items-center gap-1">
+          <input
+            type="radio" name="{{ key }}" value="{{ d.code }}"
+            {% if d.is_norm %}data-norm="1"{% endif %}
+            {% if saved_value == d.code %}checked{% endif %}
+            @change="setVal('{{ dotkey }}', $event.target.value)"
+            x-init="if ($el.checked) setVal('{{ dotkey }}', '{{ d.code }}')"
+          />
+          <span class="{% if d.is_norm %}text-emerald-700{% endif %}">{{ d[lang] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+    {# ----- checkbox (single boolean) ----------------------------------- #}
+    {% elif field.type == 'checkbox' %}
+      <label class="inline-flex items-center gap-1 text-sm">
+        <input
+          type="checkbox" name="{{ key }}" value="1"
+          {% if saved_value %}checked{% endif %}
+        />
+        <span>{{ field.label[lang] if field.label else '' }}</span>
+      </label>
+
+    {% endif %}
+  </div>
+{% endmacro %}
+
+
+{% macro render_section(method, section, saved, ear=None) %}
+  {% set has_saved = saved and (saved is mapping) %}
+  <details
+    class="rounded-lg border bg-slate-50 open:bg-white"
+    {% if has_saved %}open{% endif %}
+  >
+    <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-slate-800">
+      {{ section.name[lang] }}
+    </summary>
+    <div class="border-t px-3 py-2 space-y-1">
+      {% for field in section.fields %}
+        {{ render_field(method, section, field, saved, ear) }}
+      {% endfor %}
+    </div>
+  </details>
+{% endmacro %}
+
+
+{# ============================================================
+   The actual widget
+   ============================================================ #}
+
+<fieldset
+  class="rounded-xl border bg-white p-5"
+  x-data="lorStatus()"
+>
+  <legend class="px-2 text-sm font-semibold text-slate-700">
+    {{ 'reception.lor_status' | t(lang) }}
+  </legend>
+
+  {# ----- toolbar ----- #}
+  <div class="mb-4 flex flex-wrap items-center gap-2">
+    <button
+      type="button"
+      @click="applyNorm"
+      class="rounded-lg border bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+    >✓ {{ 'reception.lor_status.norm' | t(lang) }}</button>
+
+    <button
+      type="button"
+      @click="clearAll"
+      class="rounded-lg border bg-white px-3 py-1 text-xs text-slate-600 hover:bg-slate-50"
+    >{{ 'reception.complaints.clear' | t(lang) }}</button>
+
+    <span class="ml-auto text-xs text-slate-400">
+      {% if lang == 'ru' %}Заполните релевантные пункты — незаполненные не попадут в отчёт.
+      {% else %}Kerakli qismlarni to'ldiring — bo'sh qolganlar hisobotga tushmaydi.{% endif %}
+    </span>
+  </div>
+
+  {# ----- tabs ----- #}
+  <div class="mb-3 flex flex-wrap gap-1 border-b">
+    {% for method in lor_status.methods %}
+    <button
+      type="button"
+      @click="tab = '{{ method.code }}'"
+      :class="tab === '{{ method.code }}' ? 'border-brand-500 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-800'"
+      class="border-b-2 px-3 py-2 text-sm font-medium transition"
+    >{{ method.icon }} {{ method.name[lang] }}</button>
+    {% endfor %}
+  </div>
+
+  {# ----- tab content ----- #}
+  {% for method in lor_status.methods %}
+    <div x-show="tab === '{{ method.code }}'" x-cloak class="space-y-2">
+      {% if method.per_ear %}
+        <div class="grid gap-3 md:grid-cols-2">
+          {% for ear in method.ears %}
+            {% set saved_ear = (saved_lor.get('otoscopy') or {}).get(ear.code) %}
+            <div>
+              <h4 class="mb-2 text-sm font-semibold text-slate-700">{{ ear[lang] }}</h4>
+              {% for section in method.sections %}
+                {{ render_section(method.code, section, (saved_ear or {}).get(section.code), ear.code) }}
+              {% endfor %}
+
+              {% if not loop.last %}<div class="my-3 md:hidden"></div>{% endif %}
+            </div>
+          {% endfor %}
+          <div class="md:col-span-2">
+            <button
+              type="button"
+              @click="mirrorAdToAs()"
+              class="rounded-lg border bg-white px-3 py-1 text-xs text-slate-600 hover:bg-slate-50"
+            >
+              {% if lang == 'ru' %}↔ Скопировать AD → AS{% else %}↔ AD ma'lumotini AS ga nusxalash{% endif %}
+            </button>
+          </div>
+        </div>
+      {% else %}
+        {% for section in method.sections %}
+          {% set saved_section = (saved_lor.get(method.code) or {}).get(section.code) %}
+          {{ render_section(method.code, section, saved_section) }}
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  {# Legacy free-form fallback if nothing structured is provided #}
+  <details class="mt-4 rounded-lg border bg-slate-50">
+    <summary class="cursor-pointer px-3 py-2 text-xs text-slate-500">
+      {% if lang == 'ru' %}Дополнительный текст (свободная форма){% else %}Qo'shimcha matn (erkin shakl){% endif %}
+    </summary>
+    <textarea
+      name="lor_status_text"
+      rows="3"
+      class="w-full rounded-b-lg border-t px-3 py-2 font-mono text-sm"
+    >{{ (saved_lor.get('text') or '') }}</textarea>
+  </details>
+</fieldset>
+
+<script>
+  function lorStatus() {
+    return {
+      tab: 'rhinoscopy',
+      formValues: {},
+
+      setVal(key, val) { this.formValues[key] = val; },
+      toggleMulti(key, val, checked) {
+        const arr = this.formValues[key] || [];
+        if (checked) { if (!arr.includes(val)) arr.push(val); }
+        else { const i = arr.indexOf(val); if (i >= 0) arr.splice(i, 1); }
+        this.formValues[key] = arr;
+      },
+      isVisible(condition, scope) {
+        for (const [key, expected] of Object.entries(condition)) {
+          const val = this.formValues[scope + '.' + key];
+          if (Array.isArray(expected)) {
+            if (!expected.some(e => e === val || (Array.isArray(val) && val.includes(e)))) return false;
+          } else {
+            if (val !== expected && !(Array.isArray(val) && val.includes(expected))) return false;
+          }
+        }
+        return true;
+      },
+
+      applyNorm() {
+        // Check every radio/checkbox flagged as data-norm
+        this.$el.querySelectorAll('input[data-norm="1"]').forEach(el => {
+          if (!el.checked) el.click();
+        });
+      },
+
+      clearAll() {
+        this.$el.querySelectorAll('input[type=radio],input[type=checkbox]').forEach(el => {
+          el.checked = false;
+        });
+        this.formValues = {};
+      },
+
+      mirrorAdToAs() {
+        // Copy every AD field into the matching AS field.
+        const inputs = this.$el.querySelectorAll('input[name*="__AD__"]');
+        inputs.forEach(src => {
+          const asName = src.name.replace('__AD__', '__AS__');
+          const target = this.$el.querySelector(
+            `input[name="${asName}"][value="${src.value}"]`
+          );
+          if (target) target.checked = src.checked;
+        });
+      },
+    };
+  }
+</script>

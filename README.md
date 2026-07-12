@@ -1,107 +1,119 @@
-# 🏥 Clinic LOR Desktop
+# 🏥 Klinika LOR
 
-**LOR (otorinolaringologiya) klinikasi uchun oflayn desktop dastur**
+**LOR (otorinolaringologiya) klinikasi uchun lokal web-ilova.**
 
-Shifokorlar va klinika administratorlari uchun mo'ljallangan, ikkita tilda ishlaydigan (o'zbek/rus) Windows/Linux/macOS desktop dasturi.
+Bir server, brauzer orqali kirish, uz/ru tilida ishlaydi.
 
 ---
 
 ## ⚡ Asosiy imkoniyatlar
 
-- 🩺 **Qabulni boshlash** — bemor ma'lumotlari, strukturaviy shikoyatlar, LOR STATUS, tashxis, tavsiya
-- 📋 **Bemorlar tarixi** — qidiruv, tahrirlash, filter, statistika (kunlik/haftalik/oylik/yillik)
-- 💰 **Kassa** — xizmatlar, hisob-kitob, kvitansiya, statistika
+- 🩺 **Qabul qilish** — bemor + strukturaviy shikoyatlar (30 element) + LOR STATUS + tashxis
+- 📋 **Bemorlar tarixi** — qidiruv, kartochka, statistika
+- 💰 **Kassa** — xizmatlar, hisob-kitob, statistika
 - 🌍 **Ikki til** — o'zbekcha va ruscha (bir bosishda almashadi)
-- 🖨 **Word/PDF chop etish** — klinika shabloni asosida qabul varaqasi
-- 📊 **Statistika** — Word formatida eksport
-- ⚙️ **Sozlamalar** — xizmatlar, shifokorlar, katalog tahrirlash
+- 🖨 **Word chop etish** — klinika shabloni asosida qabul varaqasi
+- 📊 **Statistika** — Word formatida eksport (kunlik/haftalik/oylik/yillik)
+- ⚙️ **Sozlamalar** — klinika ma'lumotlari, shifokorlar, xizmatlar
+
+---
+
+## 🚀 Tez ishga tushirish
+
+### Docker orqali (osonroq)
+
+```bash
+docker compose up -d
+python -c "from scripts.seed_data import main; main()"  # boshlang'ich ma'lumotlar
+```
+
+Brauzerda: `http://localhost:8000/`
+
+### Python orqali
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -e .
+python -m scripts.seed_data    # boshlang'ich ma'lumotlar
+python -m clinic.main --host 0.0.0.0
+```
+
+To'liq o'rnatish yo'riqnomasi: [`INSTALL_uz.md`](INSTALL_uz.md)
 
 ---
 
 ## 🛠 Texnologiyalar
 
-- **Python 3.11+** — asosiy dasturlash tili
-- **PySide6 (Qt 6)** — grafik interfeys
-- **SQLite + SQLAlchemy** — mahalliy ma'lumotlar bazasi
-- **python-docx + docxtpl** — Word hujjatlarini yaratish va shablonlarni to'ldirish
-- **PyInstaller** — bitta `.exe` faylga paketlash
+| Qatlam | Vosita |
+|--------|--------|
+| **Backend** | Python 3.11 + FastAPI + SQLAlchemy 2.0 |
+| **Frontend** | Jinja2 shablonlar + Tailwind CSS + HTMX + Alpine.js |
+| **Ma'lumotlar** | SQLite (bitta fayl, backup oson) |
+| **Chop etish** | python-docx + docxtpl |
+| **Loglash** | loguru |
 
 ---
 
-## 📁 Hujjatlar
+## 📁 Loyiha strukturasi
 
-Loyihaning to'liq logikasi va texnik topshirig'i quyidagi fayllarda:
+```
+src/clinic/
+├── main.py               # uvicorn kirish nuqtasi
+├── config.py             # sozlamalar
+├── db/                   # SQLAlchemy modellari
+├── domain/               # biznes-mantiq (patient, doctor, reception, cashier, stats)
+├── i18n/                 # uz/ru tarjimalar
+├── catalogs/             # shikoyat/LOR STATUS/ajralma turlari JSON
+├── infrastructure/       # loglash, backup
+├── printing/             # Word hujjatlar (text_composer, docx_builder)
+└── web/
+    ├── app.py            # FastAPI factory
+    ├── deps.py           # dependencies
+    ├── routes/           # HTTP endpointlar
+    ├── templates/        # Jinja2 shablonlar
+    └── static/           # CSS/JS
 
-| Fayl | Tavsif |
-|------|--------|
-| [`SPEC.md`](SPEC.md) | Asosiy texnik topshiriq — barcha ekranlar, oqimlar, qoidalar |
-| [`docs/architecture.md`](docs/architecture.md) | Loyiha strukturasi, texnologiyalar, modullar |
-| [`docs/database_schema.md`](docs/database_schema.md) | Ma'lumotlar bazasi jadvallari va bog'lanishlari |
-| [`docs/complaints_catalog.md`](docs/complaints_catalog.md) | Shikoyatlar katalogi (30+ element, uz/ru) |
-| [`docs/lor_status_catalog.md`](docs/lor_status_catalog.md) | LOR STATUS katalogi (4 ko'rik metodi) |
-
----
-
-## 🚦 Loyiha holati
-
-**Bosqich: Logika (SPEC) yozish** — kod yozish hali boshlanmagan.
-
-- ✅ Talablar yig'ildi
-- ✅ Interfeys logikasi ishlab chiqildi
-- ✅ Ma'lumotlar bazasi sxemasi tayyor
-- ✅ Shikoyatlar va LOR STATUS kataloglari tuzildi
-- ⏳ Chop etish Word shablonini kutish (foydalanuvchi jo'natadi)
-- ⏳ Kodni yozish (SPEC tasdiqlangandan so'ng)
-
----
-
-## 📅 Yo'l xaritasi
-
-**Faza 1 — Skelet (1-hafta):**
-- Loyiha strukturasi, DB migratsiyalari
-- Til tanlash + bosh menyu
-- Sozlamalar (xizmatlar, shifokorlar)
-
-**Faza 2 — Qabul (2-hafta):**
-- Qabul oynasi (barcha maydonlar)
-- Bemor qidiruv/avtoto'ldirish
-- Shikoyatlar strukturaviy tanlash
-- LOR STATUS strukturaviy tanlash
-
-**Faza 3 — Tarix va Kassa (3-hafta):**
-- Bemorlar tarixi + qidiruv
-- Kassa bo'limi
-- Statistika (ikkala bo'lim uchun)
-
-**Faza 4 — Chop etish va yakunlash (4-hafta):**
-- Word shabloni bilan chop etish
-- Word'ga statistika eksporti
-- Backup tizimi
-- `.exe` paketlash
+templates/                # foydalanuvchining Word shablonlari
+data/                     # runtime ma'lumotlar (baza, backup, log)
+scripts/
+├── seed_data.py          # boshlang'ich ma'lumotlar
+└── backup.py             # kundalik zaxira
+deploy/
+└── clinic-lor.service    # systemd unit fayli
+```
 
 ---
 
-## 👥 Foydalanuvchilar
+## 🧪 Testlar
 
-- **Shifokor** — bemor qabul qilish, ko'rik, tashxis, tavsiya berish
-- **Klinika administratori** — bemorlar, to'lovlar, statistika bilan ishlash
+```bash
+pip install -e '.[dev]'
+pytest
+```
 
-*Birinchi versiyada rol/parol yo'q — bir kompyuterda ishlaydi.*
+---
+
+## 📖 Hujjatlar
+
+- [`SPEC.md`](SPEC.md) — texnik topshiriq
+- [`INSTALL_uz.md`](INSTALL_uz.md) — o'rnatish (klinika uchun)
+- [`docs/architecture.md`](docs/architecture.md) — arxitektura
+- [`docs/database_schema.md`](docs/database_schema.md) — ma'lumotlar bazasi
+- [`docs/complaints_catalog.md`](docs/complaints_catalog.md) — shikoyatlar katalogi
+- [`docs/lor_status_catalog.md`](docs/lor_status_catalog.md) — LOR STATUS katalogi
 
 ---
 
 ## 🔒 Ma'lumotlar xavfsizligi
 
-- Barcha ma'lumotlar **lokal SQLite** faylida saqlanadi (bulut yo'q)
-- Har kuni avtomatik **backup** yaratiladi (`data/backups/`)
+- Barcha ma'lumotlar **lokal SQLite** faylida (`data/clinic.db`)
+- Har kuni avtomatik backup (`data/backups/`)
 - 30 kundan eski backup'lar avtomatik o'chiriladi
+- Internet talab qilinmaydi
 
 ---
 
 ## 📞 Aloqa
 
-Loyiha egasi: *(to'ldiriladi)*
-
----
-
-*Bu hujjat SPEC yozish jarayonida yaratilgan.*
+Muammo yuzaga kelsa, `data/logs/` papkasidagi log faylni ishlab chiquvchiga yuboring.

@@ -1,0 +1,17 @@
+{# Two small buttons that POST to /language/{code} via HTMX. #}
+<div class="flex items-center gap-1 rounded-lg border bg-slate-50 p-1 text-xs">
+  {% for code in supported_languages %}
+    <button
+      type="button"
+      hx-post="/language/{{ code }}"
+      hx-swap="none"
+      class="rounded-md px-2 py-1 font-semibold uppercase transition
+             {% if lang == code %}
+               bg-brand-500 text-white
+             {% else %}
+               text-slate-600 hover:bg-white
+             {% endif %}"
+      aria-label="{{ 'language.switch_tooltip' | t(lang) }}"
+    >{{ code }}</button>
+  {% endfor %}
+</div>

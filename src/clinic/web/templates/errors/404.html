@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}404 • Klinika LOR{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-md text-center">
+  <div class="text-6xl">🔎</div>
+  <h1 class="mt-4 text-2xl font-bold text-slate-900">404</h1>
+  <p class="mt-2 text-slate-500">
+    {% if lang == 'ru' %}
+      Страница не найдена.
+    {% else %}
+      Sahifa topilmadi.
+    {% endif %}
+  </p>
+  <a
+    href="/"
+    class="mt-6 inline-block rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+  >
+    {{ 'common.back' | t(lang) }}
+  </a>
+</section>
+{% endblock %}

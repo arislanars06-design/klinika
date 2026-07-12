@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'menu.settings' | t(lang) }}{% endblock %}
+
+{% block content %}
+<a href="/" class="text-sm text-slate-500 hover:underline">← {{ 'common.back' | t(lang) }}</a>
+<h1 class="mt-1 text-2xl font-bold text-slate-900">⚙️ {{ 'menu.settings' | t(lang) }}</h1>
+
+{% if flash %}
+<div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+  ✓ {{ 'info.saved' | t(lang) }}
+</div>
+{% endif %}
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <form method="post" action="/settings/clinic" class="rounded-xl border bg-white p-5">
+    <h2 class="text-lg font-semibold">🏥 {{ 'settings.tab.clinic' | t(lang) }}</h2>
+    <div class="mt-4 space-y-3">
+      <div>
+        <label class="mb-1 block text-xs text-slate-500">{{ 'settings.clinic.name' | t(lang) }} (UZ)</label>
+        <input name="clinic_name_uz" value="{{ clinic_name_uz }}" class="w-full rounded-lg border px-3 py-2" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs text-slate-500">{{ 'settings.clinic.name' | t(lang) }} (RU)</label>
+        <input name="clinic_name_ru" value="{{ clinic_name_ru }}" class="w-full rounded-lg border px-3 py-2" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs text-slate-500">{{ 'settings.clinic.address' | t(lang) }} (UZ)</label>
+        <input name="clinic_address_uz" value="{{ clinic_address_uz }}" class="w-full rounded-lg border px-3 py-2" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs text-slate-500">{{ 'settings.clinic.address' | t(lang) }} (RU)</label>
+        <input name="clinic_address_ru" value="{{ clinic_address_ru }}" class="w-full rounded-lg border px-3 py-2" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs text-slate-500">{{ 'settings.clinic.phone' | t(lang) }}</label>
+        <input name="clinic_phone" value="{{ clinic_phone }}" placeholder="+998 71 ..." class="w-full rounded-lg border px-3 py-2" />
+      </div>
+    </div>
+    <button class="mt-4 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">{{ 'common.save' | t(lang) }}</button>
+  </form>
+
+  <div class="space-y-6">
+    <div class="rounded-xl border bg-white p-5">
+      <h2 class="text-lg font-semibold">👨‍⚕️ {{ 'settings.tab.doctors' | t(lang) }}</h2>
+      <form method="post" action="/settings/doctors" class="mt-3 flex gap-2">
+        <input name="full_name" required placeholder="F.I.O" class="flex-1 rounded-lg border px-3 py-2" />
+        <input name="phone" placeholder="+998" class="w-40 rounded-lg border px-3 py-2" />
+        <button class="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white">+</button>
+      </form>
+      <ul class="mt-3 divide-y text-sm">
+        {% for d in doctors %}
+        <li class="flex items-center justify-between py-2 {% if not d.is_active %}text-slate-400 line-through{% endif %}">
+          <div>{{ d.full_name }} <span class="text-xs text-slate-400">{{ d.phone or '' }}</span></div>
+          <form method="post" action="/settings/doctors/{{ d.id }}/toggle">
+            <button class="rounded border bg-white px-2 py-1 text-xs hover:bg-slate-50">{% if d.is_active %}⏸{% else %}▶{% endif %}</button>
+          </form>
+        </li>
+        {% else %}<li class="py-3 text-center text-slate-400">—</li>{% endfor %}
+      </ul>
+    </div>
+
+    <div class="rounded-xl border bg-white p-5">
+      <h2 class="text-lg font-semibold">💰 {{ 'settings.tab.services' | t(lang) }}</h2>
+      <form method="post" action="/settings/services" class="mt-3 grid grid-cols-4 gap-2">
+        <input name="name_uz" required placeholder="Xizmat (UZ)" class="col-span-2 rounded-lg border px-2 py-1 text-sm" />
+        <input name="name_ru" placeholder="Услуга (RU)" class="rounded-lg border px-2 py-1 text-sm" />
+        <input name="price" type="number" min="0" step="1000" placeholder="{{ 'cashier.price' | t(lang) }}" class="rounded-lg border px-2 py-1 text-sm" />
+        <button class="col-span-4 rounded-lg bg-brand-500 px-3 py-1 text-sm font-semibold text-white">+ {{ 'common.add' | t(lang) }}</button>
+      </form>
+      <ul class="mt-3 divide-y text-sm">
+        {% for s in services %}
+        <li class="flex items-center justify-between py-2 {% if not s.is_active %}text-slate-400 line-through{% endif %}">
+          <div>
+            <div>{{ s.name_uz }} {% if s.name_ru != s.name_uz %}<span class="text-xs text-slate-400">/ {{ s.name_ru }}</span>{% endif %}</div>
+            <div class="text-xs text-slate-500">{{ s.price }} {{ 'cashier.currency' | t(lang) }}</div>
+          </div>
+          <form method="post" action="/settings/services/{{ s.id }}/toggle">
+            <button class="rounded border bg-white px-2 py-1 text-xs hover:bg-slate-50">{% if s.is_active %}⏸{% else %}▶{% endif %}</button>
+          </form>
+        </li>
+        {% else %}<li class="py-3 text-center text-slate-400">—</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{# Reusable period selector: today / week / month / year / custom. #}
+<form method="get" class="mt-4 flex flex-wrap items-center gap-2">
+  {% for code in ['today','week','month','year'] %}
+  <a
+    href="?period={{ code }}"
+    class="rounded-lg border px-3 py-1 text-sm font-medium
+           {% if period == code %}bg-brand-500 text-white border-brand-500{% else %}bg-white text-slate-700 hover:bg-slate-50{% endif %}"
+  >{{ ('stats.' + code) | t(lang) }}</a>
+  {% endfor %}
+  <span class="ml-2 text-xs text-slate-400">{{ start.strftime('%d.%m.%Y') }} — {{ end.strftime('%d.%m.%Y') }}</span>
+
+  <span class="ml-4 flex items-center gap-1">
+    <input type="hidden" name="period" value="custom" />
+    <input type="date" name="start_raw" value="{{ start.strftime('%Y-%m-%d') }}" class="rounded border px-2 py-1 text-sm" />
+    <span>—</span>
+    <input type="date" name="end_raw"   value="{{ end.strftime('%Y-%m-%d') }}"   class="rounded border px-2 py-1 text-sm" />
+    <button class="rounded border bg-white px-3 py-1 text-sm hover:bg-slate-50">{{ 'patients.filter' | t(lang) }}</button>
+  </span>
+</form>

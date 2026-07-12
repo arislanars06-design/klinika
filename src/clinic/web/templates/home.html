@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'menu.title' | t(lang) }} • Klinika LOR{% endblock %}
+
+{% block content %}
+<section>
+  <h1 class="text-2xl font-bold text-slate-900">
+    {{ 'menu.title' | t(lang) }}
+  </h1>
+  <p class="mt-2 text-slate-500">
+    {{ 'app.subtitle' | t(lang) }}
+  </p>
+
+  <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <a
+      href="/reception"
+      class="group rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-lg"
+    >
+      <div class="text-4xl">🩺</div>
+      <div class="mt-4 text-lg font-semibold text-slate-900 group-hover:text-brand-600">
+        {{ 'menu.start_reception' | t(lang) }}
+      </div>
+      <div class="mt-1 text-sm text-slate-500">
+        {{ 'reception.title' | t(lang) }}
+      </div>
+    </a>
+
+    <a
+      href="/patients"
+      class="group rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-lg"
+    >
+      <div class="text-4xl">📋</div>
+      <div class="mt-4 text-lg font-semibold text-slate-900 group-hover:text-brand-600">
+        {{ 'menu.patients_history' | t(lang) }}
+      </div>
+      <div class="mt-1 text-sm text-slate-500">
+        {{ 'patients.title' | t(lang) }}
+      </div>
+    </a>
+
+    <a
+      href="/cashier"
+      class="group rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-lg"
+    >
+      <div class="text-4xl">💰</div>
+      <div class="mt-4 text-lg font-semibold text-slate-900 group-hover:text-brand-600">
+        {{ 'menu.cashier' | t(lang) }}
+      </div>
+      <div class="mt-1 text-sm text-slate-500">
+        {{ 'cashier.title' | t(lang) }}
+      </div>
+    </a>
+  </div>
+
+  <div class="mt-8 flex items-center gap-3">
+    <a
+      href="/settings"
+      class="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+    >
+      ⚙️ {{ 'menu.settings' | t(lang) }}
+    </a>
+    <a
+      href="/api/docs"
+      class="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      target="_blank"
+    >
+      🔧 API docs
+    </a>
+  </div>
+</section>
+{% endblock %}

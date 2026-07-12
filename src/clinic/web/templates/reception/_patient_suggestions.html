@@ -1,0 +1,31 @@
+{# HTMX fragment: list of patient suggestions for the F.I.O input. #}
+{% if matches %}
+<ul class="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-auto rounded-lg border bg-white shadow-lg">
+  {% for p in matches %}
+    <li>
+      <button
+        type="button"
+        class="flex w-full items-start justify-between gap-3 px-3 py-2 text-left hover:bg-brand-50"
+        @click='
+          $refs.name.value = "{{ p.full_name|e }}";
+          $refs.birth.value = "{{ p.birth_year }}";
+          $refs.address.value = "{{ (p.address or "")|e }}";
+          $refs.phone.value = "{{ (p.phone or "")|e }}";
+          $refs.patientId.value = "{{ p.id }}";
+          suggestions = "";
+        '
+      >
+        <span>
+          <span class="font-medium text-slate-900">{{ p.full_name }}</span>
+          <span class="text-slate-500"> — {{ p.birth_year }}</span>
+        </span>
+        <span class="text-xs text-slate-400">{{ p.phone or '' }}</span>
+      </button>
+    </li>
+  {% endfor %}
+</ul>
+{% elif q and q|length >= 2 %}
+<div class="absolute left-0 right-0 top-full z-30 mt-1 rounded-lg border bg-white p-3 text-sm text-slate-500 shadow-lg">
+  {% if lang == 'ru' %}Ничего не найдено — будет создан новый пациент.{% else %}Topilmadi — yangi bemor sifatida saqlanadi.{% endif %}
+</div>
+{% endif %}
