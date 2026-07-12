@@ -67,13 +67,15 @@ def _all_text(doc) -> str:  # type: ignore[no-untyped-def]
     return "\n".join(p.text for p in doc.paragraphs)
 
 
-def test_reception_default_uz(sample: dict) -> None:
+def test_reception_default_uz(sample: dict, tmp_path: Path) -> None:
+    # Force the default renderer (bypass any shipped template).
     doc = build_reception_document(
         reception=sample["reception"],
         patient=sample["patient"],
         doctor=sample["doctor"],
         clinic=sample["clinic"],
         lang="uz",
+        template_path=tmp_path / "nonexistent.docx",
     )
     text = _all_text(doc)
     assert "LOR klinikasi" in text
@@ -84,13 +86,14 @@ def test_reception_default_uz(sample: dict) -> None:
     assert "LOR STATUS" in text
 
 
-def test_reception_default_ru(sample: dict) -> None:
+def test_reception_default_ru(sample: dict, tmp_path: Path) -> None:
     doc = build_reception_document(
         reception=sample["reception"],
         patient=sample["patient"],
         doctor=sample["doctor"],
         clinic=sample["clinic"],
         lang="ru",
+        template_path=tmp_path / "nonexistent.docx",
     )
     text = _all_text(doc)
     assert "ЛОР клиника" in text
@@ -98,7 +101,7 @@ def test_reception_default_ru(sample: dict) -> None:
     assert "ЛОР СТАТУС" in text
 
 
-def test_reception_omits_optional_sections(sample: dict) -> None:
+def test_reception_omits_optional_sections(sample: dict, tmp_path: Path) -> None:
     """Recommendation/anamnesis are optional — no heading when empty."""
     reception = sample["reception"]
     reception.recommendation = None
@@ -110,6 +113,7 @@ def test_reception_omits_optional_sections(sample: dict) -> None:
         doctor=sample["doctor"],
         clinic=sample["clinic"],
         lang="uz",
+        template_path=tmp_path / "nonexistent.docx",
     )
     text = _all_text(doc)
     # No RECOMMENDATION / ANAMNEZ heading should appear.
