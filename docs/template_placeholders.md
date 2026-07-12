@@ -191,4 +191,24 @@ shablon `templates/` papkasida bo'lsa avtomatik ishlatiladi.
 
 ---
 
-*Hujjat versiyasi: 1.0 · Sana: 2026-07-12*
+## O'z shablonini tayyorlash
+
+`templates/reception_template.docx` fayli **klinika sarlavhasi** (nomi,
+xizmatlar ro'yxati, manzil, telefonlar) hamda `docxtpl` placeholder'lari
+bilan tayyorlangan. Uni istagan vaqtingizda MS Word'da ochib:
+
+1. Sarlavha (logo, klinika ma'lumotlari, ranglar, shrift) ni o'zgartirishingiz mumkin.
+2. Placeholder'lar (`{{ patient.full_name }}`, `{{ reception.diagnosis }}`, ...) **matnda saqlanib qolishi kerak** — aks holda bu joyga real ma'lumot yozilmaydi.
+3. Fayl yaratilgan `scripts/build_reception_template.py` skript orqali qayta yaratish uchun:
+   ```bash
+   python scripts/build_reception_template.py
+   ```
+
+Agar shablonni butunlay o'chirsangiz, dastur avtomatik ravishda o'zining
+**default** renderer (python-docx orqali chiroyli, minimal hujjat) ga
+o'tadi. Har ikkalasi ham bir xil kontekstdan foydalanadi — mos kelmaslik
+yo'q.
+
+---
+
+*Hujjat versiyasi: 1.1 · Sana: 2026-07-12*

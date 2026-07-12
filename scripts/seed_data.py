@@ -40,7 +40,6 @@ from clinic.domain.dto import (  # noqa: E402
     ReceptionInput,
 )
 
-
 DOCTORS = [
     {"full_name": "Karimov Alisher", "phone": "+998901234567"},
     {"full_name": "Aliyeva Nigora", "phone": "+998901112233"},
