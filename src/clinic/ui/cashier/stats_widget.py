@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QMessageBox,
+    QPushButton,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -89,10 +90,14 @@ class CashierStatsDialog(QDialog):
         self.chart = ChartCanvas()
         chart_layout.addWidget(self.chart)
 
-        # Close
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        button_box.rejected.connect(self.reject)
-        self._close_btn = button_box.button(QDialogButtonBox.StandardButton.Close)
+        # Buttons: Export + Close
+        self.export_btn = QPushButton()
+        self.export_btn.clicked.connect(self._on_export)
+        button_box = QDialogButtonBox()
+        button_box.addButton(self.export_btn, QDialogButtonBox.ButtonRole.ActionRole)
+        close_btn = button_box.addButton(QDialogButtonBox.StandardButton.Close)
+        close_btn.clicked.connect(self.reject)
+        self._close_btn = close_btn
 
         # Assemble
         outer = QVBoxLayout(self)
@@ -102,6 +107,9 @@ class CashierStatsDialog(QDialog):
         outer.addWidget(self.service_group, 1)
         outer.addWidget(self.chart_group, 1)
         outer.addWidget(button_box)
+
+        self._stats: CashierStats | None = None
+        self._period: Period | None = None
 
     # ============================================================
     # Data
@@ -118,9 +126,46 @@ class CashierStatsDialog(QDialog):
         except Exception as exc:
             QMessageBox.critical(self, t("error.title"), f"{t('error.db')}\n\n{exc}")
             return
+        self._stats = stats
+        self._period = period
         self._render_kpis(stats)
         self._render_services(stats)
         self._render_chart(stats)
+
+    def _on_export(self) -> None:
+        from clinic.domain import clinic_info_service
+        from clinic.printing.stats_export import save_cashier_stats
+        from clinic.ui.printing_helpers import cashier_stats_filename, prompt_and_save
+
+        if self._stats is None or self._period is None:
+            return
+        info = clinic_info_service.load()
+        clinic_dict = {
+            "name_uz": info.name_uz,
+            "name_ru": info.name_ru,
+            "address_uz": info.address_uz,
+            "address_ru": info.address_ru,
+            "phone": info.phone,
+            "logo_path": info.logo_path,
+        }
+
+        def _builder(dest):  # type: ignore[no-untyped-def]
+            return save_cashier_stats(
+                output_path=dest,
+                stats=self._stats,
+                period=self._period,
+                clinic=clinic_dict,
+                lang=translator.language,
+            )
+
+        prompt_and_save(
+            self,
+            title_key="print.cashier_stats.title",
+            default_filename=cashier_stats_filename(
+                self._period.start.date(), self._period.end.date()
+            ),
+            builder=_builder,
+        )
 
     def _render_kpis(self, stats: CashierStats) -> None:
         currency = t("cashier.currency")
@@ -178,6 +223,7 @@ class CashierStatsDialog(QDialog):
         self.setWindowTitle(t("cashier.stats.title"))
         self.title_label.setText(t("cashier.stats.title"))
         self._close_btn.setText(t("common.close"))
+        self.export_btn.setText("\U0001F4C4  " + t("stats.export_word"))
 
 
 class _KpiCard(QGroupBox):

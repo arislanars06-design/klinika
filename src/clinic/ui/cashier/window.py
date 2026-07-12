@@ -381,7 +381,79 @@ class CashierWindow(QDialog):
         self.accept()
 
     def _on_receipt(self) -> None:
-        QMessageBox.information(self, t("cashier.receipt"), t("info.not_implemented"))
+        """Save the payment (if not saved yet) and print its receipt."""
+        # Nothing to print if the receipt hasn't been persisted yet.
+        if self._patient is None:
+            QMessageBox.warning(self, t("error.title"), t("cashier.patient.select"))
+            return
+
+        # If items are on-screen but haven't been saved, save first.
+        if self.items_table.rowCount() > 0:
+            reply = QMessageBox.question(
+                self,
+                t("cashier.title"),
+                t("common.confirm"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self._on_save()
+                # After successful save the dialog was accepted and self is gone;
+                # nothing else to do here.
+                return
+
+        # No pending items — print the LAST receipt for the current patient.
+        from clinic.domain import cashier_service
+
+        records = cashier_service.list_for_patient(self._patient.id)
+        if not records:
+            QMessageBox.warning(self, t("error.title"), t("print.needs_records_first"))
+            return
+        # Group by receipt id (records with matching paid_at second are one receipt).
+        # Simpler: take all records for the same reception_id or None as one receipt.
+        last_receipt = records[0]
+        same_receipt = [
+            r for r in records
+            if r.reception_id == last_receipt.reception_id
+            and abs((r.paid_at - last_receipt.paid_at).total_seconds()) < 60
+        ]
+        self._print_receipt(same_receipt)
+
+    def _print_receipt(self, records: list) -> None:  # type: ignore[type-arg]
+        from clinic.domain import clinic_info_service
+        from clinic.i18n.translator import translator
+        from clinic.printing.receipt_builder import save_receipt_document
+        from clinic.ui.printing_helpers import prompt_and_save, receipt_filename
+
+        if not records or self._patient is None:
+            return
+
+        clinic_info = clinic_info_service.load()
+        clinic_dict = {
+            "name_uz": clinic_info.name_uz,
+            "name_ru": clinic_info.name_ru,
+            "address_uz": clinic_info.address_uz,
+            "address_ru": clinic_info.address_ru,
+            "phone": clinic_info.phone,
+            "logo_path": clinic_info.logo_path,
+        }
+        paid_at = records[0].paid_at
+
+        def _builder(dest):  # type: ignore[no-untyped-def]
+            return save_receipt_document(
+                output_path=dest,
+                records=records,
+                patient=self._patient,
+                clinic=clinic_dict,
+                lang=translator.language,
+            )
+
+        prompt_and_save(
+            self,
+            title_key="print.receipt.title",
+            default_filename=receipt_filename(self._patient.full_name, paid_at),
+            builder=_builder,
+        )
 
     def _on_stats(self) -> None:
         from clinic.ui.cashier.stats_widget import CashierStatsDialog

@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from clinic.domain import clinic_info_service
 from clinic.i18n.translator import SUPPORTED_LANGUAGES, t, translator
+from clinic.ui.settings.backup_widget import BackupSection
 
 
 class ClinicTab(QWidget):
@@ -79,11 +80,14 @@ class ClinicTab(QWidget):
         self.save_btn = QPushButton(t("settings.clinic.save"))
         self.save_btn.clicked.connect(self._on_save)
 
+        self.backup_section = BackupSection()
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.addLayout(self.form)
-        layout.addStretch(1)
         layout.addWidget(self.save_btn, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addSpacing(12)
+        layout.addWidget(self.backup_section, 1)
 
     # ----- data load/save -----
 
