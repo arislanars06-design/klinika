@@ -59,12 +59,12 @@ class Patient(Base):
     created_at: Mapped[datetime] = _created_at()
     updated_at: Mapped[datetime] = _updated_at()
 
-    receptions: Mapped[list["Reception"]] = relationship(
+    receptions: Mapped[list[Reception]] = relationship(
         back_populates="patient",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    cashier_records: Mapped[list["CashierRecord"]] = relationship(
+    cashier_records: Mapped[list[CashierRecord]] = relationship(
         back_populates="patient",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -90,7 +90,7 @@ class Doctor(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = _created_at()
 
-    receptions: Mapped[list["Reception"]] = relationship(back_populates="doctor")
+    receptions: Mapped[list[Reception]] = relationship(back_populates="doctor")
 
 
 # ----- receptions ------------------------------------------------------------
@@ -122,7 +122,7 @@ class Reception(Base):
 
     patient: Mapped[Patient] = relationship(back_populates="receptions")
     doctor: Mapped[Doctor] = relationship(back_populates="receptions")
-    cashier_records: Mapped[list["CashierRecord"]] = relationship(back_populates="reception")
+    cashier_records: Mapped[list[CashierRecord]] = relationship(back_populates="reception")
 
     __table_args__ = (
         Index("idx_receptions_date", "reception_date"),
@@ -145,7 +145,7 @@ class Service(Base):
     created_at: Mapped[datetime] = _created_at()
     updated_at: Mapped[datetime] = _updated_at()
 
-    cashier_records: Mapped[list["CashierRecord"]] = relationship(back_populates="service")
+    cashier_records: Mapped[list[CashierRecord]] = relationship(back_populates="service")
 
 
 # ----- cashier_records -------------------------------------------------------
@@ -227,12 +227,12 @@ class LorCatalogCustom(Base):
 
 __all__ = [
     "Base",
-    "Patient",
+    "CashierRecord",
+    "ComplaintCatalogCustom",
     "Doctor",
+    "LorCatalogCustom",
+    "Patient",
     "Reception",
     "Service",
-    "CashierRecord",
     "Setting",
-    "ComplaintCatalogCustom",
-    "LorCatalogCustom",
 ]

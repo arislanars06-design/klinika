@@ -51,7 +51,11 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = ["E501"]
+# E501: long lines are OK
+# RUF001/RUF002/RUF003: Cyrillic characters look ambiguous to ruff but are
+#   fully intentional in a bilingual (uz/ru) app.
+# N802: closeEvent and friends are dictated by Qt's camelCase API.
+ignore = ["E501", "RUF001", "RUF002", "RUF003", "N802"]
 
 [tool.mypy]
 python_version = "3.11"

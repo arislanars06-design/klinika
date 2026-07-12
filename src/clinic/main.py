@@ -19,7 +19,7 @@ def main() -> int:
         from clinic.ui.app import run
 
         return run()
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("Fatal error during application startup")
         return 1
 

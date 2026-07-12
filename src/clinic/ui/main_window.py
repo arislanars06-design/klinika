@@ -132,31 +132,43 @@ class MainWindow(QMainWindow):
             settings_service.set_language(new_lang)
 
     def _open_reception(self) -> None:
-        self._todo_dialog("Qabul oynasi")
+        from clinic.ui.reception import ReceptionWindow
+
+        window = ReceptionWindow(self)
+        window.exec()
+        # If the clinic name was edited or a save happened, refresh the header.
+        self._retranslate()
 
     def _open_patients(self) -> None:
-        self._todo_dialog("Bemorlar tarixi")
+        QMessageBox.information(
+            self,
+            t("menu.patients_history"),
+            t("info.not_implemented"),
+        )
 
     def _open_cashier(self) -> None:
-        self._todo_dialog("Kassa")
+        QMessageBox.information(
+            self,
+            t("menu.cashier"),
+            t("info.not_implemented"),
+        )
 
     def _open_settings(self) -> None:
-        self._todo_dialog("Sozlamalar")
+        from clinic.ui.settings import SettingsWindow
+
+        window = SettingsWindow(self)
+        window.exec()
+        # Clinic name / language may have changed — refresh the header.
+        self._retranslate()
 
     def _open_help(self) -> None:
         QMessageBox.information(
             self,
             t("menu.help"),
-            "Klinika LOR v0.1.0 (skelet).\n"
-            "Milestone 1: base structure, DB, i18n, main menu.",
-        )
-
-    def _todo_dialog(self, screen_name: str) -> None:
-        QMessageBox.information(
-            self,
-            screen_name,
-            f"'{screen_name}' oynasi keyingi bosqichda qo'shiladi.\n"
-            "Milestone 1 — hozircha faqat skelet ishlaydi.",
+            "Klinika LOR v0.1.0\n\n"
+            "Milestone 1 (skelet + sozlamalar) va\n"
+            "Milestone 2 (Qabul oynasi) faol.\n\n"
+            "Bemorlar tarixi va Kassa keyingi bosqichlarda qo'shiladi.",
         )
 
     # ----- exit confirmation -----
