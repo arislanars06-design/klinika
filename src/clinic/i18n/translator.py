@@ -1,14 +1,8 @@
-"""Runtime translator with Qt signal for hot-swapping the UI language.
+"""Lightweight i18n helper used by the web layer.
 
-Usage::
-
-    from clinic.i18n.translator import translator, t
-
-    translator.set_language("uz")
-    label.setText(t("menu.start_reception"))
-
-Widgets that need to update on language changes can connect to
-``translator.language_changed`` and re-render themselves.
+Loads JSON translation files on import and exposes a ``t()`` function that
+accepts an optional ``lang`` override so it can be used from Jinja2 templates
+and FastAPI dependencies. There are no Qt or event-loop dependencies here.
 """
 
 from __future__ import annotations
@@ -18,7 +12,6 @@ from pathlib import Path
 from typing import Any
 
 from loguru import logger
-from PySide6.QtCore import QObject, Signal
 
 from clinic.config import settings
 
@@ -26,18 +19,12 @@ SUPPORTED_LANGUAGES: tuple[str, ...] = ("uz", "ru")
 DEFAULT_LANGUAGE: str = "uz"
 
 
-class Translator(QObject):
-    """Loads JSON translation files and emits a signal on language change."""
-
-    language_changed = Signal(str)
+class Translator:
+    """In-memory dictionary of translated strings keyed by language."""
 
     def __init__(self) -> None:
-        super().__init__()
-        self._language: str = DEFAULT_LANGUAGE
         self._strings: dict[str, dict[str, str]] = {}
         self._load_all()
-
-    # ----- loading -----
 
     def _load_all(self) -> None:
         i18n_dir: Path = settings.i18n_dir
@@ -51,29 +38,18 @@ class Translator(QObject):
                 self._strings[lang] = json.load(f)
             logger.debug("Loaded {} strings for '{}'", len(self._strings[lang]), lang)
 
-    # ----- public API -----
+    def reload(self) -> None:
+        """Rescan the i18n directory (useful in dev after editing JSON)."""
+        self._strings.clear()
+        self._load_all()
 
-    @property
-    def language(self) -> str:
-        return self._language
+    def is_supported(self, lang: str) -> bool:
+        return lang in SUPPORTED_LANGUAGES
 
-    def set_language(self, lang: str) -> None:
-        if lang not in SUPPORTED_LANGUAGES:
-            logger.warning("Unsupported language requested: {}", lang)
-            return
-        if lang == self._language:
-            return
-        self._language = lang
-        logger.info("Language switched to: {}", lang)
-        self.language_changed.emit(lang)
-
-    def t(self, key: str, **fmt: Any) -> str:
-        """Look up ``key`` and format with ``fmt`` kwargs.
-
-        Falls back to Uzbek, then to the raw key if nothing matches.
-        """
+    def t(self, key: str, lang: str = DEFAULT_LANGUAGE, /, **fmt: Any) -> str:
+        """Look up ``key`` in ``lang``, falling back to Uzbek and then to the raw key."""
         value = (
-            self._strings.get(self._language, {}).get(key)
+            self._strings.get(lang, {}).get(key)
             or self._strings.get(DEFAULT_LANGUAGE, {}).get(key)
             or key
         )
@@ -88,6 +64,6 @@ class Translator(QObject):
 translator = Translator()
 
 
-def t(key: str, **fmt: Any) -> str:
-    """Shortcut around ``translator.t()`` for concise call sites."""
-    return translator.t(key, **fmt)
+def t(key: str, lang: str = DEFAULT_LANGUAGE, **fmt: Any) -> str:
+    """Shortcut around ``translator.t()``. Used from Python code."""
+    return translator.t(key, lang, **fmt)
