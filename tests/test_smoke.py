@@ -1,21 +1,10 @@
-"""Skeleton smoke tests: config, DB, catalogs, translator all import & work."""
+"""Skeleton smoke tests: config, DB, catalogs, translator all import & work.
+
+The ``isolated_db`` autouse fixture from ``conftest.py`` gives each test a
+fresh SQLite file in a tmp dir.
+"""
 
 from __future__ import annotations
-
-import os
-from pathlib import Path
-
-import pytest
-
-
-@pytest.fixture(autouse=True)
-def _isolated_data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Redirect data/logs/backups to a per-test tmp dir so we never touch the real DB."""
-    monkeypatch.setenv("CLINIC_DATA_DIR", str(tmp_path / "data"))
-    # Reload the settings module so the env var is picked up
-    from clinic import config as cfg
-
-    cfg.settings = cfg.Settings()  # type: ignore[assignment]
 
 
 def test_config_paths_are_writable() -> None:
@@ -52,7 +41,7 @@ def test_catalogs_load() -> None:
     assert len(discharge["types"]) >= 8
 
 
-def test_translator_returns_uz_by_default(tmp_path: Path) -> None:
+def test_translator_returns_uz_by_default() -> None:
     from clinic.i18n.translator import Translator
 
     tr = Translator()
