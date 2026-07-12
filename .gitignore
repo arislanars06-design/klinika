@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Ma'lumotlar (mahalliy)
+data/
+!data/.gitkeep
+
+# Log fayllar
+logs/
+*.log
+
+# Muhit
+.env
+.env.local
+.env.*.local
+
+# PyInstaller
+*.spec
+!build_config.spec
+
+# SQLite
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Backup
+*.bak
+*.old
+*.tmp
+
+# OS
+Thumbs.db
