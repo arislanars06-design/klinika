@@ -94,51 +94,141 @@ def _index_lor_options(lang: str) -> dict[str, dict[str, str]]:
     return idx
 
 
-def render_lor_status(status: dict[str, Any] | None, lang: str = "uz") -> str:
-    """Render LOR STATUS dict into plain text.
+def _method_indices(lang: str) -> dict[str, dict[str, Any]]:
+    """Return a per-method index that maps section codes/field codes/option codes to labels."""
+    catalog = lor_status_catalog()
+    globals_labels: dict[str, str] = {}
+    for row in catalog.get("sides", ()):
+        globals_labels[row["code"]] = row[lang]
+    for row in catalog.get("degrees", ()):
+        globals_labels[row["code"]] = row[lang]
 
-    Accepts two shapes:
-    - ``{"text": "free-form text"}`` — returned as-is (used for M2 MVP where
-      doctors type into a text area).
-    - Structured method/section/field dict — flattened into ``Method: k=v; k=v.``
+    indices: dict[str, dict[str, Any]] = {}
+    for method in catalog.get("methods", []):
+        m_idx: dict[str, Any] = {
+            "name": method["name"][lang],
+            "per_ear": method.get("per_ear", False),
+            "ears": {row["code"]: row[lang] for row in method.get("ears", ())},
+            "sections": {},
+        }
+        for section in method.get("sections", []):
+            fields: dict[str, dict[str, str]] = {}
+            for field in section.get("fields", []):
+                options: dict[str, str] = {}
+                for opt in field.get("options", ()):
+                    options[opt["code"]] = opt[lang]
+                fields[field["code"]] = options
+            m_idx["sections"][section["code"]] = {
+                "name": section["name"][lang],
+                "fields": fields,
+            }
+        indices[method["code"]] = m_idx
+
+    indices["_globals"] = globals_labels
+    return indices
+
+
+def _humanize_value(
+    value: Any,
+    field_options: dict[str, str],
+    globals_labels: dict[str, str],
+) -> str:
+    """Turn a code (or list of codes) into a comma-separated human label."""
+    if isinstance(value, list):
+        return ", ".join(
+            field_options.get(v, globals_labels.get(v, str(v))) for v in value
+        )
+    return field_options.get(value, globals_labels.get(value, str(value)))
+
+
+def _format_section(
+    section_label: str,
+    section_data: dict[str, Any],
+    section_meta: dict[str, Any],
+    globals_labels: dict[str, str],
+) -> str | None:
+    """Render one anatomical section as ``Label: field1=v; field2=v``."""
+    if not isinstance(section_data, dict) or not section_data:
+        return None
+
+    fields_meta = section_meta.get("fields", {})
+    fragments: list[str] = []
+    for field_code, value in section_data.items():
+        if value in (None, "", []):
+            continue
+        pretty = _humanize_value(value, fields_meta.get(field_code, {}), globals_labels)
+        fragments.append(pretty)
+
+    if not fragments:
+        return None
+    return f"{section_label}: " + ", ".join(fragments) + "."
+
+
+def render_lor_status(status: dict[str, Any] | None, lang: str = "uz") -> str:
+    """Render LOR STATUS dict into plain, doctor-friendly text.
+
+    Handles three input shapes:
+
+    * ``{"text": "…"}`` — free-form fallback, returned as-is.
+    * ``{"rhinoscopy": {"section": {"field": "value"}, …}, …}`` — structured.
+    * ``{"otoscopy": {"AD": {…}, "AS": {…}}, …}`` — per-ear otoscopy.
     """
     if not status:
         return ""
 
-    if isinstance(status, dict) and set(status.keys()) == {"text"}:
-        return str(status["text"]).strip()
+    indices = _method_indices(lang)
+    globals_labels = indices.get("_globals", {})
 
-    idx = _index_lor_options(lang)
-    labels_map = {
-        method["code"]: method["name"][lang]
-        for method in lor_status_catalog().get("methods", [])
-    }
+    method_blocks: list[str] = []
 
-    lines: list[str] = []
     for method_code, method_data in status.items():
-        if method_code.startswith("_"):
+        if method_code == "text":
             continue
-        method_label = labels_map.get(method_code, method_code)
-        pairs: list[str] = []
-        method_labels = idx.get(method_code, {})
-        globals_labels = idx.get("_globals", {})
+        method_meta = indices.get(method_code)
+        if not method_meta or not isinstance(method_data, dict):
+            continue
 
-        def _readable(val: Any) -> str:
-            if isinstance(val, list):
-                return ", ".join(method_labels.get(v, globals_labels.get(v, str(v))) for v in val)
-            return method_labels.get(val, globals_labels.get(val, str(val)))
+        section_metas = method_meta["sections"]
+        header = method_meta["name"]
 
+        if method_meta.get("per_ear"):
+            ear_lines: list[str] = []
+            for ear_code, ear_label in method_meta["ears"].items():
+                ear_data = method_data.get(ear_code)
+                if not isinstance(ear_data, dict) or not ear_data:
+                    continue
+                sections: list[str] = []
+                for section_code, section_data in ear_data.items():
+                    meta = section_metas.get(section_code)
+                    if meta is None:
+                        continue
+                    line = _format_section(meta["name"], section_data, meta, globals_labels)
+                    if line:
+                        sections.append(line)
+                if sections:
+                    ear_lines.append(f"  {ear_label}: " + " ".join(sections))
+            if ear_lines:
+                method_blocks.append(header + ":\n" + "\n".join(ear_lines))
+            continue
+
+        sections: list[str] = []
         for section_code, section_data in method_data.items():
-            if isinstance(section_data, dict):
-                for field_code, value in section_data.items():
-                    pairs.append(f"{section_code}.{field_code}={_readable(value)}")
-            else:
-                pairs.append(f"{section_code}={_readable(section_data)}")
+            meta = section_metas.get(section_code)
+            if meta is None:
+                continue
+            line = _format_section(meta["name"], section_data, meta, globals_labels)
+            if line:
+                sections.append(line)
+        if sections:
+            method_blocks.append(f"{header}: " + " ".join(sections))
 
-        if pairs:
-            lines.append(f"{method_label}: " + "; ".join(pairs) + ".")
+    body = "\n\n".join(method_blocks)
 
-    return "\n".join(lines)
+    # Append the free-form fallback text if present.
+    text = str(status.get("text", "")).strip()
+    if text:
+        body = f"{body}\n\n{text}" if body else text
+    return body
 
 
 # ----- Full reception -------------------------------------------------------

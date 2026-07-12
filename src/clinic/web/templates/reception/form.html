@@ -7,13 +7,11 @@
     {%- if field == 'full_name' -%}{{ reception.patient.full_name }}
     {%- elif field == 'birth_year' -%}{{ reception.patient.birth_year }}
     {%- elif field == 'address' -%}{{ reception.patient.address or '' }}
-    {%- elif field == 'phone' -%}{{ reception.patient.phone or '' }}
     {%- elif field == 'doctor_id' -%}{{ reception.doctor_id }}
     {%- elif field == 'diagnosis' -%}{{ reception.diagnosis }}
     {%- elif field == 'recommendation' -%}{{ reception.recommendation or '' }}
     {%- elif field == 'anamnesis' -%}{{ reception.anamnesis or '' }}
     {%- elif field == 'complaints_note' -%}{{ reception.complaints_note or '' }}
-    {%- elif field == 'lor_status_text' -%}{{ (reception.lor_status or {}).get('text', '') }}
     {%- endif -%}
   {%- else -%}
     {{ p.get(field, default) }}
@@ -23,10 +21,12 @@
 {% if is_edit %}
   {% set selected_codes = reception.complaints_codes or [] %}
   {% set selected_details = reception.complaints_details or {} %}
+  {% set saved_lor = reception.lor_status or {} %}
 {% else %}
   {% set _codes = p.get('complaints_codes', []) %}
   {% set selected_codes = _codes if _codes is iterable and _codes is not string else ([_codes] if _codes else []) %}
   {% set selected_details = {} %}
+  {% set saved_lor = {} %}
 {% endif %}
 
 {% block title %}{{ 'menu.start_reception' | t(lang) }}{% endblock %}
@@ -36,19 +36,9 @@
   method="post"
   action="{% if is_edit %}/reception/{{ reception.id }}{% else %}/reception{% endif %}"
   x-data="{
-    suggestions: '',
     complaintsCount: {{ selected_codes|length }},
     onComplaintToggle(el){
       this.complaintsCount += el.checked ? 1 : -1;
-    },
-    applyNorm(){
-      const el = this.$refs.lor;
-      if (!el.value.trim() || confirm('{{ 'reception.lor_status.norm_confirm' | t(lang) if false else 'Almashtirasizmi?' }}')){
-        el.value = `{{ 'lor.norma_text' | t(lang) if false else '' }}Rinoskopiya: Tashqi burun o'zgarmagan. Burun orqali nafas olish erkin. Hid bilish saqlangan. Shilliq qavat pushti, nam. Burun to'sig'i o'rta chiziqda.
-Faringoskopiya: Og'iz ochilishi erkin. Tanglay yoylari yaxshi ko'rinadi. Bodomsimon bezlar tanglay yoyidan chiqmaydi. Halqum orqa devori pushti, silliq. Refleks saqlangan.
-Otoskopiya (AD/AS): Quloq suprasi to'g'ri shaklda. Tashqi eshituv yo'li toza. Baraban pardasi marvaridsimon kulrang, belgilari aniq. Perforatsiya yo'q.
-Laringoskopiya: Vallekulalar erkin. Ovoz boylamlari oqartirilgan, toza, fonatsiyada to'liq yopiladi. Ovoz jarangdor. Hansirash yo'q. Stenoz yo'q.`;
-      }
     },
   }"
   class="space-y-6"
@@ -78,14 +68,14 @@ Laringoskopiya: Vallekulalar erkin. Ovoz boylamlari oqartirilgan, toza, fonatsiy
   </div>
   {% endif %}
 
-  {# ----- Patient block ----- #}
+  {# ----- Patient block (phone field removed per request) ----- #}
   <fieldset class="rounded-xl border bg-white p-5">
     <legend class="px-2 text-sm font-semibold text-slate-700">
       {{ 'reception.patient' | t(lang) }}
     </legend>
 
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="relative">
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="sm:col-span-2 relative">
         <label class="mb-1 block text-sm font-medium">{{ 'reception.patient.full_name' | t(lang) }} *</label>
         <input
           x-ref="name"
@@ -97,8 +87,6 @@ Laringoskopiya: Vallekulalar erkin. Ovoz boylamlari oqartirilgan, toza, fonatsiy
           hx-target="#patient-suggestions"
           hx-swap="innerHTML"
           hx-include="this"
-          @focus="suggestions = 'open'"
-          @blur.debounce.200ms="suggestions = ''"
           name="q"
           class="w-full rounded-lg border px-3 py-2"
         />
@@ -120,14 +108,9 @@ Laringoskopiya: Vallekulalar erkin. Ovoz boylamlari oqartirilgan, toza, fonatsiy
         />
       </div>
 
-      <div>
+      <div class="sm:col-span-3">
         <label class="mb-1 block text-sm font-medium">{{ 'reception.patient.address' | t(lang) }}</label>
         <input x-ref="address" name="patient_address" value="{{ val('address') }}" class="w-full rounded-lg border px-3 py-2" />
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium">{{ 'reception.patient.phone' | t(lang) }}</label>
-        <input x-ref="phone" name="patient_phone" value="{{ val('phone') }}" placeholder="+998 __ ___ __ __" class="w-full rounded-lg border px-3 py-2" />
       </div>
     </div>
   </fieldset>
@@ -188,24 +171,8 @@ Laringoskopiya: Vallekulalar erkin. Ovoz boylamlari oqartirilgan, toza, fonatsiy
     <textarea name="anamnesis" rows="2" class="w-full rounded-lg border px-3 py-2">{{ val('anamnesis') }}</textarea>
   </fieldset>
 
-  {# ----- LOR STATUS ----- #}
-  <fieldset class="rounded-xl border bg-white p-5">
-    <legend class="px-2 text-sm font-semibold text-slate-700">{{ 'reception.lor_status' | t(lang) }}</legend>
-    <div class="mb-2 flex gap-2">
-      <button
-        type="button"
-        @click="applyNorm()"
-        class="rounded-lg border bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-      >
-        ✓ {{ 'reception.lor_status.norm' | t(lang) }}
-      </button>
-      <span class="text-xs text-slate-400">
-        {% if lang == 'ru' %}Заполните ЛОР статус (можно вставить «Норма» и отредактировать).
-        {% else %}LOR STATUSni to'ldiring (Norma tugmasi bilan tez to'ldirish mumkin).{% endif %}
-      </span>
-    </div>
-    <textarea x-ref="lor" name="lor_status_text" rows="8" class="w-full rounded-lg border px-3 py-2 font-mono text-sm">{{ val('lor_status_text') }}</textarea>
-  </fieldset>
+  {# ----- LOR STATUS (structured) ----- #}
+  {% include 'reception/_lor_status.html' %}
 
   {# ----- Diagnosis + Recommendation + Doctor ----- #}
   <div class="grid gap-4 sm:grid-cols-2">
@@ -244,7 +211,7 @@ Laringoskopiya: Vallekulalar erkin. Ovoz boylamlari oqartirilgan, toza, fonatsiy
       💾 {{ 'reception.save' | t(lang) }}
     </button>
     {% if is_edit %}
-    <a href="/reception/{{ reception.id }}/print" class="rounded-lg border bg-white px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50">
+    <a href="/reception/{{ reception.id }}/preview" class="rounded-lg border bg-white px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50">
       🖨 {{ 'reception.print' | t(lang) }}
     </a>
     {% endif %}

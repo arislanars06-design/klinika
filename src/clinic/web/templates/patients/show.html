@@ -47,7 +47,7 @@
           <div class="font-semibold text-slate-900">{{ r.reception_date.strftime('%d.%m.%Y %H:%M') }}</div>
           <div class="flex gap-1 text-xs">
             <a href="/reception/{{ r.id }}" class="rounded border px-2 py-1 hover:bg-slate-50">✏</a>
-            <a href="/reception/{{ r.id }}/print" class="rounded border px-2 py-1 hover:bg-slate-50">🖨</a>
+            <a href="/reception/{{ r.id }}/preview" class="rounded border px-2 py-1 hover:bg-slate-50">🖨</a>
           </div>
         </div>
         <div class="mt-1 text-sm text-slate-700"><span class="font-medium">{{ 'reception.diagnosis' | t(lang) }}:</span> {{ r.diagnosis }}</div>

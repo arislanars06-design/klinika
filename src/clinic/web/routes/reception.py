@@ -114,6 +114,51 @@ def _form_to_dict(form: Any) -> dict[str, Any]:
     return out
 
 
+def _parse_lor_status(form: Any) -> dict[str, Any] | None:
+    """Rebuild the nested LOR STATUS dict from ``lor__…`` form fields.
+
+    The template names inputs like ``lor__rhinoscopy__external_nose__state``
+    (single-valued) or ``lor__otoscopy__AD__auricle_canal__pathology[]``
+    (multi-valued). We split on ``__`` and drop the ``[]`` marker.
+
+    Empty method/section branches are pruned so the JSON stays small.
+    """
+    result: dict[str, Any] = {}
+    seen: set[str] = set()
+
+    for raw_key in list(form.keys()):
+        if not raw_key.startswith("lor__") or raw_key in seen:
+            continue
+        seen.add(raw_key)
+
+        is_multi = raw_key.endswith("[]")
+        clean = raw_key[5:-2] if is_multi else raw_key[5:]
+        parts = clean.split("__")
+        if not parts:
+            continue
+
+        if is_multi:
+            value: Any = [v for v in form.getlist(raw_key) if v]
+            if not value:
+                continue
+        else:
+            value = (form.get(raw_key) or "").strip()
+            if not value:
+                continue
+
+        cursor = result
+        for segment in parts[:-1]:
+            cursor = cursor.setdefault(segment, {})
+        cursor[parts[-1]] = value
+
+    # Free-form fallback textarea
+    extra = (form.get("lor_status_text") or "").strip()
+    if extra:
+        result["text"] = extra
+
+    return result or None
+
+
 def _parse_form(form: dict[str, Any]) -> reception_service.ReceptionInput:
     """Translate a raw form dict into a validated ``ReceptionInput``."""
     codes = [c for c in form.getlist("complaints_codes") if c]
@@ -127,7 +172,7 @@ def _parse_form(form: dict[str, Any]) -> reception_service.ReceptionInput:
         full_name=(form.get("patient_full_name") or "").strip(),
         birth_year=int(form.get("patient_birth_year") or 0),
         address=(form.get("patient_address") or "").strip() or None,
-        phone=(form.get("patient_phone") or "").strip() or None,
+        phone=None,  # phone removed from the reception form per product spec
     )
 
     date_str = form.get("reception_date") or ""
@@ -136,8 +181,7 @@ def _parse_form(form: dict[str, Any]) -> reception_service.ReceptionInput:
     except ValueError:
         reception_date = datetime.now()
 
-    lor_text = (form.get("lor_status_text") or "").strip()
-    lor_status = {"text": lor_text} if lor_text else None
+    lor_status = _parse_lor_status(form)
 
     return reception_service.ReceptionInput(
         patient=patient,
@@ -192,6 +236,42 @@ async def update(reception_id: int, request: Request, session: Session = DbDep) 
 
 
 # ----- print -----------------------------------------------------------------
+
+
+@router.get("/{reception_id}/preview", response_class=HTMLResponse)
+def print_preview(
+    reception_id: int, request: Request, session: Session = DbDep
+) -> HTMLResponse:
+    """Printable HTML preview + a 'Download Word' button.
+
+    Uses ``text_composer`` so the wording matches the .docx exactly.
+    """
+    from clinic.domain import settings_service
+    from clinic.printing.text_composer import render_reception_body
+
+    reception = reception_service.get(session, reception_id)
+    if reception is None:
+        raise HTTPException(404)
+
+    lang = get_lang(request)
+    templates = request.app.state.templates
+    body = render_reception_body(reception, lang)
+    clinic = {
+        "name": settings_service.get(f"clinic_name_{lang}") or "Klinika LOR",
+        "address": settings_service.get(f"clinic_address_{lang}") or "",
+        "phone": settings_service.get("clinic_phone") or "",
+    }
+    return templates.TemplateResponse(
+        request,
+        "reception/preview.html",
+        {
+            "lang": lang,
+            "reception": reception,
+            "body": body,
+            "clinic": clinic,
+            "current_year": datetime.now().year,
+        },
+    )
 
 
 @router.get("/{reception_id}/print")
