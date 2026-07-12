@@ -44,40 +44,41 @@ Loyihaning to'liq logikasi va texnik topshirig'i quyidagi fayllarda:
 
 ## 🚦 Loyiha holati
 
-**Bosqich: Logika (SPEC) yozish** — kod yozish hali boshlanmagan.
+**Bosqich: To'liq ishlaydi** — barcha 4 milestone tugagan (134 avtomatik test o'tadi).
 
-- ✅ Talablar yig'ildi
-- ✅ Interfeys logikasi ishlab chiqildi
-- ✅ Ma'lumotlar bazasi sxemasi tayyor
-- ✅ Shikoyatlar va LOR STATUS kataloglari tuzildi
-- ⏳ Chop etish Word shablonini kutish (foydalanuvchi jo'natadi)
-- ⏳ Kodni yozish (SPEC tasdiqlangandan so'ng)
+- ✅ **M1** — Skelet, ma'lumotlar bazasi, Sozlamalar (klinika/shifokorlar/xizmatlar)
+- ✅ **M2** — Qabul oynasi (bemor + shikoyat + LOR STATUS + tashxis)
+- ✅ **M3** — Bemorlar tarixi + Kassa + Statistika (grafiklar bilan)
+- ✅ **M4** — Chop etish (Word) + Backup tizimi + PyInstaller
+- ⏳ Klinika Word shabloni (ixtiyoriy — hozircha default layout ishlaydi)
+
+## 🚀 Tez boshlash
+
+```bash
+git clone https://github.com/arislanars06-design/klinika.git
+cd klinika
+pip install -e ".[dev]"
+
+python scripts/seed_data.py --reset      # test ma'lumotlarni yuklash
+python -m clinic.main                    # dasturni ishga tushirish
+```
+
+Manual sinov uchun to'liq yo'l-yo'riq: [`docs/testing_checklist.md`](docs/testing_checklist.md).
+
+Windows uchun `.exe` yig'ish: [`docs/build_instructions.md`](docs/build_instructions.md).
 
 ---
 
-## 📅 Yo'l xaritasi
+## 📅 Yakunlangan yo'l xaritasi
 
-**Faza 1 — Skelet (1-hafta):**
-- Loyiha strukturasi, DB migratsiyalari
-- Til tanlash + bosh menyu
-- Sozlamalar (xizmatlar, shifokorlar)
+| Faza | Holat | PR |
+|------|-------|-----|
+| **Faza 1** — Skelet + DB + Sozlamalar | ✅ Tugatildi | [#1](https://github.com/arislanars06-design/klinika/pull/1) + [#3](https://github.com/arislanars06-design/klinika/pull/3) |
+| **Faza 2** — Qabul oynasi + bemor + shikoyat + LOR STATUS | ✅ Tugatildi | [#3](https://github.com/arislanars06-design/klinika/pull/3) |
+| **Faza 3** — Tarix + Kassa + Statistika (matplotlib) | ✅ Tugatildi | [#4](https://github.com/arislanars06-design/klinika/pull/4) |
+| **Faza 4** — Word chop etish + Backup + PyInstaller | ✅ Tugatildi | [#5](https://github.com/arislanars06-design/klinika/pull/5) |
 
-**Faza 2 — Qabul (2-hafta):**
-- Qabul oynasi (barcha maydonlar)
-- Bemor qidiruv/avtoto'ldirish
-- Shikoyatlar strukturaviy tanlash
-- LOR STATUS strukturaviy tanlash
-
-**Faza 3 — Tarix va Kassa (3-hafta):**
-- Bemorlar tarixi + qidiruv
-- Kassa bo'limi
-- Statistika (ikkala bo'lim uchun)
-
-**Faza 4 — Chop etish va yakunlash (4-hafta):**
-- Word shabloni bilan chop etish
-- Word'ga statistika eksporti
-- Backup tizimi
-- `.exe` paketlash
+Kelajakdagi (v2) kengaytmalari [`SPEC.md`](SPEC.md) §14 da: login/parol, ICD-10, qabul jadvali, SMS eslatma, bulut backup.
 
 ---
 
