@@ -140,18 +140,16 @@ class MainWindow(QMainWindow):
         self._retranslate()
 
     def _open_patients(self) -> None:
-        QMessageBox.information(
-            self,
-            t("menu.patients_history"),
-            t("info.not_implemented"),
-        )
+        from clinic.ui.patients import PatientsWindow
+
+        window = PatientsWindow(self)
+        window.exec()
 
     def _open_cashier(self) -> None:
-        QMessageBox.information(
-            self,
-            t("menu.cashier"),
-            t("info.not_implemented"),
-        )
+        from clinic.ui.cashier import CashierWindow
+
+        window = CashierWindow(self)
+        window.exec()
 
     def _open_settings(self) -> None:
         from clinic.ui.settings import SettingsWindow
@@ -166,9 +164,8 @@ class MainWindow(QMainWindow):
             self,
             t("menu.help"),
             "Klinika LOR v0.1.0\n\n"
-            "Milestone 1 (skelet + sozlamalar) va\n"
-            "Milestone 2 (Qabul oynasi) faol.\n\n"
-            "Bemorlar tarixi va Kassa keyingi bosqichlarda qo'shiladi.",
+            "M1 (Sozlamalar), M2 (Qabul), M3 (Tarix + Kassa + Statistika) faol.\n\n"
+            "Chop etish va PyInstaller paketlash M4 bosqichida qo'shiladi.",
         )
 
     # ----- exit confirmation -----

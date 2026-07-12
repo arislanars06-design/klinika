@@ -191,4 +191,71 @@ def save(data: ReceptionInput) -> tuple[ReceptionDTO, PatientDTO, bool]:
         )
 
 
-__all__ = ["get", "list_for_patient", "save"]
+def update(reception_id: int, data: ReceptionInput) -> tuple[ReceptionDTO, PatientDTO]:
+    """Update an existing reception (and its patient) in one transaction."""
+    full_name, birth_year, phone, diagnosis, doctor_id = _validate_input(data)
+    address = (data.patient.address or "").strip() or None
+
+    with session_scope() as session:
+        doctor = DoctorRepository(session).get(doctor_id)
+        if doctor is None or not doctor.is_active:
+            err = ValidationError()
+            err.add("doctor", "validation.doctor_not_available")
+            raise err
+
+        rec_repo = ReceptionRepository(session)
+        reception = rec_repo.get(reception_id)
+        if reception is None:
+            err = ValidationError()
+            err.add("reception", "validation.patient_not_found")
+            raise err
+
+        patient_repo = PatientRepository(session)
+        # Update the underlying patient's mutable fields too.
+        patient = patient_repo.update(
+            reception.patient_id,
+            full_name=full_name,
+            birth_year=birth_year,
+            phone=phone,
+            address=address,
+        )
+        if patient is None:
+            err = ValidationError()
+            err.add("patient", "validation.patient_not_found")
+            raise err
+
+        rec_repo.update_full(
+            reception_id,
+            doctor_id=doctor_id,
+            reception_date=data.reception_date or reception.reception_date,
+            complaints_codes=list(data.complaints_codes),
+            complaints_details=dict(data.complaints_details or {}) or None,
+            complaints_note=(data.complaints_note or "").strip() or None,
+            anamnesis=(data.anamnesis or "").strip() or None,
+            lor_status=data.lor_status or None,
+            diagnosis=diagnosis,
+            recommendation=(data.recommendation or "").strip() or None,
+        )
+        session.flush()
+        session.refresh(reception)
+
+        logger.info(
+            "Reception updated: id={} patient={} doctor={} diagnosis={!r}",
+            reception.id,
+            patient.id,
+            doctor_id,
+            diagnosis,
+        )
+        return ReceptionDTO.from_orm(reception), PatientDTO.from_orm(patient)
+
+
+def delete(reception_id: int) -> bool:
+    """Delete a single reception (payments linked to it get ``reception_id=NULL``)."""
+    with session_scope() as session:
+        if ReceptionRepository(session).delete(reception_id):
+            logger.info("Reception {} deleted", reception_id)
+            return True
+        return False
+
+
+__all__ = ["delete", "get", "list_for_patient", "save", "update"]

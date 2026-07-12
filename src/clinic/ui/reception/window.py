@@ -44,11 +44,18 @@ class ReceptionWindow(QDialog):
     #: Emitted after a successful save with the created reception id.
     saved = Signal(int)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        edit_reception_id: int | None = None,
+    ) -> None:
         super().__init__(parent)
         self._dirty = False
         self._doctors: list[DoctorDTO] = []
-        self._last_reception_id: int | None = None
+        self._last_reception_id: int | None = edit_reception_id
+        self._edit_mode = edit_reception_id is not None
+        self._patient_id_from_edit: int | None = None
 
         self.setWindowTitle(t("reception.title"))
         self.setMinimumSize(960, 720)
@@ -57,6 +64,9 @@ class ReceptionWindow(QDialog):
         self._load_doctors()
         translator.language_changed.connect(self._retranslate)
         self._retranslate()
+
+        if edit_reception_id is not None:
+            self._load_existing(edit_reception_id)
 
     # ============================================================
     # UI construction
@@ -254,7 +264,12 @@ class ReceptionWindow(QDialog):
         self._clear_field_errors()
         data = self._collect_input()
         try:
-            reception, _patient, _created = reception_service.save(data)
+            if self._edit_mode and self._last_reception_id is not None:
+                reception, _patient = reception_service.update(
+                    self._last_reception_id, data
+                )
+            else:
+                reception, _patient, _created = reception_service.save(data)
         except ValidationError as ve:
             self._apply_field_errors(ve)
             QMessageBox.warning(self, t("error.title"), t("error.validation"))
@@ -279,7 +294,58 @@ class ReceptionWindow(QDialog):
         QMessageBox.information(self, t("reception.print"), t("info.not_implemented"))
 
     def _on_cashier(self) -> None:
-        QMessageBox.information(self, t("reception.to_cashier"), t("info.not_implemented"))
+        # Save first if unsaved, so the cashier receipt links to a real
+        # reception record. If the user cancels the save (via validation
+        # error) we don't proceed.
+        if self._dirty or self._last_reception_id is None:
+            reply = QMessageBox.question(
+                self,
+                t("reception.to_cashier"),
+                t("reception.discard_confirm") if self._dirty else t("common.confirm"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            # Save silently (without the success popup) so the flow feels smooth.
+            self._clear_field_errors()
+            data = self._collect_input()
+            try:
+                if self._edit_mode and self._last_reception_id is not None:
+                    reception, patient = reception_service.update(
+                        self._last_reception_id, data
+                    )
+                else:
+                    reception, patient, _ = reception_service.save(data)
+            except ValidationError as ve:
+                self._apply_field_errors(ve)
+                QMessageBox.warning(self, t("error.title"), t("error.validation"))
+                return
+            except Exception as exc:
+                logger.exception("Reception save (pre-cashier) failed")
+                QMessageBox.critical(self, t("error.title"), f"{t('error.db')}\n\n{exc}")
+                return
+            self._last_reception_id = reception.id
+            self._patient_id_from_edit = patient.id
+            self._dirty = False
+            self.saved.emit(reception.id)
+
+        # Now open the cashier prefilled.
+        from clinic.ui.cashier import CashierWindow
+
+        # Resolve patient id (either from freshly-saved reception or already known).
+        patient_id = self._patient_id_from_edit
+        if patient_id is None and self._last_reception_id is not None:
+            r = reception_service.get(self._last_reception_id)
+            if r is not None:
+                patient_id = r.patient_id
+
+        cashier = CashierWindow(
+            self,
+            patient_id=patient_id,
+            reception_id=self._last_reception_id,
+        )
+        cashier.exec()
 
     def _confirm_discard(self) -> bool:
         if not self._dirty:
@@ -351,6 +417,61 @@ class ReceptionWindow(QDialog):
         self.save_btn.setText(t("reception.save"))
         self.print_btn.setText(t("reception.print"))
         self.cashier_btn.setText(t("reception.to_cashier"))
+
+
+    # ============================================================
+    # Edit mode — load existing reception into the form
+    # ============================================================
+
+    def _load_existing(self, reception_id: int) -> None:
+        from clinic.domain import patient_service
+
+        try:
+            reception = reception_service.get(reception_id)
+        except Exception as exc:
+            logger.exception("Loading reception failed")
+            QMessageBox.critical(self, t("error.title"), f"{t('error.db')}\n\n{exc}")
+            return
+        if reception is None:
+            return
+        patient = patient_service.get(reception.patient_id)
+        if patient is None:
+            return
+        self._patient_id_from_edit = patient.id
+
+        # Populate patient block (silently — don't mark dirty)
+        self.patient_widget.set_patient(patient)
+
+        # Date
+        self.date_edit.blockSignals(True)
+        self.date_edit.setDateTime(reception.reception_date)
+        self.date_edit.blockSignals(False)
+
+        # Doctor
+        idx = self.doctor_combo.findData(reception.doctor_id)
+        if idx >= 0:
+            self.doctor_combo.blockSignals(True)
+            self.doctor_combo.setCurrentIndex(idx)
+            self.doctor_combo.blockSignals(False)
+            self._on_doctor_changed()
+
+        # Text fields
+        self.diagnosis_edit.setText(reception.diagnosis)
+        self.anamnesis_edit.setPlainText(reception.anamnesis or "")
+        self.recommendation_edit.setPlainText(reception.recommendation or "")
+
+        # Complaints
+        self.complaints_widget.set_values(
+            codes=reception.complaints_codes,
+            details=reception.complaints_details or {},
+            note=reception.complaints_note or "",
+        )
+
+        # LOR STATUS
+        self.lor_widget.set_values(reception.lor_status)
+
+        # Reset dirty flag — set_values propagate signals that flip it.
+        self._dirty = False
 
 
 __all__ = ["ReceptionWindow"]
