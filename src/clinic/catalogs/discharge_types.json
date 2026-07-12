@@ -1,0 +1,13 @@
+{
+  "types": [
+    { "code": "purulent",     "uz": "Yiringli",         "ru": "Гнойное" },
+    { "code": "serous",       "uz": "Seroz",            "ru": "Серозное" },
+    { "code": "mucous",       "uz": "Shilliq",          "ru": "Слизистое" },
+    { "code": "mucopurulent", "uz": "Shilliq-yiringli", "ru": "Слизисто-гнойное" },
+    { "code": "bloody",       "uz": "Qonli",            "ru": "Кровянистое" },
+    { "code": "sanguineous",  "uz": "Suvli-qonli",      "ru": "Сукровичное" },
+    { "code": "caseous",      "uz": "Kazeoz",           "ru": "Казеозное" },
+    { "code": "watery",       "uz": "Suvli",            "ru": "Водянистое" },
+    { "code": "other",        "uz": "Boshqa",           "ru": "Другое", "requires_text": true }
+  ]
+}
