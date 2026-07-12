@@ -44,6 +44,12 @@ def run() -> int:
     """Entry point that returns Qt's exit code."""
     init_db()
 
+    # Best-effort daily backup right after the DB is ready. Failures are
+    # already swallowed inside daily_auto_backup so we never block startup.
+    from clinic.infrastructure.backup import daily_auto_backup
+
+    daily_auto_backup()
+
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("Clinic LOR")
     app.setOrganizationName("ClinicLOR")

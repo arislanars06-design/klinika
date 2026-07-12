@@ -231,6 +231,10 @@ class PatientCardDialog(QDialog):
         h = QHBoxLayout(wrapper)
         h.setContentsMargins(2, 0, 2, 0)
         h.setSpacing(2)
+        print_btn = QPushButton("\U0001F5A8")
+        print_btn.setToolTip(t("patients.card.reception.print"))
+        print_btn.setFixedWidth(32)
+        print_btn.clicked.connect(lambda: self._print_reception(reception_id))
         edit_btn = QPushButton("\u270F")
         edit_btn.setToolTip(t("patients.card.reception.edit"))
         edit_btn.setFixedWidth(32)
@@ -239,9 +243,55 @@ class PatientCardDialog(QDialog):
         del_btn.setToolTip(t("patients.card.reception.delete"))
         del_btn.setFixedWidth(32)
         del_btn.clicked.connect(lambda: self._delete_reception(reception_id))
+        h.addWidget(print_btn)
         h.addWidget(edit_btn)
         h.addWidget(del_btn)
         return wrapper
+
+    def _print_reception(self, reception_id: int) -> None:
+        from clinic.domain import (
+            clinic_info_service,
+            doctor_service,
+        )
+        from clinic.domain import (
+            reception_service as _rs,
+        )
+        from clinic.i18n.translator import translator
+        from clinic.printing.docx_builder import save_reception_document
+        from clinic.ui.printing_helpers import prompt_and_save, reception_filename
+
+        reception = _rs.get(reception_id)
+        if reception is None or self._detail is None:
+            return
+        clinic_info = clinic_info_service.load()
+        clinic_dict = {
+            "name_uz": clinic_info.name_uz,
+            "name_ru": clinic_info.name_ru,
+            "address_uz": clinic_info.address_uz,
+            "address_ru": clinic_info.address_ru,
+            "phone": clinic_info.phone,
+            "logo_path": clinic_info.logo_path,
+        }
+        doctor = doctor_service.get(reception.doctor_id)
+
+        def _builder(dest):  # type: ignore[no-untyped-def]
+            return save_reception_document(
+                output_path=dest,
+                reception=reception,
+                patient=self._detail.patient,
+                doctor=doctor,
+                clinic=clinic_dict,
+                lang=translator.language,
+            )
+
+        prompt_and_save(
+            self,
+            title_key="print.reception.title",
+            default_filename=reception_filename(
+                self._detail.patient.full_name, reception.reception_date
+            ),
+            builder=_builder,
+        )
 
     def _edit_reception(self, reception_id: int) -> None:
         from clinic.ui.reception import ReceptionWindow

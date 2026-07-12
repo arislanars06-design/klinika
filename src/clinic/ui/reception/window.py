@@ -291,7 +291,81 @@ class ReceptionWindow(QDialog):
         self.reject()
 
     def _on_print(self) -> None:
-        QMessageBox.information(self, t("reception.print"), t("info.not_implemented"))
+        # Force a save first — you can't print a reception that isn't in the DB.
+        if self._dirty or self._last_reception_id is None:
+            saved = self._save_silent()
+            if not saved:
+                return
+        self._print_current_reception()
+
+    def _save_silent(self) -> bool:
+        """Save the current form. Returns True on success (no success popup)."""
+        self._clear_field_errors()
+        data = self._collect_input()
+        try:
+            if self._edit_mode and self._last_reception_id is not None:
+                reception, patient = reception_service.update(
+                    self._last_reception_id, data
+                )
+            else:
+                reception, patient, _ = reception_service.save(data)
+        except ValidationError as ve:
+            self._apply_field_errors(ve)
+            QMessageBox.warning(self, t("error.title"), t("error.validation"))
+            return False
+        except Exception as exc:
+            logger.exception("Reception save (pre-print) failed")
+            QMessageBox.critical(self, t("error.title"), f"{t('error.db')}\n\n{exc}")
+            return False
+        self._last_reception_id = reception.id
+        self._patient_id_from_edit = patient.id
+        self._dirty = False
+        self.saved.emit(reception.id)
+        return True
+
+    def _print_current_reception(self) -> None:
+        from clinic.domain import clinic_info_service, patient_service
+        from clinic.i18n.translator import translator
+        from clinic.printing.docx_builder import save_reception_document
+        from clinic.ui.printing_helpers import prompt_and_save, reception_filename
+
+        reception = reception_service.get(self._last_reception_id) if self._last_reception_id else None
+        if reception is None:
+            QMessageBox.warning(self, t("error.title"), t("print.needs_save_first"))
+            return
+        patient = patient_service.get(reception.patient_id)
+        doctor = next(
+            (d for d in self._doctors if d.id == reception.doctor_id),
+            None,
+        )
+        clinic_info = clinic_info_service.load()
+        clinic_dict = {
+            "name_uz": clinic_info.name_uz,
+            "name_ru": clinic_info.name_ru,
+            "address_uz": clinic_info.address_uz,
+            "address_ru": clinic_info.address_ru,
+            "phone": clinic_info.phone,
+            "logo_path": clinic_info.logo_path,
+        }
+
+        def _builder(dest):  # type: ignore[no-untyped-def]
+            return save_reception_document(
+                output_path=dest,
+                reception=reception,
+                patient=patient,
+                doctor=doctor,
+                clinic=clinic_dict,
+                lang=translator.language,
+            )
+
+        prompt_and_save(
+            self,
+            title_key="print.reception.title",
+            default_filename=reception_filename(
+                patient.full_name if patient else "reception", reception.reception_date
+            ),
+            builder=_builder,
+        )
 
     def _on_cashier(self) -> None:
         # Save first if unsaved, so the cashier receipt links to a real
