@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}{{ t("stats.cashier_title") }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0"><i class="bi bi-graph-up text-warning"></i> {{ t("stats.cashier_title") }}</h3>
+  <div class="btn-group">
+    <a href="/stats?preset={{ preset }}&start={{ start_input }}&end={{ end_input }}"
+       class="btn btn-outline-secondary">
+      <i class="bi bi-people"></i> {{ t("stats.patients_link") }}
+    </a>
+    <a href="/print/stats/cashier.docx?preset={{ preset }}&start={{ start_input }}&end={{ end_input }}"
+       class="btn btn-primary">
+      <i class="bi bi-file-earmark-word"></i> {{ t("stats.export") }}
+    </a>
+  </div>
+</div>
+
+{% include "stats/_period_picker.html" %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 bg-body-tertiary h-100">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("stats.kpi_revenue") }}</div>
+        <div class="fs-3 fw-semibold">{{ stats.total_revenue }} <span class="fs-6 text-muted">{{ t("cashier.currency") }}</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 bg-body-tertiary h-100">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("stats.kpi_receipts") }}</div>
+        <div class="fs-3 fw-semibold">{{ stats.receipts_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 bg-body-tertiary h-100">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("stats.kpi_payments") }}</div>
+        <div class="fs-3 fw-semibold">{{ stats.payment_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 bg-body-tertiary h-100">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("stats.kpi_avg") }}</div>
+        <div class="fs-3 fw-semibold">{{ stats.average_receipt }} <span class="fs-6 text-muted">{{ t("cashier.currency") }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-bar-chart"></i> {{ t("stats.revenue_by_day") }}</div>
+      <div class="card-body">
+        <canvas id="chart-revenue-by-day" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-list-ol"></i> {{ t("stats.top_services") }}</div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>{{ t("cashier.service") }}</th>
+              <th class="text-end">{{ t("cashier.quantity") }}</th>
+              <th class="text-end">{{ t("stats.revenue") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in stats.by_service %}
+            <tr>
+              <td class="text-muted">{{ loop.index }}</td>
+              <td>{{ s.name_ru if lang == 'ru' else s.name_uz }}</td>
+              <td class="text-end">{{ s.units_sold }}</td>
+              <td class="text-end fw-medium">{{ s.revenue }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">{{ t("stats.no_data") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="chart-data" type="application/json">
+{"labels": {{ labels_by_day | tojson }}, "values": {{ values_by_day | tojson }}}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const data = JSON.parse(document.getElementById("chart-data").textContent);
+  new Chart(document.getElementById("chart-revenue-by-day"), {
+    type: "line",
+    data: {
+      labels: data.labels,
+      datasets: [{
+        label: "{{ t('stats.revenue_by_day') }}",
+        data: data.values,
+        backgroundColor: "rgba(255,193,7,0.25)",
+        borderColor: "rgba(255,140,0,1)",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.25,
+      }]
+    },
+    options: {
+      scales: {y: {beginAtZero: true}},
+      plugins: {legend: {display: false}},
+    }
+  });
+})();
+</script>
+{% endblock %}

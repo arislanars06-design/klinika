@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ t("menu.cashier") }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0"><i class="bi bi-cash-coin text-warning"></i> {{ t("menu.cashier") }}</h3>
+  <div class="btn-group">
+    <a href="/stats/cashier" class="btn btn-outline-secondary">
+      <i class="bi bi-graph-up"></i> {{ t("stats.cashier_link") }}
+    </a>
+  </div>
+</div>
+
+<!-- Today revenue KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 bg-body-tertiary">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("cashier.today_revenue") }}</div>
+        <div class="fs-3 fw-semibold">{{ today_stats.total_revenue }} <span class="fs-6 text-muted">{{ t("cashier.currency") }}</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 bg-body-tertiary">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("cashier.today_receipts") }}</div>
+        <div class="fs-3 fw-semibold">{{ today_stats.receipts_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 bg-body-tertiary">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("cashier.today_avg") }}</div>
+        <div class="fs-3 fw-semibold">{{ today_stats.average_receipt }} <span class="fs-6 text-muted">{{ t("cashier.currency") }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-search"></i> {{ t("cashier.pick_patient") }}</div>
+  <div class="card-body">
+    <form method="get" action="/cashier" class="row g-2 mb-3">
+      <div class="col-md-8">
+        <input type="search" name="q" class="form-control form-control-lg" autofocus
+               placeholder="{{ t('patients.search_placeholder') }}" value="{{ q or '' }}">
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-primary btn-lg w-100">
+          <i class="bi bi-search"></i> {{ t("common.find") }}
+        </button>
+      </div>
+    </form>
+
+    {% if q %}
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>{{ t("reception.full_name") }}</th>
+            <th>{{ t("reception.birth_year") }}</th>
+            <th>{{ t("reception.phone") }}</th>
+            <th class="text-end">{{ t("common.actions") }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in patients %}
+          <tr>
+            <td class="text-muted small">{{ p.id }}</td>
+            <td class="fw-medium">{{ p.full_name }}</td>
+            <td>{{ p.birth_year }}</td>
+            <td class="small">{{ p.phone or "—" }}</td>
+            <td class="text-end">
+              <a href="/cashier/patient/{{ p.id }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-arrow-right"></i> {{ t("cashier.open") }}
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-4">{{ t("patients.empty") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
