@@ -1,0 +1,54 @@
+{% extends "settings/_layout.html" %}
+{% block title %}{{ t("settings.tab_backup") }}{% endblock %}
+
+{% block settings_body %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">{{ t("settings.backup_title") }}</h5>
+    <div class="text-muted small">{{ t("settings.backup_desc") }}</div>
+  </div>
+  <form method="post" action="/settings/backup/create">
+    <button class="btn btn-primary"><i class="bi bi-hdd-fill"></i> {{ t("settings.backup_create") }}</button>
+  </form>
+</div>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>{{ t("settings.backup_file") }}</th>
+          <th>{{ t("settings.backup_date") }}</th>
+          <th class="text-end">{{ t("settings.backup_size") }}</th>
+          <th class="text-end">{{ t("common.actions") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in backups %}
+        <tr>
+          <td><code>{{ b.filename }}</code></td>
+          <td>{{ b.created_on.strftime('%d.%m.%Y') }}</td>
+          <td class="text-end">{{ (b.size_bytes / 1024) | round(1) }} KB</td>
+          <td class="text-end">
+            <form method="post" action="/settings/backup/{{ b.filename }}/restore" class="d-inline"
+                  onsubmit="return confirm('{{ t('settings.backup_restore_confirm') }}');">
+              <button class="btn btn-sm btn-outline-warning" title="{{ t('settings.backup_restore') }}">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+            </form>
+            <form method="post" action="/settings/backup/{{ b.filename }}/delete" class="d-inline"
+                  onsubmit="return confirm('{{ t('settings.backup_delete_confirm') }}');">
+              <button class="btn btn-sm btn-outline-danger" title="{{ t('common.delete') }}">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted py-5">{{ t("settings.no_backups") }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

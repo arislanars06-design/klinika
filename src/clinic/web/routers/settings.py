@@ -1,0 +1,350 @@
+"""Settings screens: clinic profile, doctors/services CRUD, users, backups.
+
+Every route in this module requires the ``admin`` role.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
+
+from clinic.domain import (
+    clinic_info_service,
+    doctor_service,
+    service_service,
+    user_service,
+)
+from clinic.domain.clinic_info_service import ClinicInfo
+from clinic.infrastructure import backup as backup_service
+from clinic.infrastructure.validators import ValidationError
+from clinic.web.dependencies import render, require_admin
+
+router = APIRouter(prefix="/settings")
+
+
+# ---------------------------------------------------------------------------
+# Landing
+# ---------------------------------------------------------------------------
+
+
+@router.get("")
+def settings_index(request: Request, _: str = Depends(require_admin)):
+    return RedirectResponse(url="/settings/clinic", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Clinic profile
+# ---------------------------------------------------------------------------
+
+
+@router.get("/clinic")
+def clinic_form(request: Request, _: str = Depends(require_admin)):
+    info = clinic_info_service.load()
+    return render(request, "settings/clinic.html", {"info": info, "tab": "clinic"})
+
+
+@router.post("/clinic")
+async def clinic_save(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    info = ClinicInfo(
+        name_uz=(form.get("name_uz") or "").strip(),
+        name_ru=(form.get("name_ru") or "").strip(),
+        address_uz=(form.get("address_uz") or "").strip(),
+        address_ru=(form.get("address_ru") or "").strip(),
+        phone=(form.get("phone") or "").strip(),
+        logo_path=(form.get("logo_path") or "").strip(),
+        language=(form.get("language") or "uz").strip(),
+    )
+    clinic_info_service.save(info)
+    _flash(request, "success", "settings.clinic_saved")
+    return RedirectResponse(url="/settings/clinic", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Doctors
+# ---------------------------------------------------------------------------
+
+
+@router.get("/doctors")
+def doctors_list(request: Request, _: str = Depends(require_admin)):
+    return render(request, "settings/doctors.html", {
+        "doctors": doctor_service.list_all(active_only=False),
+        "tab": "doctors",
+    })
+
+
+@router.post("/doctors/new")
+async def doctors_create(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        doctor_service.create(
+            full_name=(form.get("full_name") or "").strip(),
+            phone=(form.get("phone") or "").strip() or None,
+        )
+        _flash(request, "success", "settings.doctor_added")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.doctor_error")
+    return RedirectResponse(url="/settings/doctors", status_code=303)
+
+
+@router.post("/doctors/{doctor_id}/edit")
+async def doctors_update(doctor_id: int, request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        doctor_service.update(
+            doctor_id,
+            full_name=(form.get("full_name") or "").strip(),
+            phone=(form.get("phone") or "").strip() or None,
+        )
+        _flash(request, "success", "settings.doctor_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.doctor_error")
+    return RedirectResponse(url="/settings/doctors", status_code=303)
+
+
+@router.post("/doctors/{doctor_id}/toggle")
+def doctors_toggle(doctor_id: int, request: Request, _: str = Depends(require_admin)):
+    current = doctor_service.get(doctor_id)
+    if current is None:
+        raise HTTPException(status_code=404, detail="doctor_not_found")
+    doctor_service.set_active(doctor_id, not current.is_active)
+    _flash(request, "success", "settings.doctor_toggled")
+    return RedirectResponse(url="/settings/doctors", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Services
+# ---------------------------------------------------------------------------
+
+
+@router.get("/services")
+def services_list(request: Request, _: str = Depends(require_admin)):
+    return render(request, "settings/services.html", {
+        "services": service_service.list_all(active_only=False),
+        "tab": "services",
+    })
+
+
+@router.post("/services/new")
+async def services_create(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        service_service.create(
+            name_uz=(form.get("name_uz") or "").strip(),
+            name_ru=(form.get("name_ru") or "").strip(),
+            price=(form.get("price") or "0").strip(),
+        )
+        _flash(request, "success", "settings.service_added")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.service_error")
+    return RedirectResponse(url="/settings/services", status_code=303)
+
+
+@router.post("/services/{service_id}/edit")
+async def services_update(service_id: int, request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        service_service.update(
+            service_id,
+            name_uz=(form.get("name_uz") or "").strip(),
+            name_ru=(form.get("name_ru") or "").strip(),
+            price=(form.get("price") or "0").strip(),
+        )
+        _flash(request, "success", "settings.service_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.service_error")
+    return RedirectResponse(url="/settings/services", status_code=303)
+
+
+@router.post("/services/{service_id}/toggle")
+def services_toggle(service_id: int, request: Request, _: str = Depends(require_admin)):
+    current = service_service.get(service_id)
+    if current is None:
+        raise HTTPException(status_code=404, detail="service_not_found")
+    service_service.set_active(service_id, not current.is_active)
+    _flash(request, "success", "settings.service_toggled")
+    return RedirectResponse(url="/settings/services", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
+
+
+@router.get("/users")
+def users_list(request: Request, _: str = Depends(require_admin)):
+    return render(request, "settings/users.html", {
+        "users": user_service.list_all(active_only=False),
+        "tab": "users",
+    })
+
+
+@router.post("/users/new")
+async def users_create(request: Request, admin_user: str = Depends(require_admin)):
+    del admin_user
+    form = await request.form()
+    try:
+        user_service.create(
+            username=(form.get("username") or ""),
+            password=(form.get("password") or ""),
+            role=(form.get("role") or "staff"),
+            full_name=(form.get("full_name") or "").strip(),
+        )
+        _flash(request, "success", "settings.user_added")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.user_error")
+    return RedirectResponse(url="/settings/users", status_code=303)
+
+
+@router.post("/users/{user_id}/edit")
+async def users_update(user_id: int, request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        user_service.update(
+            user_id,
+            role=(form.get("role") or "staff"),
+            full_name=(form.get("full_name") or "").strip(),
+        )
+        _flash(request, "success", "settings.user_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.user_error")
+    return RedirectResponse(url="/settings/users", status_code=303)
+
+
+@router.post("/users/{user_id}/reset-password")
+async def users_reset_password(user_id: int, request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        ok = user_service.reset_password(user_id, (form.get("password") or ""))
+        _flash(
+            request,
+            "success" if ok else "warning",
+            "settings.password_reset" if ok else "common.not_found",
+        )
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.user_error")
+    return RedirectResponse(url="/settings/users", status_code=303)
+
+
+@router.post("/users/{user_id}/toggle")
+def users_toggle(user_id: int, request: Request, _: str = Depends(require_admin)):
+    current = user_service.get(user_id)
+    if current is None:
+        raise HTTPException(status_code=404, detail="user_not_found")
+    # Don't allow admins to deactivate the last remaining active admin.
+    if current.role == "admin" and current.is_active:
+        actives = [u for u in user_service.list_all(active_only=True) if u.role == "admin"]
+        if len(actives) <= 1:
+            _flash(request, "warning", "settings.last_admin_protected")
+            return RedirectResponse(url="/settings/users", status_code=303)
+    user_service.set_active(user_id, not current.is_active)
+    _flash(request, "success", "settings.user_toggled")
+    return RedirectResponse(url="/settings/users", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Backup
+# ---------------------------------------------------------------------------
+
+
+@router.get("/backup")
+def backup_page(request: Request, _: str = Depends(require_admin)):
+    return render(request, "settings/backup.html", {
+        "backups": backup_service.list_backups(),
+        "tab": "backup",
+    })
+
+
+@router.post("/backup/create")
+def backup_create(request: Request, _: str = Depends(require_admin)):
+    try:
+        entry = backup_service.force_daily_backup()
+        _flash(request, "success", "settings.backup_created",
+               name=entry.filename, size=_pretty_size(entry.size_bytes))
+    except FileNotFoundError:
+        _flash(request, "warning", "settings.backup_no_source")
+    except Exception:  # pragma: no cover — surfaced to operator
+        _flash(request, "danger", "settings.backup_failed")
+    return RedirectResponse(url="/settings/backup", status_code=303)
+
+
+@router.post("/backup/{filename}/restore")
+def backup_restore(filename: str, request: Request, _: str = Depends(require_admin)):
+    source = _safe_backup_path(filename)
+    if source is None:
+        raise HTTPException(status_code=404, detail="backup_not_found")
+    try:
+        backup_service.restore_from(source)
+        # Invalidate the session — the DB is a fresh one now.
+        request.session.clear()
+        return RedirectResponse(url="/login?next=/settings/backup", status_code=303)
+    except Exception:
+        _flash(request, "danger", "settings.backup_restore_failed")
+        return RedirectResponse(url="/settings/backup", status_code=303)
+
+
+@router.post("/backup/{filename}/delete")
+def backup_delete(filename: str, request: Request, _: str = Depends(require_admin)):
+    target = _safe_backup_path(filename)
+    if target is None:
+        raise HTTPException(status_code=404, detail="backup_not_found")
+    try:
+        target.unlink()
+        _flash(request, "success", "settings.backup_deleted", name=filename)
+    except OSError:
+        _flash(request, "danger", "settings.backup_delete_failed")
+    return RedirectResponse(url="/settings/backup", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _flash(request: Request, level: str, key: str, **params) -> None:
+    from clinic.i18n.translator import translator
+
+    request.session.setdefault("flash", []).append({
+        "level": level,
+        "text": translator.t(key, **params),
+    })
+
+
+def _flash_validation(request: Request, ve: ValidationError, *, prefix: str) -> None:
+    from clinic.i18n.translator import translator
+
+    parts = [translator.t(e.message_key, **dict(e.params)) for e in ve.errors.values()]
+    joined = "; ".join(parts) if parts else translator.t("common.validation_failed")
+    request.session.setdefault("flash", []).append({
+        "level": "danger",
+        "text": f"{translator.t(prefix)}: {joined}",
+    })
+
+
+def _pretty_size(n: int) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024:
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024  # type: ignore[assignment]
+    return f"{n:.1f} TB"
+
+
+def _safe_backup_path(filename: str) -> Path | None:
+    """Prevent path traversal — the file must live directly in ``backups_dir``."""
+    from clinic.config import settings
+
+    if "/" in filename or "\\" in filename or ".." in filename:
+        return None
+    candidate = (settings.backups_dir / filename).resolve()
+    try:
+        candidate.relative_to(settings.backups_dir.resolve())
+    except ValueError:
+        return None
+    if not candidate.is_file():
+        return None
+    return candidate
+
+
+

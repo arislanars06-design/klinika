@@ -36,6 +36,14 @@
           </li>
         </ul>
         <ul class="navbar-nav">
+          {% if user and user.role == "admin" %}
+          <li class="nav-item">
+            <a class="nav-link" href="/settings" title="{{ t('menu.settings') }}">
+              <i class="bi bi-gear"></i>
+              <span class="d-md-none">{{ t("menu.settings") }}</span>
+            </a>
+          </li>
+          {% endif %}
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button">
               <i class="bi bi-translate"></i> {{ lang.upper() }}
@@ -51,8 +59,16 @@
               {% endfor %}
             </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/logout" title="{{ t('menu.logout') }}"><i class="bi bi-box-arrow-right"></i></a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button">
+              <i class="bi bi-person-circle"></i>
+              <span class="d-none d-lg-inline">{{ user.full_name or user.username }}</span>
+              <span class="badge text-bg-secondary d-none d-md-inline">{{ user.role }}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><h6 class="dropdown-header">{{ user.username }}</h6></li>
+              <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right"></i> {{ t("menu.logout") }}</a></li>
+            </ul>
           </li>
         </ul>
       </div>

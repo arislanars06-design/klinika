@@ -11,13 +11,18 @@ from fastapi.testclient import TestClient
 from clinic.domain import doctor_service, service_service
 from clinic.web.app import create_app
 
+USERNAME = "admin"
 PASSWORD = "clinic"
 
 
 @pytest.fixture()
 def client() -> TestClient:
     with TestClient(create_app()) as c:
-        c.post("/login", data={"password": PASSWORD}, follow_redirects=False)
+        c.post(
+            "/login",
+            data={"username": USERNAME, "password": PASSWORD},
+            follow_redirects=False,
+        )
         yield c
 
 

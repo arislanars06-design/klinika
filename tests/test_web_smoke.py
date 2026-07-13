@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from clinic.domain import doctor_service
 from clinic.web.app import create_app
 
+USERNAME = "admin"
 PASSWORD = "clinic"  # default from WebSettings; overrideable via env
 
 
@@ -29,7 +30,11 @@ def client() -> TestClient:
 
 @pytest.fixture()
 def logged_in(client: TestClient) -> TestClient:
-    resp = client.post("/login", data={"password": PASSWORD}, follow_redirects=False)
+    resp = client.post(
+        "/login",
+        data={"username": USERNAME, "password": PASSWORD},
+        follow_redirects=False,
+    )
     assert resp.status_code == 303
     return client
 
@@ -52,12 +57,20 @@ def test_login_page_renders(client: TestClient) -> None:
 
 
 def test_login_rejects_wrong_password(client: TestClient) -> None:
-    resp = client.post("/login", data={"password": "wrong"}, follow_redirects=False)
+    resp = client.post(
+        "/login",
+        data={"username": USERNAME, "password": "wrong"},
+        follow_redirects=False,
+    )
     assert resp.status_code == 401
 
 
 def test_login_accepts_correct_password(client: TestClient) -> None:
-    resp = client.post("/login", data={"password": PASSWORD}, follow_redirects=False)
+    resp = client.post(
+        "/login",
+        data={"username": USERNAME, "password": PASSWORD},
+        follow_redirects=False,
+    )
     assert resp.status_code == 303
     assert resp.headers["location"] == "/"
 
@@ -65,7 +78,11 @@ def test_login_accepts_correct_password(client: TestClient) -> None:
 def test_login_next_redirect_is_same_origin(client: TestClient) -> None:
     resp = client.post(
         "/login",
-        data={"password": PASSWORD, "next": "//evil.example.com/steal"},
+        data={
+            "username": USERNAME,
+            "password": PASSWORD,
+            "next": "//evil.example.com/steal",
+        },
         follow_redirects=False,
     )
     # Reject cross-origin ``next`` — must fall back to "/".

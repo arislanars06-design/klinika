@@ -19,8 +19,15 @@
         <form method="post" action="/login">
           <input type="hidden" name="next" value="{{ next_url or '/' }}">
           <div class="mb-3">
+            <label class="form-label">{{ t("auth.username") }}</label>
+            <input type="text" name="username" class="form-control"
+                   value="{{ prefilled_username or '' }}"
+                   autocomplete="username" autocapitalize="none" autofocus required>
+          </div>
+          <div class="mb-3">
             <label class="form-label">{{ t("auth.password") }}</label>
-            <input type="password" name="password" class="form-control" autofocus required>
+            <input type="password" name="password" class="form-control"
+                   autocomplete="current-password" required>
           </div>
           <button type="submit" class="btn btn-primary w-100">
             <i class="bi bi-box-arrow-in-right"></i> {{ t("auth.login") }}

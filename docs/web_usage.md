@@ -102,12 +102,15 @@ Namuna `docker-compose.yml` fayl Bosqich 3'da qo'shiladi.
   (`patients_stats_template.docx`, `cashier_stats_template.docx`,
   `receipt_template.docx`)
 
-## Bosqich 3 (rejalashtirilgan) — Sozlamalar + polish
+## Bosqich 3 — Sozlamalar + Users + Docker ✅
 
-- Sozlamalar (klinika, shifokorlar, xizmatlar)
-- Backup boshqaruvi
-- Hodim akkauntlari (rollar bilan)
-- Docker compose + nginx yo'riqnomasi
+- ✅ **Sozlamalar UI** (`/settings/*`) — klinika ma'lumotlari, shifokorlar CRUD, xizmatlar CRUD
+- ✅ **Zaxira boshqaruvi** — list + create + restore + delete (path-traversal himoyasi)
+- ✅ **Hodim akkauntlari** — `admin` va `staff` rollari, PBKDF2-SHA256 parol hash, oxirgi adminni bloklashdan himoya
+- ✅ **Docker + docker-compose** — [`Dockerfile`](../Dockerfile), [`docker-compose.yml`](../docker-compose.yml)
+- ✅ **nginx reverse-proxy** namunasi — [`deploy/nginx.conf`](../deploy/nginx.conf)
+- ✅ **Mobil optimizatsiya** — telefon/planshetda foydalanish uchun CSS media queries
+- ✅ **To'liq deployment yo'riqnomasi** — [`docs/deployment.md`](deployment.md)
 
 ---
 

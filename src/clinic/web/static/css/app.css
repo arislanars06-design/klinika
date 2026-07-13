@@ -43,3 +43,84 @@ body {
 .table > :not(caption) > * > * {
   padding: 0.6rem 0.75rem;
 }
+
+/* ============================================================================
+   Mobile-first tweaks (< 768px). Larger screens keep the desktop layout.
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Wider fluid container on phones */
+  main.container-fluid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* Bigger tap targets for the top-nav dropdowns */
+  .navbar-nav .nav-link {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  /* Card headers a bit tighter */
+  .card-header {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  /* Home-page cards should be full width and not too tall */
+  .home-card .card-body {
+    padding: 2rem 1rem;
+  }
+  .home-card i {
+    font-size: 2.5rem !important;
+  }
+
+  /* Tables scroll horizontally rather than squishing */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Stats KPI cards stack tightly */
+  .row.g-3 > [class^="col-"] .card .fs-2,
+  .row.g-3 > [class^="col-"] .card .fs-3 {
+    font-size: 1.5rem !important;
+  }
+
+  /* Settings tabs → horizontal scroll (already set inline) with tighter spacing */
+  .nav-tabs .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+
+  /* Chart containers get a bit of extra height so labels don't collide */
+  canvas[id^="chart-"] {
+    min-height: 220px;
+  }
+
+  /* Reception + cashier action button groups stack full width */
+  .d-flex.justify-content-between > .btn-group {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+}
+
+/* ============================================================================
+   Print styles — plain page for detail views, no navbar
+   ============================================================================ */
+
+@media print {
+  .navbar, footer, .btn, .btn-group, .card-header {
+    display: none !important;
+  }
+  main.container-fluid {
+    max-width: 100% !important;
+  }
+  body {
+    background: white;
+  }
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

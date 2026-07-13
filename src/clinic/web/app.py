@@ -23,6 +23,18 @@ from clinic.web.dependencies import STATIC_DIR
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     init_db()
+    from clinic.domain import user_service
+
+    created = user_service.ensure_default_admin(
+        username="admin",
+        password=web_settings.password,
+        full_name="Administrator",
+    )
+    if created is not None:
+        logger.warning(
+            "Bootstrap admin user '{}' created with CLINIC_WEB_PASSWORD — change it in Settings!",
+            created.username,
+        )
     logger.info("Clinic web app started (host={} port={})", web_settings.host, web_settings.port)
     yield
 
@@ -70,6 +82,9 @@ def create_app() -> FastAPI:
         reception as reception_router,
     )
     from clinic.web.routers import (
+        settings as settings_router,
+    )
+    from clinic.web.routers import (
         stats as stats_router,
     )
 
@@ -79,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(patients_router.router)
     app.include_router(cashier_router.router)
     app.include_router(stats_router.router)
+    app.include_router(settings_router.router)
     app.include_router(print_router.router)
 
     # ---- exception handlers ----
@@ -92,6 +108,10 @@ def create_app() -> FastAPI:
             if request.url.query:
                 next_url = f"{next_url}?{request.url.query}"
             return RedirectResponse(url=f"/login?next={next_url}", status_code=303)
+        if exc.status_code == 403:
+            from clinic.web.dependencies import render
+
+            return render(request, "forbidden.html", {}, status_code=403)
         # Delegate everything else to FastAPI's default renderer.
         return await _default_http_handler(request, exc)
 

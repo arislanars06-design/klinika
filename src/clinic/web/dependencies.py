@@ -32,6 +32,18 @@ def resolve_language(request: Request) -> str:
     return translator.language
 
 
+def current_user(request: Request) -> dict | None:
+    """Return the logged-in user info (or ``None``) stored in the session."""
+    session = getattr(request, "session", None)
+    if session is None:
+        return None
+    user = session.get("user")
+    role = session.get("role")
+    if not user:
+        return None
+    return {"username": user, "role": role or "staff", "full_name": session.get("full_name", "")}
+
+
 # ---------------------------------------------------------------------------
 # Template rendering helper
 # ---------------------------------------------------------------------------
@@ -57,7 +69,7 @@ def render(
     ctx.setdefault("supported_langs", SUPPORTED_LANGUAGES)
     ctx.setdefault("clinic_info", clinic)
     ctx.setdefault("t", translator.t)  # inline usage: {{ t("menu.home") }}
-    ctx.setdefault("user", request.session.get("user") if hasattr(request, "session") else None)
+    ctx.setdefault("user", current_user(request))
     return templates.TemplateResponse(request, template_name, ctx, status_code=status_code)
 
 
@@ -72,4 +84,13 @@ def require_login(request: Request) -> str:
     if not user:
         # 401 turned into a redirect by an exception handler in ``app.py``.
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
+    return user
+
+
+def require_admin(request: Request) -> str:
+    """Gate a route to admin-role users only."""
+    user = require_login(request)
+    role = request.session.get("role") if hasattr(request, "session") else None
+    if role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin_only")
     return user
