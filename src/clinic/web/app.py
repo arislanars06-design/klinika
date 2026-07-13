@@ -55,6 +55,9 @@ def create_app() -> FastAPI:
         auth as auth_router,
     )
     from clinic.web.routers import (
+        cashier as cashier_router,
+    )
+    from clinic.web.routers import (
         home as home_router,
     )
     from clinic.web.routers import (
@@ -66,14 +69,21 @@ def create_app() -> FastAPI:
     from clinic.web.routers import (
         reception as reception_router,
     )
+    from clinic.web.routers import (
+        stats as stats_router,
+    )
 
     app.include_router(auth_router.router)
     app.include_router(home_router.router)
     app.include_router(reception_router.router)
     app.include_router(patients_router.router)
+    app.include_router(cashier_router.router)
+    app.include_router(stats_router.router)
     app.include_router(print_router.router)
 
     # ---- exception handlers ----
+    from fastapi.exception_handlers import http_exception_handler as _default_http_handler
+
     @app.exception_handler(HTTPException)
     async def _http_exception_handler(request: Request, exc: HTTPException):
         # Turn 401 into a redirect to the login page (preserves ``next`` target).
@@ -82,6 +92,7 @@ def create_app() -> FastAPI:
             if request.url.query:
                 next_url = f"{next_url}?{request.url.query}"
             return RedirectResponse(url=f"/login?next={next_url}", status_code=303)
-        raise exc
+        # Delegate everything else to FastAPI's default renderer.
+        return await _default_http_handler(request, exc)
 
     return app

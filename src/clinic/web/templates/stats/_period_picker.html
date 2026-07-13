@@ -1,0 +1,26 @@
+{# Shared date/preset picker used on both stats screens #}
+<form method="get" class="row g-2 align-items-end mb-3">
+  <div class="col-md-3">
+    <label class="form-label small">{{ t("stats.preset") }}</label>
+    <select name="preset" class="form-select" onchange="this.form.submit()">
+      <option value="today"  {% if preset == 'today'  %}selected{% endif %}>{{ t("stats.preset_today") }}</option>
+      <option value="week"   {% if preset == 'week'   %}selected{% endif %}>{{ t("stats.preset_week") }}</option>
+      <option value="month"  {% if preset == 'month'  %}selected{% endif %}>{{ t("stats.preset_month") }}</option>
+      <option value="year"   {% if preset == 'year'   %}selected{% endif %}>{{ t("stats.preset_year") }}</option>
+      <option value="custom" {% if preset == 'custom' %}selected{% endif %}>{{ t("stats.preset_custom") }}</option>
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label small">{{ t("stats.from") }}</label>
+    <input type="date" name="start" value="{{ start_input }}" class="form-control">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label small">{{ t("stats.to") }}</label>
+    <input type="date" name="end" value="{{ end_input }}" class="form-control">
+  </div>
+  <div class="col-md-3 d-flex gap-2">
+    <button type="submit" name="preset" value="custom" class="btn btn-outline-primary flex-fill">
+      <i class="bi bi-funnel"></i> {{ t("stats.apply") }}
+    </button>
+  </div>
+</form>

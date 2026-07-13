@@ -90,11 +90,17 @@ Namuna `docker-compose.yml` fayl Bosqich 3'da qo'shiladi.
 - ✅ **Til almashtirish** — uz/ru
 - ✅ **Chiqish**
 
-## Bosqich 2 (rejalashtirilgan) — Kassa + Statistika
+## Bosqich 2 — Kassa + Statistika ✅
 
-- Kassa oynasi (xizmatlar jadvali, chek yaratish)
-- Statistika + Chart.js grafiklar
-- Word'ga eksport
+- ✅ **Kassa** (`/cashier`) — bemor qidirish, chek yaratish (bir necha xizmat),
+  qabulga bog'lash, chekni chop etish (Word)
+- ✅ **Statistika**
+  - `/stats` — bemorlar (KPI + Chart.js bar chart + TOP tashxislar)
+  - `/stats/cashier` — kassa (KPI + Chart.js line chart + xizmatlar TOP)
+  - Davr tanlash: bugun / hafta / oy / yil / boshqa (sana oralig'i)
+- ✅ **Word eksport** — barcha 3 turdagi hujjat sizning shabloningizni ishlatadi
+  (`patients_stats_template.docx`, `cashier_stats_template.docx`,
+  `receipt_template.docx`)
 
 ## Bosqich 3 (rejalashtirilgan) — Sozlamalar + polish
 

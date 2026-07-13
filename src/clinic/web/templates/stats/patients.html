@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ t("stats.patients_title") }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0"><i class="bi bi-graph-up text-success"></i> {{ t("stats.patients_title") }}</h3>
+  <div class="btn-group">
+    <a href="/stats/cashier?preset={{ preset }}&start={{ start_input }}&end={{ end_input }}"
+       class="btn btn-outline-secondary">
+      <i class="bi bi-cash-coin"></i> {{ t("stats.cashier_link") }}
+    </a>
+    <a href="/print/stats/patients.docx?preset={{ preset }}&start={{ start_input }}&end={{ end_input }}"
+       class="btn btn-primary">
+      <i class="bi bi-file-earmark-word"></i> {{ t("stats.export") }}
+    </a>
+  </div>
+</div>
+
+{% include "stats/_period_picker.html" %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 bg-body-tertiary h-100">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("stats.kpi_total_patients") }}</div>
+        <div class="fs-2 fw-semibold">{{ stats.total_patients }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 bg-body-tertiary h-100">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("stats.kpi_new_patients") }}</div>
+        <div class="fs-2 fw-semibold">{{ stats.new_patients }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 bg-body-tertiary h-100">
+      <div class="card-body">
+        <div class="text-muted small">{{ t("stats.kpi_repeat") }}</div>
+        <div class="fs-2 fw-semibold">{{ stats.repeat_receptions }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-bar-chart"></i> {{ t("stats.receptions_by_day") }}</div>
+      <div class="card-body">
+        <canvas id="chart-patients-by-day" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-list-ol"></i> {{ t("stats.top_diagnoses") }}</div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>{{ t("reception.diagnosis") }}</th>
+              <th class="text-end">{{ t("stats.count") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in stats.top_diagnoses %}
+            <tr>
+              <td class="text-muted">{{ loop.index }}</td>
+              <td>{{ d.diagnosis }}</td>
+              <td class="text-end fw-medium">{{ d.count }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">{{ t("stats.no_data") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="chart-data" type="application/json">
+{"labels": {{ labels_by_day | tojson }}, "values": {{ values_by_day | tojson }}}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const data = JSON.parse(document.getElementById("chart-data").textContent);
+  const ctx = document.getElementById("chart-patients-by-day");
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.labels,
+      datasets: [{
+        label: "{{ t('stats.receptions_by_day') }}",
+        data: data.values,
+        backgroundColor: "rgba(13,110,253,0.35)",
+        borderColor: "rgba(13,110,253,1)",
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      scales: {y: {beginAtZero: true, ticks: {stepSize: 1}}},
+      plugins: {legend: {display: false}},
+    }
+  });
+})();
+</script>
+{% endblock %}

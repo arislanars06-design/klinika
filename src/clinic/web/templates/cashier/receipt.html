@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ t("cashier.receipt_title") }} №{{ anchor.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">
+    <i class="bi bi-receipt text-primary"></i>
+    {{ t("cashier.receipt_title") }} №{{ anchor.id }}
+  </h3>
+  <div class="btn-group">
+    <a href="/print/receipt/{{ anchor.id }}.docx" class="btn btn-primary">
+      <i class="bi bi-printer"></i> {{ t("cashier.print") }}
+    </a>
+    <a href="/cashier/patient/{{ patient.id }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
+    </a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <div class="text-muted small">{{ t("reception.patient_section") }}</div>
+        <div class="fw-semibold">{{ patient.full_name }} ({{ patient.birth_year }})</div>
+      </div>
+      <div class="col-md-6 text-md-end">
+        <div class="text-muted small">{{ t("reception.date") }}</div>
+        <div>{{ anchor.paid_at.strftime('%d.%m.%Y %H:%M') }}</div>
+      </div>
+    </div>
+
+    <table class="table">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>{{ t("cashier.service") }}</th>
+          <th class="text-center">{{ t("cashier.quantity") }}</th>
+          <th class="text-end">{{ t("cashier.unit_price") }}</th>
+          <th class="text-end">{{ t("cashier.line_total") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in items %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ r.service_name_ru if lang == 'ru' else r.service_name_uz }}</td>
+          <td class="text-center">{{ r.quantity }}</td>
+          <td class="text-end">{{ r.price_at_moment }} {{ t("cashier.currency") }}</td>
+          <td class="text-end fw-medium">{{ r.total }} {{ t("cashier.currency") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="4" class="text-end">{{ t("cashier.grand_total") }}</th>
+          <th class="text-end fs-5">{{ total }} {{ t("cashier.currency") }}</th>
+        </tr>
+      </tfoot>
+    </table>
+
+    {% if anchor.note %}
+    <div class="alert alert-light small mt-3">
+      <strong>{{ t("cashier.note") }}:</strong> {{ anchor.note }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
