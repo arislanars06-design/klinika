@@ -32,6 +32,25 @@ def resolve_language(request: Request) -> str:
     return translator.language
 
 
+VALID_THEMES = ("light", "dark", "auto")
+
+
+def resolve_theme(request: Request, clinic_theme: str = "light") -> str:
+    """Return the active theme.
+
+    Order of precedence:
+    1. ``request.session["theme"]`` — user's per-session preference
+    2. ``clinic_theme`` — clinic-wide default from settings
+    3. ``"light"`` — safe fallback
+    """
+    session = getattr(request, "session", None)
+    if session is not None:
+        override = session.get("theme")
+        if override in VALID_THEMES:
+            return override
+    return clinic_theme if clinic_theme in VALID_THEMES else "light"
+
+
 def current_user(request: Request) -> dict | None:
     """Return the logged-in user info (or ``None``) stored in the session."""
     session = getattr(request, "session", None)
@@ -65,11 +84,14 @@ def render(
 
     lang = resolve_language(request)
     clinic = clinic_info_service.load()
+    theme = resolve_theme(request, clinic.theme)
     ctx.setdefault("lang", lang)
     ctx.setdefault("supported_langs", SUPPORTED_LANGUAGES)
     ctx.setdefault("clinic_info", clinic)
     ctx.setdefault("t", translator.t)  # inline usage: {{ t("menu.home") }}
     ctx.setdefault("user", current_user(request))
+    ctx.setdefault("theme", theme)
+    ctx.setdefault("theme_options", VALID_THEMES)
     return templates.TemplateResponse(request, template_name, ctx, status_code=status_code)
 
 

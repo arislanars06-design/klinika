@@ -164,6 +164,7 @@ class CashierRecordDTO:
     total: Decimal
     paid_at: datetime
     note: str | None
+    payment_type: str = "cash"  # cash | transfer | terminal
 
     @classmethod
     def from_orm(cls, r: CashierRecord) -> CashierRecordDTO:
@@ -180,6 +181,7 @@ class CashierRecordDTO:
             total=Decimal(r.total),
             paid_at=r.paid_at,
             note=r.note,
+            payment_type=getattr(r, "payment_type", None) or "cash",
         )
 
     def service_name(self, lang: str) -> str:
@@ -194,6 +196,9 @@ class CashierItemInput:
     quantity: int = 1
 
 
+VALID_PAYMENT_TYPES = ("cash", "transfer", "terminal")
+
+
 @dataclass
 class CashierPaymentInput:
     """A complete cashier operation (one or more line-items in a single receipt)."""
@@ -202,6 +207,10 @@ class CashierPaymentInput:
     reception_id: int | None
     items: list[CashierItemInput] = field(default_factory=list)
     note: str | None = None
+    payment_type: str = "cash"
+    # Optional user-supplied grand total override; when set, the sum of items
+    # is scaled proportionally so the receipt totals exactly this amount.
+    override_total: Decimal | None = None
 
 
 # ============================================================================

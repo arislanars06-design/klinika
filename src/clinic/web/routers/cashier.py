@@ -112,6 +112,46 @@ def cashier_landing(request: Request, q: str | None = None, _user: str = Depends
 # ---------------------------------------------------------------------------
 
 
+@router.post("/quick")
+async def cashier_quick_create(request: Request, _user: str = Depends(require_login)):
+    """Walk-in flow: register a bare-minimum patient inline, then jump to cart."""
+    from clinic.domain.dto import PatientInput
+
+    form = await request.form()
+    patient_in = PatientInput(
+        full_name=(form.get("full_name") or "").strip(),
+        birth_year=(form.get("birth_year") or "").strip(),
+        address=None,
+        phone=(form.get("phone") or "").strip() or None,
+    )
+    lang = resolve_language(request)
+    try:
+        patient, _created = patient_service.find_or_create(patient_in)
+    except ValidationError as ve:
+        from clinic.i18n.translator import translator
+
+        joined = "; ".join(
+            translator.t(e.message_key, **dict(e.params)) for e in ve.errors.values()
+        )
+        request.session.setdefault("flash", []).append({
+            "level": "danger",
+            "text": (
+                f"Bemorni saqlab bo'lmadi: {joined}" if lang == "uz"
+                else f"Не удалось сохранить пациента: {joined}"
+            ),
+        })
+        return RedirectResponse(url="/cashier", status_code=303)
+
+    request.session.setdefault("flash", []).append({
+        "level": "info",
+        "text": (
+            f"Bemor tayyor: {patient.full_name}." if lang == "uz"
+            else f"Пациент готов: {patient.full_name}."
+        ),
+    })
+    return RedirectResponse(url=f"/cashier/patient/{patient.id}", status_code=303)
+
+
 @router.get("/patient/{patient_id}")
 def cashier_patient(
     request: Request,
@@ -173,11 +213,27 @@ async def cashier_save(
         if svc_id > 0 and qty_i > 0:
             items.append(CashierItemInput(service_id=svc_id, quantity=qty_i))
 
+    payment_type = (form.get("payment_type") or "cash").strip().lower()
+    if payment_type not in ("cash", "transfer", "terminal"):
+        payment_type = "cash"
+
+    override_raw = (form.get("override_total") or "").strip()
+    override_total: Decimal | None = None
+    if override_raw:
+        try:
+            override_total = Decimal(override_raw.replace(" ", "").replace(",", "."))
+            if override_total < 0:
+                override_total = None
+        except Exception:
+            override_total = None
+
     payment = CashierPaymentInput(
         patient_id=patient_id,
         reception_id=reception_id,
         items=items,
         note=note,
+        payment_type=payment_type,
+        override_total=override_total,
     )
 
     lang = resolve_language(request)

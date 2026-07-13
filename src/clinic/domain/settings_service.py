@@ -21,6 +21,9 @@ KEY_CLINIC_PHONE = "clinic_phone"
 KEY_CLINIC_LOGO_PATH = "clinic_logo_path"
 KEY_FIRST_RUN_DONE = "first_run_done"
 KEY_LAST_BACKUP_DATE = "last_backup_date"
+# ---- Phase 4 additions -----------------------------------------------------
+KEY_THEME = "web_theme"                # light | dark | auto
+KEY_SAVE_FOLDER = "web_save_folder"    # download filename prefix / path hint
 
 
 def get(key: str, default: str | None = None) -> str | None:

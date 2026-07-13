@@ -2,27 +2,34 @@
 {% block title %}{% if reception %}{{ t("reception.edit_title") }}{% else %}{{ t("reception.new_title") }}{% endif %}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h3 class="mb-0">
     <i class="bi bi-clipboard2-pulse text-primary"></i>
     {% if reception %}{{ t("reception.edit_title") }} №{{ reception.id }}{% else %}{{ t("reception.new_title") }}{% endif %}
   </h3>
-  <a href="/patients" class="btn btn-outline-secondary btn-sm">
-    <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
-  </a>
+  <div class="btn-group">
+    {% if reception %}
+    <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-outline-primary" target="_blank">
+      <i class="bi bi-printer"></i> {{ t("reception.print") }}
+    </a>
+    {% endif %}
+    <a href="/patients" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
+    </a>
+  </div>
 </div>
 
 {% if form_errors %}
 <div class="alert alert-danger">
   <strong>{{ t("common.validation_failed") }}</strong>
   <ul class="mb-0 small">
-    {% for field, msg in form_errors.items() %}<li>{{ field }}: {{ msg }}</li>{% endfor %}
+    {% for field, err in form_errors.items() %}<li>{{ field }}: {{ t(err.message_key, **err.params) }}</li>{% endfor %}
   </ul>
 </div>
 {% endif %}
 
 <form method="post" action="{% if reception %}/reception/{{ reception.id }}/edit{% else %}/reception/new{% endif %}"
-      class="needs-validation" novalidate>
+      class="needs-validation" novalidate id="reception-form">
 
   <!-- ============ PATIENT ============ -->
   <div class="card shadow-sm mb-3">
@@ -62,7 +69,7 @@
     </div>
   </div>
 
-  <!-- ============ COMPLAINTS (accordion) ============ -->
+  <!-- ============ COMPLAINTS (accordion, no emoji) ============ -->
   <div class="card shadow-sm mb-3">
     <div class="card-header"><i class="bi bi-chat-left-text"></i> {{ t("reception.complaints_section") }} *</div>
     <div class="card-body">
@@ -72,7 +79,7 @@
           <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bs-target="#complaints-{{ section['code'] }}">
-              {{ section["icon"] }} {{ section["name"][lang] }}
+              {{ section["name"][lang] }}
             </button>
           </h2>
           <div id="complaints-{{ section['code'] }}" class="accordion-collapse collapse"
@@ -80,8 +87,9 @@
             <div class="accordion-body">
               {% for item in section["items"] %}
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="complaints"
+                <input class="form-check-input complaint-checkbox" type="checkbox" name="complaints"
                        id="c_{{ item['code'] }}" value="{{ item['code'] }}"
+                       data-label="{{ item[lang] }}"
                        {% if item["code"] in (form.complaints_codes or []) %}checked{% endif %}>
                 <label class="form-check-label" for="c_{{ item['code'] }}">
                   {{ item[lang] }}
@@ -108,21 +116,135 @@
     </div>
   </div>
 
-  <!-- ============ LOR STATUS (freetext per method for Phase 1) ============ -->
+  <!-- ============ LOR STATUS (structured selection by method + section) ============ -->
   <div class="card shadow-sm mb-3">
     <div class="card-header"><i class="bi bi-search"></i> {{ t("reception.lor_status_section") }}</div>
     <div class="card-body">
-      <ul class="nav nav-tabs mb-3" role="tablist">
-        {% for m in lor_methods %}
-        <li class="nav-item"><button type="button" class="nav-link {% if loop.first %}active{% endif %}"
-              data-bs-toggle="tab" data-bs-target="#lor-{{ m['code'] }}">{{ m["icon"] }} {{ m["name"][lang] }}</button></li>
+      <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto" role="tablist">
+        {% for m in lor_catalog["methods"] %}
+        <li class="nav-item">
+          <button type="button" class="nav-link {% if loop.first %}active{% endif %}"
+                  data-bs-toggle="tab" data-bs-target="#lor-tab-{{ m['code'] }}">
+            {{ m["name"][lang] }}
+          </button>
+        </li>
         {% endfor %}
       </ul>
-      <div class="tab-content">
-        {% for m in lor_methods %}
-        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="lor-{{ m['code'] }}">
-          <textarea name="lor_{{ m['code'] }}" class="form-control" rows="4"
-                    placeholder="{{ t('reception.lor_hint') }}">{{ (form.lor_status or {}).get(m["code"], "") }}</textarea>
+
+      <div class="tab-content" id="lor-status-editor">
+        {% for m in lor_catalog["methods"] %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="lor-tab-{{ m['code'] }}"
+             data-method="{{ m['code'] }}">
+          {% if m.get("per_ear") %}
+            {% set ears = m["ears"] %}
+          {% else %}
+            {% set ears = [{"code": "", "uz": "", "ru": ""}] %}
+          {% endif %}
+
+          {% for ear in ears %}
+          {% set ear_code = ear["code"] %}
+          {% set prefix = m["code"] ~ ("__" ~ ear_code if ear_code else "") %}
+          {% if ear_code %}
+          <div class="alert alert-secondary py-2 small mb-2">
+            <strong>{{ ear[lang] }}</strong>
+          </div>
+          {% endif %}
+
+          {% for section in m["sections"] %}
+          <div class="lor-section" data-section="{{ section['code'] }}">
+            <div class="lor-section-header">
+              <div class="lor-section-title">{{ section["name"][lang] }}</div>
+              <button type="button" class="btn btn-sm btn-outline-success norma-btn"
+                      data-section="{{ section['code'] }}"
+                      data-prefix="{{ prefix }}">
+                <i class="bi bi-check-circle"></i> {{ t("lor.norma") }}
+              </button>
+            </div>
+
+            {% for field in section["fields"] %}
+            {% set fname = "lor__" ~ prefix ~ "__" ~ section["code"] ~ "__" ~ field["code"] %}
+            {% set current = (form.lor_status or {}).get(prefix, {}).get(section["code"], {}).get(field["code"]) %}
+
+            <div class="lor-field"
+                 data-field="{{ field['code'] }}"
+                 {% if field.get("visible_when") %}data-visible-when='{{ field["visible_when"] | tojson }}'{% endif %}>
+
+              {% if field["type"] == "radio" %}
+              <div class="field-label">{{ t("lor.field." ~ field["code"], default=field["code"]) }}</div>
+              {% for opt in field["options"] %}
+              <div class="form-check">
+                <input class="form-check-input lor-input" type="radio"
+                       id="{{ fname }}__{{ opt['code'] }}"
+                       name="{{ fname }}"
+                       value="{{ opt['code'] }}"
+                       data-is-norm="{{ 'true' if opt.get('is_norm') else 'false' }}"
+                       {% if current == opt['code'] %}checked{% endif %}>
+                <label class="form-check-label" for="{{ fname }}__{{ opt['code'] }}">
+                  {{ opt[lang] }}
+                </label>
+              </div>
+              {% endfor %}
+
+              {% elif field["type"] == "checkbox_multi" %}
+              <div class="field-label">{{ t("lor.field." ~ field["code"], default=field["code"]) }}</div>
+              {% for opt in field["options"] %}
+              <div class="form-check">
+                <input class="form-check-input lor-input" type="checkbox"
+                       id="{{ fname }}__{{ opt['code'] }}"
+                       name="{{ fname }}"
+                       value="{{ opt['code'] }}"
+                       data-is-norm="{{ 'true' if opt.get('is_norm') else 'false' }}"
+                       {% if current is iterable and opt['code'] in current %}checked{% endif %}>
+                <label class="form-check-label" for="{{ fname }}__{{ opt['code'] }}">
+                  {{ opt[lang] }}
+                </label>
+              </div>
+              {% endfor %}
+
+              {% elif field["type"] == "checkbox" %}
+              <div class="form-check">
+                <input class="form-check-input lor-input" type="checkbox"
+                       id="{{ fname }}"
+                       name="{{ fname }}"
+                       value="1"
+                       {% if current %}checked{% endif %}>
+                <label class="form-check-label" for="{{ fname }}">
+                  {{ field["label"][lang] }}
+                </label>
+              </div>
+
+              {% elif field["type"] == "side" %}
+              <div class="field-label">{{ t("lor.field.side") }}</div>
+              {% for s in lor_catalog["sides"] %}
+              <div class="form-check">
+                <input class="form-check-input lor-input" type="radio"
+                       id="{{ fname }}__{{ s['code'] }}"
+                       name="{{ fname }}"
+                       value="{{ s['code'] }}"
+                       {% if current == s['code'] %}checked{% endif %}>
+                <label class="form-check-label" for="{{ fname }}__{{ s['code'] }}">{{ s[lang] }}</label>
+              </div>
+              {% endfor %}
+
+              {% elif field["type"] == "degree" %}
+              <div class="field-label">{{ t("lor.field.degree") }}</div>
+              {% for d in lor_catalog["degrees"] %}
+              <div class="form-check">
+                <input class="form-check-input lor-input" type="radio"
+                       id="{{ fname }}__{{ d['code'] }}"
+                       name="{{ fname }}"
+                       value="{{ d['code'] }}"
+                       data-is-norm="{{ 'true' if d.get('is_norm') else 'false' }}"
+                       {% if current == d['code'] %}checked{% endif %}>
+                <label class="form-check-label" for="{{ fname }}__{{ d['code'] }}">{{ d[lang] }}</label>
+              </div>
+              {% endfor %}
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+          {% endfor %}
         </div>
         {% endfor %}
       </div>
@@ -141,14 +263,22 @@
         </div>
         <div class="col-md-4">
           <label class="form-label">{{ t("reception.doctor") }} *</label>
-          <select name="doctor_id" class="form-select" required>
+          <select name="doctor_id" class="form-select" id="doctor-select" required>
             <option value="">— {{ t("common.choose") }} —</option>
             {% for d in doctors %}
-            <option value="{{ d.id }}" {% if form.doctor_id|string == d.id|string %}selected{% endif %}>
+            <option value="{{ d.id }}"
+                    data-phone="{{ d.phone or '' }}"
+                    {% if form.doctor_id|string == d.id|string %}selected{% endif %}>
               {{ d.full_name }}{% if not d.is_active %} ({{ t("common.archived") }}){% endif %}
             </option>
             {% endfor %}
           </select>
+          <div class="form-text small" id="doctor-phone-hint">
+            {% set current_doctor = doctors | selectattr('id', 'equalto', form.doctor_id) | list %}
+            {% if current_doctor and current_doctor[0].phone %}
+              <i class="bi bi-telephone"></i> {{ current_doctor[0].phone }}
+            {% endif %}
+          </div>
         </div>
         <div class="col-12">
           <label class="form-label">{{ t("reception.recommendation") }}</label>
@@ -158,13 +288,162 @@
     </div>
   </div>
 
-  <div class="d-flex justify-content-between">
-    <a href="{% if reception %}/patients/{{ reception.patient_id }}{% else %}/{% endif %}" class="btn btn-outline-secondary">
+  <!-- ============ ACTIONS ============ -->
+  <div class="d-flex justify-content-between flex-wrap gap-2">
+    <a href="{% if reception %}/patients/{{ reception.patient_id }}{% else %}/{% endif %}"
+       class="btn btn-outline-secondary">
       <i class="bi bi-x-lg"></i> {{ t("common.cancel") }}
     </a>
-    <button type="submit" class="btn btn-primary btn-lg">
-      <i class="bi bi-save"></i> {{ t("common.save") }}
-    </button>
+    <div class="btn-group">
+      {% if reception %}
+      <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-outline-primary" target="_blank">
+        <i class="bi bi-printer"></i> {{ t("reception.print") }}
+      </a>
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="bi bi-save"></i> {{ t("common.save") }}
+      </button>
+    </div>
   </div>
 </form>
+
+<!-- Selected complaints — sticky pill list at the bottom of the viewport -->
+<div id="selected-complaints-panel" class="d-none">
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <span class="text-muted small"><i class="bi bi-list-check"></i> {{ t("reception.selected_complaints") }}:</span>
+    <div id="selected-complaints-list" class="d-flex gap-2 flex-wrap"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  // --------------------------------------------------------------
+  // (1) Live "selected complaints" pill list
+  // --------------------------------------------------------------
+  const boxes = document.querySelectorAll(".complaint-checkbox");
+  const panel = document.getElementById("selected-complaints-panel");
+  const list  = document.getElementById("selected-complaints-list");
+  const removeIcon = '<i class="bi bi-x-lg"></i>';
+
+  function refreshPanel() {
+    list.innerHTML = "";
+    const checked = Array.from(boxes).filter(b => b.checked);
+    if (checked.length === 0) {
+      panel.classList.add("d-none");
+      return;
+    }
+    panel.classList.remove("d-none");
+    checked.forEach(cb => {
+      const pill = document.createElement("span");
+      pill.className = "selected-pill";
+      pill.innerHTML = `<span>${cb.dataset.label}</span>`;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.title = "{{ t('common.delete') }}";
+      btn.innerHTML = removeIcon;
+      btn.addEventListener("click", () => {
+        cb.checked = false;
+        refreshPanel();
+      });
+      pill.appendChild(btn);
+      list.appendChild(pill);
+    });
+  }
+  boxes.forEach(cb => cb.addEventListener("change", refreshPanel));
+  refreshPanel();
+
+  // --------------------------------------------------------------
+  // (2) LOR STATUS — conditional visibility (visible_when)
+  // --------------------------------------------------------------
+  function updateVisibility(root) {
+    root.querySelectorAll(".lor-field[data-visible-when]").forEach(field => {
+      let cond;
+      try { cond = JSON.parse(field.dataset.visibleWhen); }
+      catch { return; }
+
+      const parentSection = field.closest(".lor-section");
+      if (!parentSection) return;
+
+      const [sourceField, expected] = Object.entries(cond)[0];
+      // Find inputs in the same section whose field code matches sourceField
+      const sourceInputs = parentSection.querySelectorAll(
+        `.lor-field[data-field="${sourceField}"] .lor-input`
+      );
+      const activeValues = Array.from(sourceInputs)
+        .filter(i => (i.type === "radio" || i.type === "checkbox") ? i.checked : true)
+        .map(i => i.value);
+
+      const expectedList = Array.isArray(expected) ? expected : [expected];
+      const shouldShow = activeValues.some(v => expectedList.includes(v));
+
+      if (shouldShow) {
+        field.classList.remove("is-hidden");
+      } else {
+        field.classList.add("is-hidden");
+        field.querySelectorAll(".lor-input").forEach(i => {
+          if (i.type === "radio" || i.type === "checkbox") i.checked = false;
+        });
+      }
+    });
+  }
+  const editor = document.getElementById("lor-status-editor");
+  if (editor) {
+    editor.addEventListener("change", () => updateVisibility(editor));
+    updateVisibility(editor);
+  }
+
+  // --------------------------------------------------------------
+  // (3) NORMA button — per section, checks all is_norm options
+  // --------------------------------------------------------------
+  document.querySelectorAll(".norma-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const sectionCode = btn.dataset.section;
+      const prefix = btn.dataset.prefix;
+      // Find section in current tab
+      const tab = btn.closest(".tab-pane");
+      const section = tab.querySelector(`.lor-section[data-section="${sectionCode}"]`);
+      if (!section) return;
+
+      // For each field, check the option flagged is_norm.
+      section.querySelectorAll(".lor-field").forEach(field => {
+        const norms = field.querySelectorAll('.lor-input[data-is-norm="true"]');
+        norms.forEach(inp => {
+          inp.checked = true;
+          inp.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      });
+      updateVisibility(editor);
+    });
+  });
+
+  // --------------------------------------------------------------
+  // (4) Doctor phone hint
+  // --------------------------------------------------------------
+  const docSel = document.getElementById("doctor-select");
+  const docPhoneHint = document.getElementById("doctor-phone-hint");
+  if (docSel && docPhoneHint) {
+    docSel.addEventListener("change", () => {
+      const phone = docSel.selectedOptions[0]?.dataset?.phone || "";
+      docPhoneHint.innerHTML = phone
+        ? `<i class="bi bi-telephone"></i> ${phone}`
+        : "";
+    });
+  }
+
+  // --------------------------------------------------------------
+  // (5) Patient autocomplete → hidden patient_id
+  // --------------------------------------------------------------
+  const fullNameInput = document.querySelector('input[name="full_name"]');
+  const patientIdField = document.querySelector('input[name="patient_id"]');
+  const suggestions = document.getElementById("patient-suggestions");
+  if (fullNameInput && patientIdField && suggestions) {
+    fullNameInput.addEventListener("input", () => {
+      const match = Array.from(suggestions.options).find(o => o.value === fullNameInput.value);
+      patientIdField.value = match ? match.dataset.id || "" : "";
+    });
+  }
+})();
+</script>
 {% endblock %}

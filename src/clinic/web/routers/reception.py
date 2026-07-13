@@ -21,44 +21,92 @@ from clinic.web.dependencies import render, require_login, resolve_language
 
 router = APIRouter(prefix="/reception")
 
-# LOR methods exposed as a fixed list (matches the freetext editor in Phase 1)
-LOR_METHODS = [
-    {"code": "rhinoscopy",    "icon": "\U0001F443", "name": {"uz": "Rinoskopiya",    "ru": "Риноскопия"}},
-    {"code": "pharyngoscopy", "icon": "\U0001F62E", "name": {"uz": "Faringoskopiya", "ru": "Фарингоскопия"}},
-    {"code": "otoscopy",      "icon": "\U0001F442", "name": {"uz": "Otoskopiya",     "ru": "Отоскопия"}},
-    {"code": "laryngoscopy",  "icon": "\U0001F5E3", "name": {"uz": "Laringoskopiya", "ru": "Ларингоскопия"}},
-]
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _form_context(request: Request, form: dict[str, Any] | None = None,
-                  form_errors: dict[str, str] | None = None,
-                  reception=None) -> dict[str, Any]:
+def _form_context(
+    request: Request,
+    form: dict[str, Any] | None = None,
+    form_errors: dict[str, str] | None = None,
+    reception=None,
+) -> dict[str, Any]:
     return {
         "form": form or {},
         "form_errors": form_errors or {},
         "reception": reception,
         "doctors": doctor_service.list_all(active_only=False),
         "complaints": catalog_loader.complaints_catalog(),
-        "lor_methods": LOR_METHODS,
+        "lor_catalog": catalog_loader.lor_status_catalog(),
     }
 
 
-def _parse_form(form_data) -> tuple[ReceptionInput, dict[str, Any]]:
+def _collect_lor_status(form_data, catalog: dict) -> dict:
+    """Reconstruct the nested ``lor_status`` dict from the flat form.
+
+    Field names look like:
+        ``lor__<method>__<section>__<field_code>``       — plain method
+        ``lor__<method>__<ear>__<section>__<field_code>``  — per-ear method
+
+    Values may be radios (single string), checkbox_multi (list of strings), or
+    plain checkboxes (``"1"`` when checked). Everything empty is skipped.
+    """
+    getlist = getattr(form_data, "getlist", None)
+
+    result: dict[str, dict[str, dict[str, Any]]] = {}
+    for method in catalog.get("methods", []):
+        per_ear = method.get("per_ear", False)
+        prefixes: list[str] = []
+        if per_ear:
+            for ear in method.get("ears", []):
+                prefixes.append(f"{method['code']}__{ear['code']}")
+        else:
+            prefixes.append(method["code"])
+
+        for prefix in prefixes:
+            method_bucket: dict[str, dict[str, Any]] = {}
+            for section in method.get("sections", []):
+                section_code = section["code"]
+                section_bucket: dict[str, Any] = {}
+                for field in section.get("fields", []):
+                    name = f"lor__{prefix}__{section_code}__{field['code']}"
+                    ftype = field.get("type")
+                    if ftype in {"radio", "side", "degree"}:
+                        val = (form_data.get(name) or "").strip()
+                        if val:
+                            section_bucket[field["code"]] = val
+                    elif ftype == "checkbox_multi":
+                        if getlist:
+                            values = [v for v in getlist(name) if v]
+                        else:
+                            raw = form_data.get(name)
+                            values = [raw] if raw else []
+                        if values:
+                            section_bucket[field["code"]] = values
+                    elif ftype == "checkbox":
+                        if form_data.get(name):
+                            section_bucket[field["code"]] = True
+                if section_bucket:
+                    method_bucket[section_code] = section_bucket
+            if method_bucket:
+                result[prefix] = method_bucket
+
+    return result
+
+
+def _parse_form(form_data, lor_catalog: dict) -> tuple[ReceptionInput, dict[str, Any]]:
     """Convert raw form data → (ReceptionInput, form_state_for_redisplay)."""
-    complaints_codes = form_data.getlist("complaints") if hasattr(form_data, "getlist") else form_data.get("complaints", [])
+    complaints_codes = (
+        form_data.getlist("complaints")
+        if hasattr(form_data, "getlist")
+        else form_data.get("complaints", [])
+    )
     if isinstance(complaints_codes, str):
         complaints_codes = [complaints_codes]
 
-    lor_status: dict[str, str] = {}
-    for method in LOR_METHODS:
-        val = (form_data.get(f"lor_{method['code']}") or "").strip()
-        if val:
-            lor_status[method["code"]] = val
+    lor_status = _collect_lor_status(form_data, lor_catalog)
 
     raw_patient_id = (form_data.get("patient_id") or "").strip()
     patient_id = int(raw_patient_id) if raw_patient_id.isdigit() else None
@@ -108,8 +156,11 @@ def _parse_form(form_data) -> tuple[ReceptionInput, dict[str, Any]]:
 
 
 @router.get("/new")
-def new_reception(request: Request, patient_id: int | None = None,
-                  _user: str = Depends(require_login)):
+def new_reception(
+    request: Request,
+    patient_id: int | None = None,
+    _user: str = Depends(require_login),
+):
     form: dict[str, Any] = {}
     if patient_id:
         p = patient_service.get(patient_id)
@@ -126,8 +177,9 @@ def new_reception(request: Request, patient_id: int | None = None,
 
 @router.post("/new")
 async def create_reception(request: Request, _user: str = Depends(require_login)):
+    lor_catalog = catalog_loader.lor_status_catalog()
     form_data = await request.form()
-    rec_input, form_state = _parse_form(form_data)
+    rec_input, form_state = _parse_form(form_data, lor_catalog)
     try:
         rec, _patient, _created = reception_service.save(rec_input)
     except ValidationError as ve:
@@ -136,9 +188,10 @@ async def create_reception(request: Request, _user: str = Depends(require_login)
             _form_context(request, form=form_state, form_errors=ve.errors),
             status_code=400,
         )
-    request.session.setdefault("flash", []).append(
-        {"level": "success", "text": "Qabul saqlandi." if resolve_language(request) == "uz" else "Приём сохранён."}
-    )
+    request.session.setdefault("flash", []).append({
+        "level": "success",
+        "text": "Qabul saqlandi." if resolve_language(request) == "uz" else "Приём сохранён.",
+    })
     return RedirectResponse(url=f"/reception/{rec.id}", status_code=303)
 
 
@@ -164,7 +217,9 @@ def view_reception(request: Request, reception_id: int, _user: str = Depends(req
 
 
 @router.get("/{reception_id}/edit")
-def edit_reception_form(request: Request, reception_id: int, _user: str = Depends(require_login)):
+def edit_reception_form(
+    request: Request, reception_id: int, _user: str = Depends(require_login)
+):
     rec = reception_service.get(reception_id)
     if rec is None:
         raise HTTPException(status_code=404, detail="reception_not_found")
@@ -189,12 +244,15 @@ def edit_reception_form(request: Request, reception_id: int, _user: str = Depend
 
 
 @router.post("/{reception_id}/edit")
-async def update_reception(request: Request, reception_id: int, _user: str = Depends(require_login)):
+async def update_reception(
+    request: Request, reception_id: int, _user: str = Depends(require_login)
+):
     rec = reception_service.get(reception_id)
     if rec is None:
         raise HTTPException(status_code=404, detail="reception_not_found")
+    lor_catalog = catalog_loader.lor_status_catalog()
     form_data = await request.form()
-    rec_input, form_state = _parse_form(form_data)
+    rec_input, form_state = _parse_form(form_data, lor_catalog)
     rec_input.patient_id = rec.patient_id
     try:
         reception_service.update(reception_id, rec_input)
@@ -204,7 +262,8 @@ async def update_reception(request: Request, reception_id: int, _user: str = Dep
             _form_context(request, form=form_state, form_errors=ve.errors, reception=rec),
             status_code=400,
         )
-    request.session.setdefault("flash", []).append(
-        {"level": "success", "text": "Qabul yangilandi." if resolve_language(request) == "uz" else "Приём обновлён."}
-    )
+    request.session.setdefault("flash", []).append({
+        "level": "success",
+        "text": "Qabul yangilandi." if resolve_language(request) == "uz" else "Приём обновлён.",
+    })
     return RedirectResponse(url=f"/reception/{reception_id}", status_code=303)

@@ -56,6 +56,8 @@ async def clinic_save(request: Request, _: str = Depends(require_admin)):
         phone=(form.get("phone") or "").strip(),
         logo_path=(form.get("logo_path") or "").strip(),
         language=(form.get("language") or "uz").strip(),
+        theme=(form.get("theme") or "light").strip(),
+        save_folder=(form.get("save_folder") or "").strip(),
     )
     clinic_info_service.save(info)
     _flash(request, "success", "settings.clinic_saved")

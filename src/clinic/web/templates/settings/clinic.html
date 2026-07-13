@@ -37,6 +37,20 @@
           <option value="ru" {% if info.language == 'ru' %}selected{% endif %}>Русский</option>
         </select>
       </div>
+      <div class="col-md-4">
+        <label class="form-label">{{ t("settings.default_theme") }}</label>
+        <select name="theme" class="form-select">
+          <option value="light" {% if info.theme == 'light' %}selected{% endif %}>{{ t("theme.light") }}</option>
+          <option value="dark"  {% if info.theme == 'dark'  %}selected{% endif %}>{{ t("theme.dark") }}</option>
+          <option value="auto"  {% if info.theme == 'auto'  %}selected{% endif %}>{{ t("theme.auto") }}</option>
+        </select>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label">{{ t("settings.save_folder") }}</label>
+        <input type="text" name="save_folder" class="form-control" value="{{ info.save_folder }}"
+               placeholder="C:\Users\Hp\Documents\Klinika">
+        <div class="form-text small">{{ t("settings.save_folder_hint") }}</div>
+      </div>
     </div>
   </div>
   <div class="card-footer d-flex justify-content-end">
