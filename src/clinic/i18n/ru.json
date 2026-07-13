@@ -475,5 +475,12 @@
   "patients.stat_new": "Новых пациентов",
   "patients.stat_repeat": "Повторных приёмов",
   "patients.this_month": "за этот месяц",
-  "cashier.today_payers": "Оплатили сегодня"
+  "cashier.today_payers": "Оплатили сегодня",
+  "patients.in_selected_range": "за выбранный период",
+  "patients.delete_confirm": "Удалить {name}? Все приёмы и оплаты также будут удалены.",
+  "stats.paying_patients": "Оплатившие пациенты",
+  "stats.last_paid": "Последняя оплата",
+  "stats.paid_amount": "Оплаченная сумма",
+  "cashier.total_placeholder": "рассчитывается автоматически",
+  "cashier.editable_hint2": "Оставьте пустым — будет использована сумма услуг."
 }

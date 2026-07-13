@@ -88,15 +88,21 @@
               </div>
             </div>
             <div class="col-md-6">
-              <label class="form-label">
+              <label class="form-label" for="override-total">
                 {{ t("cashier.grand_total") }}
                 <span class="text-muted small">— {{ t("cashier.editable_hint") }}</span>
               </label>
               <div class="input-group input-group-lg">
                 <input type="number" name="override_total" id="override-total" min="0" step="1000"
-                       class="form-control fs-5 fw-semibold text-end" placeholder="0">
-                <span class="input-group-text">{{ t("cashier.currency") }}</span>
+                       class="form-control fs-5 fw-semibold text-end"
+                       placeholder="{{ t('cashier.total_placeholder') }}"
+                       aria-describedby="override-total-suffix">
+                <span class="input-group-text" id="override-total-suffix"
+                      style="min-width: 4rem; justify-content: center;">
+                  {{ t("cashier.currency") }}
+                </span>
               </div>
+              <div class="form-text small">{{ t("cashier.editable_hint2") }}</div>
             </div>
             <div class="col-12">
               <label class="form-label">{{ t("cashier.note") }}</label>

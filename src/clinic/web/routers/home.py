@@ -12,7 +12,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Request
 
 from clinic.db.database import session_scope
-from clinic.db.models import CashierRecord, Doctor, Reception, Service
+from clinic.db.models import CashierRecord, Reception
 from clinic.domain import stats_service
 from clinic.web.dependencies import render, require_login
 
@@ -54,24 +54,9 @@ def home(request: Request, _user: str = Depends(require_login)):
         }
         patients_today = len(reception_patient_ids | cashier_patient_ids)
 
-        doctors = (
-            session.query(func.count(Doctor.id))
-            .filter(Doctor.is_active.is_(True))
-            .scalar()
-            or 0
-        )
-        services = (
-            session.query(func.count(Service.id))
-            .filter(Service.is_active.is_(True))
-            .scalar()
-            or 0
-        )
-
     return render(request, "home.html", {
         "stats": {
             "patients_today": patients_today,
             "receptions_today": receptions_today,
-            "doctors": doctors,
-            "services": services,
         },
     })

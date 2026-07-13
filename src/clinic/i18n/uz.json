@@ -475,5 +475,12 @@
   "patients.stat_new": "Yangi bemorlar",
   "patients.stat_repeat": "Takroriy qabullar",
   "patients.this_month": "shu oy davomida",
-  "cashier.today_payers": "Bugungi to'lovchilar"
+  "cashier.today_payers": "Bugungi to'lovchilar",
+  "patients.in_selected_range": "tanlangan davrda",
+  "patients.delete_confirm": "{name} ni o'chirmoqchimisiz? Barcha qabullar va to'lovlar ham o'chadi.",
+  "stats.paying_patients": "To'lov qilgan bemorlar",
+  "stats.last_paid": "Oxirgi to'lov",
+  "stats.paid_amount": "To'langan summa",
+  "cashier.total_placeholder": "avtomatik hisoblanadi",
+  "cashier.editable_hint2": "Bo'sh qoldiring — xizmatlar yig'indisi ishlatiladi."
 }
