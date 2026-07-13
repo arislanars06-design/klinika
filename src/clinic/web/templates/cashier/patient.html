@@ -7,9 +7,17 @@
     <i class="bi bi-cash-coin text-warning"></i>
     {{ t("menu.cashier") }} — <span class="text-body">{{ patient.full_name }}</span>
   </h3>
-  <a href="/cashier" class="btn btn-outline-secondary">
-    <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
-  </a>
+  <div class="d-flex gap-2">
+    <form method="post" action="/patients/{{ patient.id }}/delete" class="d-inline"
+          onsubmit="return confirm('{{ t('patients.confirm_delete') }}');">
+      <button class="btn btn-outline-danger btn-sm" title="{{ t('common.delete') }}">
+        <i class="bi bi-trash"></i> {{ t('common.delete') }}
+      </button>
+    </form>
+    <a href="/cashier" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
+    </a>
+  </div>
 </div>
 
 <div class="row g-3">

@@ -151,6 +151,12 @@
               <a href="/cashier/patient/{{ p.id }}" class="btn btn-sm btn-primary">
                 <i class="bi bi-arrow-right"></i> {{ t("cashier.open") }}
               </a>
+              <form method="post" action="/patients/{{ p.id }}/delete" class="d-inline"
+                    onsubmit="return confirm('{{ t('patients.confirm_delete') }}');">
+                <button class="btn btn-sm btn-outline-danger" title="{{ t('common.delete') }}">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
             </td>
           </tr>
           {% else %}

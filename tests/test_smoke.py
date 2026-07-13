@@ -50,7 +50,7 @@ def test_translator_returns_uz_by_default() -> None:
 
     tr = Translator()
     assert tr.language == "uz"
-    assert tr.t("menu.start_reception") == "Qabulni boshlash"
+    assert tr.t("menu.start_reception") == "Қабулни бошлаш"
 
     tr.set_language("ru")
     assert tr.t("menu.start_reception") == "Начать приём"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -10,12 +11,14 @@ from fastapi.responses import RedirectResponse
 
 from clinic.domain import (
     catalog_loader,
+    clinic_info_service,
     doctor_service,
     patient_service,
     reception_service,
 )
 from clinic.domain.dto import PatientInput, ReceptionInput
 from clinic.infrastructure.validators import ValidationError
+from clinic.printing.docx_builder import save_reception_document
 from clinic.printing.text_composer import compose_complaints, compose_lor_status
 from clinic.web.dependencies import render, require_login, resolve_language
 
@@ -225,6 +228,43 @@ def _parse_form(form_data, lor_catalog: dict) -> tuple[ReceptionInput, dict[str,
 # ---------------------------------------------------------------------------
 
 
+def _auto_save_docx(reception_id: int, lang: str) -> None:
+    """Generate and save the reception .docx if save_folder is configured."""
+    from loguru import logger
+
+    try:
+        clinic_info = clinic_info_service.load()
+        if not clinic_info.save_folder:
+            return
+        rec = reception_service.get(reception_id)
+        if rec is None:
+            return
+        patient = patient_service.get(rec.patient_id)
+        if patient is None:
+            return
+        doctor = doctor_service.get(rec.doctor_id)
+        filename = f"{patient.full_name} {patient.birth_year}.docx"
+        output_path = Path(clinic_info.save_folder) / filename
+        clinic_dict = {
+            "name_uz": clinic_info.name_uz,
+            "name_ru": clinic_info.name_ru,
+            "address_uz": clinic_info.address_uz,
+            "address_ru": clinic_info.address_ru,
+            "phone": clinic_info.phone,
+            "logo_path": clinic_info.logo_path,
+        }
+        save_reception_document(
+            output_path,
+            reception=rec,
+            patient=patient,
+            doctor=doctor,
+            clinic=clinic_dict,
+            lang=lang,
+        )
+    except Exception:
+        logger.exception("Auto-save docx failed for reception {}", reception_id)
+
+
 @router.get("/new")
 def new_reception(
     request: Request,
@@ -261,9 +301,11 @@ async def create_reception(request: Request, _user: str = Depends(require_login)
             _form_context(request, form=form_state, form_errors=ve.errors),
             status_code=400,
         )
+    lang = resolve_language(request)
+    _auto_save_docx(rec.id, lang)
     request.session.setdefault("flash", []).append({
         "level": "success",
-        "text": "Qabul saqlandi." if resolve_language(request) == "uz" else "Приём сохранён.",
+        "text": "Qabul saqlandi." if lang == "uz" else "Приём сохранён.",
     })
     return RedirectResponse(url=f"/reception/{rec.id}", status_code=303)
 
@@ -338,8 +380,10 @@ async def update_reception(
             _form_context(request, form=form_state, form_errors=ve.errors, reception=rec),
             status_code=400,
         )
+    lang = resolve_language(request)
+    _auto_save_docx(reception_id, lang)
     request.session.setdefault("flash", []).append({
         "level": "success",
-        "text": "Qabul yangilandi." if resolve_language(request) == "uz" else "Приём обновлён.",
+        "text": "Qabul yangilandi." if lang == "uz" else "Приём обновлён.",
     })
     return RedirectResponse(url=f"/reception/{reception_id}", status_code=303)

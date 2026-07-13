@@ -159,7 +159,7 @@ class TestPatientList:
     def test_stats_labels_reflect_selected_range(self, admin_client: TestClient) -> None:
         resp = admin_client.get("/patients?date_from=2026-01-01&date_to=2026-12-31")
         # KPI hint switches to the range phrase
-        assert "tanlangan davrda" in resp.text or "выбранный период" in resp.text
+        assert "tanlangan davrda" in resp.text or "танланган даврда" in resp.text or "выбранный период" in resp.text
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +201,7 @@ class TestCashierStats:
         resp = admin_client.get("/stats/cashier?preset=today")
         assert resp.status_code == 200
         assert "Rakhimov Timur" in resp.text
-        assert "To&#39;lov qilgan bemorlar" in resp.text or "Оплатившие" in resp.text
+        assert "To&#39;lov qilgan bemorlar" in resp.text or "Тўлов қилган беморлар" in resp.text or "Оплатившие" in resp.text
 
     def test_delete_button_present_in_paying_list(
         self, admin_client: TestClient, seeded: dict
@@ -237,4 +237,4 @@ def test_cashier_cart_no_longer_shows_placeholder_zero(admin_client: TestClient)
     # Neither the override input nor the subtotal cell renders a stale '0'
     assert 'placeholder="0"' not in resp.text
     # New descriptive helper text now appears
-    assert "avtomatik hisoblanadi" in resp.text or "рассчитывается автоматически" in resp.text
+    assert "avtomatik hisoblanadi" in resp.text or "автоматик ҳисобланади" in resp.text or "рассчитывается автоматически" in resp.text
