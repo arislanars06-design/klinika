@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ t("reception.detail_title") }} №{{ reception.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">
+    <i class="bi bi-clipboard2-check text-primary"></i>
+    {{ t("reception.detail_title") }} №{{ reception.id }}
+  </h3>
+  <div class="btn-group">
+    <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-primary">
+      <i class="bi bi-printer"></i> {{ t("reception.print") }}
+    </a>
+    <a href="/reception/{{ reception.id }}/edit" class="btn btn-outline-secondary">
+      <i class="bi bi-pencil"></i> {{ t("common.edit") }}
+    </a>
+    <a href="/patients/{{ patient.id }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-person"></i> {{ t("reception.patient_section") }}</div>
+      <div class="card-body">
+        <div class="fw-semibold fs-5">{{ patient.full_name }}</div>
+        <div class="text-muted small">{{ t("reception.birth_year") }}: {{ patient.birth_year }}</div>
+        {% if patient.address %}<div class="small mt-2"><i class="bi bi-geo-alt"></i> {{ patient.address }}</div>{% endif %}
+        {% if patient.phone %}<div class="small"><i class="bi bi-telephone"></i> {{ patient.phone }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="card shadow-sm mt-3">
+      <div class="card-header"><i class="bi bi-info-circle"></i> {{ t("reception.meta") }}</div>
+      <div class="card-body small">
+        <div><strong>{{ t("reception.date") }}:</strong> {{ reception.reception_date.strftime('%d.%m.%Y %H:%M') }}</div>
+        <div><strong>{{ t("reception.doctor") }}:</strong> {{ doctor.full_name if doctor else "—" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase small">{{ t("reception.complaints_section") }}</h6>
+        <div class="mb-3">{{ complaints_text or "—" }}</div>
+
+        {% if reception.anamnesis %}
+        <h6 class="text-muted text-uppercase small">{{ t("reception.anamnesis_section") }}</h6>
+        <div class="mb-3">{{ reception.anamnesis }}</div>
+        {% endif %}
+
+        {% if lor_status_text %}
+        <h6 class="text-muted text-uppercase small">{{ t("reception.lor_status_section") }}</h6>
+        <div class="mb-3" style="white-space: pre-wrap;">{{ lor_status_text }}</div>
+        {% endif %}
+
+        <h6 class="text-muted text-uppercase small">{{ t("reception.diagnosis") }}</h6>
+        <div class="mb-3 fw-semibold fs-5">{{ reception.diagnosis }}</div>
+
+        {% if reception.recommendation %}
+        <h6 class="text-muted text-uppercase small">{{ t("reception.recommendation") }}</h6>
+        <div class="mb-3" style="white-space: pre-wrap;">{{ reception.recommendation }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

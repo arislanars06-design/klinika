@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0"><i class="bi bi-person-badge text-success"></i> {{ patient.full_name }}</h3>
+  <div class="btn-group">
+    <a href="/reception/new?patient_id={{ patient.id }}" class="btn btn-primary">
+      <i class="bi bi-clipboard2-plus"></i> {{ t("patients.new_reception") }}
+    </a>
+    <a href="/patients" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-info-circle"></i> {{ t("patients.info") }}</div>
+      <div class="card-body">
+        <dl class="mb-0">
+          <dt class="text-muted small">{{ t("reception.birth_year") }}</dt>
+          <dd>{{ patient.birth_year }}</dd>
+          <dt class="text-muted small">{{ t("reception.address") }}</dt>
+          <dd>{{ patient.address or "—" }}</dd>
+          <dt class="text-muted small">{{ t("reception.phone") }}</dt>
+          <dd>{{ patient.phone or "—" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-clock-history"></i> {{ t("patients.receptions") }}</div>
+      <div class="list-group list-group-flush">
+        {% for r in receptions %}
+        <a href="/reception/{{ r.id }}" class="list-group-item list-group-item-action">
+          <div class="d-flex justify-content-between">
+            <div>
+              <div class="fw-semibold">{{ r.diagnosis }}</div>
+              <div class="text-muted small">
+                {{ r.reception_date.strftime('%d.%m.%Y %H:%M') }} ·
+                {{ doctor_names.get(r.doctor_id, "—") }}
+              </div>
+            </div>
+            <div class="text-muted"><i class="bi bi-chevron-right"></i></div>
+          </div>
+        </a>
+        {% else %}
+        <div class="text-center text-muted py-4 small">{{ t("patients.no_receptions") }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

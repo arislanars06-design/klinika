@@ -6,6 +6,14 @@ Shifokorlar va klinika administratorlari uchun mo'ljallangan, ikkita tilda ishla
 
 ---
 
+> 🌐 **Web versiyasi ham mavjud!** Xuddi shu ma'lumotlar bazasi bilan brauzerdan
+> ishlaydigan FastAPI qatlami. Ichki tarmoqda bir necha kompyuterdan foydalanish
+> uchun ideal. Ko'rsatmalar: [`docs/web_usage.md`](docs/web_usage.md).
+>
+> ```bash
+> python -m clinic.web.main  # → http://127.0.0.1:8000
+> ```
+
 ## ⚡ Asosiy imkoniyatlar
 
 - 🩺 **Qabulni boshlash** — bemor ma'lumotlari, strukturaviy shikoyatlar, LOR STATUS, tashxis, tavsiya
@@ -21,8 +29,9 @@ Shifokorlar va klinika administratorlari uchun mo'ljallangan, ikkita tilda ishla
 ## 🛠 Texnologiyalar
 
 - **Python 3.11+** — asosiy dasturlash tili
-- **PySide6 (Qt 6)** — grafik interfeys
-- **SQLite + SQLAlchemy** — mahalliy ma'lumotlar bazasi
+- **PySide6 (Qt 6)** — desktop grafik interfeys
+- **FastAPI + Jinja2 + Bootstrap 5 + HTMX** — web versiyasi
+- **SQLite + SQLAlchemy** — mahalliy ma'lumotlar bazasi (desktop va web bir xil bazani ishlatadi)
 - **python-docx + docxtpl** — Word hujjatlarini yaratish va shablonlarni to'ldirish
 - **PyInstaller** — bitta `.exe` faylga paketlash
 
@@ -39,6 +48,8 @@ Loyihaning to'liq logikasi va texnik topshirig'i quyidagi fayllarda:
 | [`docs/database_schema.md`](docs/database_schema.md) | Ma'lumotlar bazasi jadvallari va bog'lanishlari |
 | [`docs/complaints_catalog.md`](docs/complaints_catalog.md) | Shikoyatlar katalogi (30+ element, uz/ru) |
 | [`docs/lor_status_catalog.md`](docs/lor_status_catalog.md) | LOR STATUS katalogi (4 ko'rik metodi) |
+| [`docs/web_usage.md`](docs/web_usage.md) | 🌐 Web versiyasini ishga tushirish (local / ichki tarmoq / bulut) |
+| [`docs/template_placeholders.md`](docs/template_placeholders.md) | Word shabloni uchun placeholder'lar |
 
 ---
 

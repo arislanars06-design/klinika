@@ -1,0 +1,45 @@
+/* Clinic LOR — web app styling (Phase 1) */
+
+body {
+  background: #f7f8fa;
+}
+
+.home-card {
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.home-card:hover:not(.opacity-50) {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.navbar-brand i {
+  margin-right: 0.25rem;
+}
+
+.form-label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.card-header {
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: rgba(13, 110, 253, 0.05);
+  color: inherit;
+  box-shadow: none;
+}
+
+.nav-tabs .nav-link {
+  font-size: 0.9rem;
+}
+
+/* Compact tables */
+.table > :not(caption) > * > * {
+  padding: 0.6rem 0.75rem;
+}

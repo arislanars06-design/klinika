@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{% if reception %}{{ t("reception.edit_title") }}{% else %}{{ t("reception.new_title") }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">
+    <i class="bi bi-clipboard2-pulse text-primary"></i>
+    {% if reception %}{{ t("reception.edit_title") }} №{{ reception.id }}{% else %}{{ t("reception.new_title") }}{% endif %}
+  </h3>
+  <a href="/patients" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
+  </a>
+</div>
+
+{% if form_errors %}
+<div class="alert alert-danger">
+  <strong>{{ t("common.validation_failed") }}</strong>
+  <ul class="mb-0 small">
+    {% for field, msg in form_errors.items() %}<li>{{ field }}: {{ msg }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<form method="post" action="{% if reception %}/reception/{{ reception.id }}/edit{% else %}/reception/new{% endif %}"
+      class="needs-validation" novalidate>
+
+  <!-- ============ PATIENT ============ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header"><i class="bi bi-person"></i> {{ t("reception.patient_section") }}</div>
+    <div class="card-body">
+      <input type="hidden" name="patient_id" value="{{ form.patient_id or '' }}">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ t("reception.full_name") }} *</label>
+          <input type="text" name="full_name" class="form-control"
+                 value="{{ form.full_name or '' }}"
+                 list="patient-suggestions"
+                 hx-get="/patients/autocomplete"
+                 hx-trigger="input changed delay:250ms"
+                 hx-target="#patient-suggestions"
+                 hx-swap="innerHTML"
+                 required autocomplete="off">
+          <datalist id="patient-suggestions"></datalist>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ t("reception.birth_year") }} *</label>
+          <input type="number" name="birth_year" class="form-control"
+                 min="1900" max="2100"
+                 value="{{ form.birth_year or '' }}" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ t("reception.phone") }}</label>
+          <input type="tel" name="phone" class="form-control"
+                 value="{{ form.phone or '' }}" placeholder="+998 ...">
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ t("reception.address") }}</label>
+          <input type="text" name="address" class="form-control"
+                 value="{{ form.address or '' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMPLAINTS (accordion) ============ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header"><i class="bi bi-chat-left-text"></i> {{ t("reception.complaints_section") }} *</div>
+    <div class="card-body">
+      <div class="accordion" id="complaints-accordion">
+        {% for section in complaints["sections"] %}
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#complaints-{{ section['code'] }}">
+              {{ section["icon"] }} {{ section["name"][lang] }}
+            </button>
+          </h2>
+          <div id="complaints-{{ section['code'] }}" class="accordion-collapse collapse"
+               data-bs-parent="#complaints-accordion">
+            <div class="accordion-body">
+              {% for item in section["items"] %}
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="complaints"
+                       id="c_{{ item['code'] }}" value="{{ item['code'] }}"
+                       {% if item["code"] in (form.complaints_codes or []) %}checked{% endif %}>
+                <label class="form-check-label" for="c_{{ item['code'] }}">
+                  {{ item[lang] }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="mt-3">
+        <label class="form-label">{{ t("reception.complaints_note") }}</label>
+        <textarea name="complaints_note" class="form-control" rows="2">{{ form.complaints_note or '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ANAMNESIS ============ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header"><i class="bi bi-journal-medical"></i> {{ t("reception.anamnesis_section") }}</div>
+    <div class="card-body">
+      <textarea name="anamnesis" class="form-control" rows="3">{{ form.anamnesis or '' }}</textarea>
+    </div>
+  </div>
+
+  <!-- ============ LOR STATUS (freetext per method for Phase 1) ============ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header"><i class="bi bi-search"></i> {{ t("reception.lor_status_section") }}</div>
+    <div class="card-body">
+      <ul class="nav nav-tabs mb-3" role="tablist">
+        {% for m in lor_methods %}
+        <li class="nav-item"><button type="button" class="nav-link {% if loop.first %}active{% endif %}"
+              data-bs-toggle="tab" data-bs-target="#lor-{{ m['code'] }}">{{ m["icon"] }} {{ m["name"][lang] }}</button></li>
+        {% endfor %}
+      </ul>
+      <div class="tab-content">
+        {% for m in lor_methods %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="lor-{{ m['code'] }}">
+          <textarea name="lor_{{ m['code'] }}" class="form-control" rows="4"
+                    placeholder="{{ t('reception.lor_hint') }}">{{ (form.lor_status or {}).get(m["code"], "") }}</textarea>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DIAGNOSIS + DOCTOR ============ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header"><i class="bi bi-heart-pulse"></i> {{ t("reception.finalize_section") }}</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label">{{ t("reception.diagnosis") }} *</label>
+          <input type="text" name="diagnosis" class="form-control"
+                 value="{{ form.diagnosis or '' }}" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ t("reception.doctor") }} *</label>
+          <select name="doctor_id" class="form-select" required>
+            <option value="">— {{ t("common.choose") }} —</option>
+            {% for d in doctors %}
+            <option value="{{ d.id }}" {% if form.doctor_id|string == d.id|string %}selected{% endif %}>
+              {{ d.full_name }}{% if not d.is_active %} ({{ t("common.archived") }}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ t("reception.recommendation") }}</label>
+          <textarea name="recommendation" class="form-control" rows="3">{{ form.recommendation or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between">
+    <a href="{% if reception %}/patients/{{ reception.patient_id }}{% else %}/{% endif %}" class="btn btn-outline-secondary">
+      <i class="bi bi-x-lg"></i> {{ t("common.cancel") }}
+    </a>
+    <button type="submit" class="btn btn-primary btn-lg">
+      <i class="bi bi-save"></i> {{ t("common.save") }}
+    </button>
+  </div>
+</form>
+{% endblock %}
