@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ t("menu.history") }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0"><i class="bi bi-people text-success"></i> {{ t("menu.history") }}</h3>
+  <a href="/reception/new" class="btn btn-primary">
+    <i class="bi bi-plus-lg"></i> {{ t("menu.start_reception") }}
+  </a>
+</div>
+
+<form method="get" class="row g-2 mb-3" action="/patients">
+  <div class="col-md-6">
+    <input type="search" name="q" class="form-control" placeholder="{{ t('patients.search_placeholder') }}"
+           value="{{ q or '' }}">
+  </div>
+  <div class="col-md-3">
+    <select name="search_in" class="form-select">
+      <option value="any" {% if search_in == "any" %}selected{% endif %}>{{ t("patients.search_any") }}</option>
+      <option value="full_name" {% if search_in == "full_name" %}selected{% endif %}>{{ t("reception.full_name") }}</option>
+      <option value="phone" {% if search_in == "phone" %}selected{% endif %}>{{ t("reception.phone") }}</option>
+      <option value="address" {% if search_in == "address" %}selected{% endif %}>{{ t("reception.address") }}</option>
+      <option value="diagnosis" {% if search_in == "diagnosis" %}selected{% endif %}>{{ t("reception.diagnosis") }}</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> {{ t("common.find") }}</button>
+  </div>
+  <div class="col-md-1">
+    <a href="/patients" class="btn btn-outline-secondary w-100" title="{{ t('common.reset') }}"><i class="bi bi-x-lg"></i></a>
+  </div>
+</form>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>{{ t("reception.full_name") }}</th>
+          <th>{{ t("reception.birth_year") }}</th>
+          <th>{{ t("reception.phone") }}</th>
+          <th>{{ t("patients.last_reception") }}</th>
+          <th class="text-end">{{ t("common.actions") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page.items %}
+        <tr>
+          <td class="text-muted small">{{ row.patient.id }}</td>
+          <td><a href="/patients/{{ row.patient.id }}" class="text-decoration-none fw-medium">{{ row.patient.full_name }}</a></td>
+          <td>{{ row.patient.birth_year }} <span class="text-muted small">({{ row.age }})</span></td>
+          <td class="small">{{ row.patient.phone or "—" }}</td>
+          <td class="small">{{ row.last_reception_date.strftime('%d.%m.%Y') if row.last_reception_date else "—" }}</td>
+          <td class="text-end">
+            <a href="/patients/{{ row.patient.id }}" class="btn btn-sm btn-outline-secondary" title="{{ t('common.view') }}">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-5">
+            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+            <div class="mt-2">{{ t("patients.empty") }}</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page.page_count > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="text-muted small">
+      {{ t("patients.total", n=page.total) }} · {{ t("patients.page", cur=page.page, total=page.page_count) }}
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if page.page > 1 %}
+        <li class="page-item"><a class="page-link" href="?q={{ q or '' }}&search_in={{ search_in }}&page={{ page.page - 1 }}">‹</a></li>
+        {% endif %}
+        {% if page.page < page.page_count %}
+        <li class="page-item"><a class="page-link" href="?q={{ q or '' }}&search_in={{ search_in }}&page={{ page.page + 1 }}">›</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

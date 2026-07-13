@@ -233,10 +233,17 @@ def _visible_when_satisfied(rule: dict, current: dict) -> bool:
     return True
 
 
-def _render_method(catalog: dict, method: dict, method_value: dict, lang: str) -> str:
+def _render_method(catalog: dict, method: dict, method_value, lang: str) -> str:
     """Render a single otolaryngology method (rhinoscopy, otoscopy, ...)."""
     name = method.get("name", {})
     method_label = str(name.get(lang) or name.get("uz") or method.get("code", ""))
+
+    # Free-text fallback (used by the web app's simplified LOR editor):
+    # ``method_value`` may be a plain string. Emit it verbatim under the
+    # method heading so both storage formats round-trip cleanly.
+    if isinstance(method_value, str):
+        text = method_value.strip()
+        return f"{method_label}: {text}" if text else ""
 
     # Otoscopy stores per-ear dictionaries.
     if method.get("per_ear"):
@@ -279,12 +286,27 @@ def compose_lor_status(lor_status: dict | None, *, lang: str = "uz") -> str:
     intro = LOR_INTRO.get(lang, LOR_INTRO["uz"])
     blocks: list[str] = []
 
+    # 1) Structured methods defined by the desktop catalog.
+    known_codes = set()
     for method in catalog.get("methods", []):
         code = method["code"]
+        known_codes.add(code)
         value = lor_status.get(code)
-        rendered = _render_method(catalog, method, value or {}, lang)
+        payload = value if isinstance(value, str) else (value or {})
+        rendered = _render_method(catalog, method, payload, lang)
         if rendered:
             blocks.append(rendered)
+
+    # 2) Any extra free-text keys not defined in the catalog (e.g. the web
+    # form uses shorter codes like ``rhinoscopy`` even when the catalog uses
+    # richer sub-structures — future custom codes also land here).
+    for code, value in lor_status.items():
+        if code in known_codes:
+            continue
+        if isinstance(value, str) and value.strip():
+            # Best-effort humanised label: title-case the code.
+            heading = code.replace("_", " ").upper()
+            blocks.append(f"{heading}: {value.strip()}")
 
     if not blocks:
         return ""
