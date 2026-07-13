@@ -76,10 +76,9 @@ def test_today_kpis_reflect_todays_activity(admin_client: TestClient) -> None:
 
     resp = admin_client.get("/")
     assert resp.status_code == 200
-    # At least one patient + one reception today.
-    # Look for the KPI number rendered in the fs-2 span.
-    assert '<div class="fs-2 fw-semibold text-primary">1</div>' in resp.text
-    assert '<div class="fs-2 fw-semibold text-success">1</div>' in resp.text
+    # Phase 6: KPIs now use display-size fs-1 (only 2 cards remain).
+    assert '<div class="fs-1 fw-semibold text-primary">1</div>' in resp.text
+    assert '<div class="fs-1 fw-semibold text-success">1</div>' in resp.text
 
 
 # ---------------------------------------------------------------------------
@@ -296,5 +295,6 @@ def test_override_total_input_present(admin_client: TestClient) -> None:
     ))
     resp = admin_client.get(f"/cashier/patient/{patient.id}")
     assert 'name="override_total"' in resp.text
-    # Placeholder is a friendly "0"
-    assert 'placeholder="0"' in resp.text
+    # Phase 6 fixed the "0 so'm" confusion — placeholder is now a hint,
+    # not a literal '0'.
+    assert 'placeholder="0"' not in resp.text

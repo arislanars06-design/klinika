@@ -18,51 +18,90 @@
 
 {% include "stats/_period_picker.html" %}
 
+<!-- Single revenue KPI + chart -->
 <div class="row g-3 mb-4">
-  <div class="col-md-3">
+  <div class="col-md-4">
     <div class="card border-0 bg-body-tertiary h-100">
       <div class="card-body">
         <div class="text-muted small">{{ t("stats.kpi_revenue") }}</div>
-        <div class="fs-3 fw-semibold">{{ stats.total_revenue }} <span class="fs-6 text-muted">{{ t("cashier.currency") }}</span></div>
+        <div class="display-5 fw-semibold text-primary">
+          {{ stats.total_revenue }}
+        </div>
+        <div class="text-muted small">{{ t("cashier.currency") }}</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card border-0 bg-body-tertiary h-100">
+  <div class="col-md-8">
+    <div class="card shadow-sm h-100">
+      <div class="card-header"><i class="bi bi-bar-chart"></i> {{ t("stats.revenue_by_day") }}</div>
       <div class="card-body">
-        <div class="text-muted small">{{ t("stats.kpi_receipts") }}</div>
-        <div class="fs-3 fw-semibold">{{ stats.receipts_count }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card border-0 bg-body-tertiary h-100">
-      <div class="card-body">
-        <div class="text-muted small">{{ t("stats.kpi_payments") }}</div>
-        <div class="fs-3 fw-semibold">{{ stats.payment_count }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card border-0 bg-body-tertiary h-100">
-      <div class="card-body">
-        <div class="text-muted small">{{ t("stats.kpi_avg") }}</div>
-        <div class="fs-3 fw-semibold">{{ stats.average_receipt }} <span class="fs-6 text-muted">{{ t("cashier.currency") }}</span></div>
+        <canvas id="chart-revenue-by-day" height="80"></canvas>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Paying patients + top services -->
 <div class="row g-3">
-  <div class="col-md-7">
+  <div class="col-lg-7">
     <div class="card shadow-sm">
-      <div class="card-header"><i class="bi bi-bar-chart"></i> {{ t("stats.revenue_by_day") }}</div>
-      <div class="card-body">
-        <canvas id="chart-revenue-by-day" height="100"></canvas>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people-fill"></i> {{ t("stats.paying_patients") }}</span>
+        <span class="badge text-bg-secondary">{{ paying_patients | length }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>{{ t("reception.full_name") }}</th>
+              <th>{{ t("cashier.line_items") }}</th>
+              <th>{{ t("stats.last_paid") }}</th>
+              <th class="text-end">{{ t("stats.paid_amount") }}</th>
+              <th class="text-end">{{ t("common.actions") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in paying_patients %}
+            <tr>
+              <td class="text-muted small">{{ loop.index }}</td>
+              <td>
+                <a href="/patients/{{ p.id }}" class="text-decoration-none fw-medium">
+                  {{ p.full_name }}
+                </a>
+                <div class="small text-muted">{{ p.birth_year }}
+                  {% if p.phone %} · {{ p.phone }}{% endif %}
+                </div>
+              </td>
+              <td>{{ p.lines }}</td>
+              <td class="small text-muted">{{ p.last_paid_at.strftime('%d.%m.%Y %H:%M') if p.last_paid_at else "—" }}</td>
+              <td class="text-end fw-semibold">
+                {{ p.paid }} <span class="text-muted small">{{ t("cashier.currency") }}</span>
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <a href="/cashier/patient/{{ p.id }}" class="btn btn-outline-secondary"
+                     title="{{ t('cashier.open') }}">
+                    <i class="bi bi-cash-coin"></i>
+                  </a>
+                  <form method="post" action="/patients/{{ p.id }}/delete" class="d-inline"
+                        onsubmit="return confirm('{{ t('patients.delete_confirm', name=p.full_name) }}');">
+                    <button type="submit" class="btn btn-outline-danger" title="{{ t('common.delete') }}">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">{{ t("stats.no_data") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
-  <div class="col-md-5">
+  <div class="col-lg-5">
     <div class="card shadow-sm">
       <div class="card-header"><i class="bi bi-list-ol"></i> {{ t("stats.top_services") }}</div>
       <div class="table-responsive">

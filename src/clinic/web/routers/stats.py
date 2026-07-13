@@ -61,8 +61,48 @@ def cashier_stats(
     end: str | None = None,
     _user: str = Depends(require_login),
 ):
+    from decimal import Decimal
+
+    from sqlalchemy import func
+
+    from clinic.db.database import session_scope
+    from clinic.db.models import CashierRecord, Patient
+
     period, resolved = _resolve_period(preset, start, end)
     stats = stats_service.cashier_stats(period)
+
+    # Per-patient rollup for the selected window — the table below the
+    # revenue KPI. One row per paying patient with the total they paid.
+    with session_scope() as session:
+        rows = (
+            session.query(
+                Patient.id,
+                Patient.full_name,
+                Patient.birth_year,
+                Patient.phone,
+                func.coalesce(func.sum(CashierRecord.total), 0).label("paid"),
+                func.count(CashierRecord.id).label("lines"),
+                func.max(CashierRecord.paid_at).label("last_paid_at"),
+            )
+            .join(CashierRecord, CashierRecord.patient_id == Patient.id)
+            .filter(CashierRecord.paid_at >= period.start)
+            .filter(CashierRecord.paid_at <= period.end)
+            .group_by(Patient.id)
+            .order_by(func.max(CashierRecord.paid_at).desc())
+            .all()
+        )
+    paying_patients = [
+        {
+            "id": r.id,
+            "full_name": r.full_name,
+            "birth_year": r.birth_year,
+            "phone": r.phone,
+            "paid": Decimal(r.paid or 0),
+            "lines": int(r.lines or 0),
+            "last_paid_at": r.last_paid_at,
+        }
+        for r in rows
+    ]
 
     return render(request, "stats/cashier.html", {
         "stats": stats,
@@ -72,4 +112,5 @@ def cashier_stats(
         "values_by_day": [pt.value for pt in stats.by_day],
         "start_input": period.start.date().isoformat(),
         "end_input": period.end.date().isoformat(),
+        "paying_patients": paying_patients,
     })

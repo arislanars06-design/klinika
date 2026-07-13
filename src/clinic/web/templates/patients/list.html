@@ -23,8 +23,14 @@
     <div class="card border-0 bg-body-tertiary h-100">
       <div class="card-body py-3">
         <div class="text-muted small"><i class="bi bi-person-plus"></i> {{ t("patients.stat_new") }}</div>
-        <div class="fs-3 fw-semibold text-success">{{ patient_stats.new_this_month }}</div>
-        <div class="small text-muted">{{ t("patients.this_month") }}</div>
+        <div class="fs-3 fw-semibold text-success">{{ patient_stats.new_in_period }}</div>
+        <div class="small text-muted">
+          {% if patient_stats.period_label == 'range' %}
+            {{ t("patients.in_selected_range") }}
+          {% else %}
+            {{ t("patients.this_month") }}
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
@@ -32,33 +38,50 @@
     <div class="card border-0 bg-body-tertiary h-100">
       <div class="card-body py-3">
         <div class="text-muted small"><i class="bi bi-arrow-repeat"></i> {{ t("patients.stat_repeat") }}</div>
-        <div class="fs-3 fw-semibold text-primary">{{ patient_stats.repeat_receptions }}</div>
-        <div class="small text-muted">{{ t("patients.this_month") }}</div>
+        <div class="fs-3 fw-semibold text-primary">{{ patient_stats.repeat_in_period }}</div>
+        <div class="small text-muted">
+          {% if patient_stats.period_label == 'range' %}
+            {{ t("patients.in_selected_range") }}
+          {% else %}
+            {{ t("patients.this_month") }}
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <form method="get" class="row g-2 mb-3" action="/patients">
-  <div class="col-md-6">
+  <div class="col-md-4">
     <input type="search" name="q" class="form-control" placeholder="{{ t('patients.search_placeholder') }}"
            value="{{ q or '' }}">
   </div>
-  <div class="col-md-3">
+  <div class="col-md-2">
     <select name="search_in" class="form-select">
       <option value="any" {% if search_in == "any" %}selected{% endif %}>{{ t("patients.search_any") }}</option>
       <option value="full_name" {% if search_in == "full_name" %}selected{% endif %}>{{ t("reception.full_name") }}</option>
       <option value="phone" {% if search_in == "phone" %}selected{% endif %}>{{ t("reception.phone") }}</option>
-      <option value="address" {% if search_in == "address" %}selected{% endif %}>{{ t("reception.address") }}</option>
       <option value="diagnosis" {% if search_in == "diagnosis" %}selected{% endif %}>{{ t("reception.diagnosis") }}</option>
       <option value="medication" {% if search_in == "medication" %}selected{% endif %}>{{ t("patients.search_medication") }}</option>
     </select>
   </div>
   <div class="col-md-2">
-    <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> {{ t("common.find") }}</button>
+    <input type="date" name="date_from" class="form-control" value="{{ date_from }}"
+           title="{{ t('patients.date_from') }}">
+  </div>
+  <div class="col-md-2">
+    <input type="date" name="date_to" class="form-control" value="{{ date_to }}"
+           title="{{ t('patients.date_to') }}">
   </div>
   <div class="col-md-1">
-    <a href="/patients" class="btn btn-outline-secondary w-100" title="{{ t('common.reset') }}"><i class="bi bi-x-lg"></i></a>
+    <button type="submit" class="btn btn-outline-primary w-100" title="{{ t('common.find') }}">
+      <i class="bi bi-search"></i>
+    </button>
+  </div>
+  <div class="col-md-1">
+    <a href="/patients" class="btn btn-outline-secondary w-100" title="{{ t('common.reset') }}">
+      <i class="bi bi-x-lg"></i>
+    </a>
   </div>
 </form>
 
@@ -84,9 +107,18 @@
           <td class="small">{{ row.patient.phone or "—" }}</td>
           <td class="small">{{ row.last_reception_date.strftime('%d.%m.%Y') if row.last_reception_date else "—" }}</td>
           <td class="text-end">
-            <a href="/patients/{{ row.patient.id }}" class="btn btn-sm btn-outline-secondary" title="{{ t('common.view') }}">
-              <i class="bi bi-eye"></i>
-            </a>
+            <div class="btn-group btn-group-sm">
+              <a href="/patients/{{ row.patient.id }}" class="btn btn-outline-secondary" title="{{ t('common.view') }}">
+                <i class="bi bi-eye"></i>
+              </a>
+              <form method="post" action="/patients/{{ row.patient.id }}/delete"
+                    class="d-inline"
+                    onsubmit="return confirm('{{ t('patients.delete_confirm', name=row.patient.full_name) }}');">
+                <button type="submit" class="btn btn-outline-danger" title="{{ t('common.delete') }}">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
           </td>
         </tr>
         {% else %}
@@ -107,11 +139,12 @@
     </div>
     <nav>
       <ul class="pagination pagination-sm mb-0">
+        {% set base = "?q=" ~ (q or '') ~ "&search_in=" ~ search_in ~ "&date_from=" ~ date_from ~ "&date_to=" ~ date_to %}
         {% if page.page > 1 %}
-        <li class="page-item"><a class="page-link" href="?q={{ q or '' }}&search_in={{ search_in }}&page={{ page.page - 1 }}">‹</a></li>
+        <li class="page-item"><a class="page-link" href="{{ base }}&page={{ page.page - 1 }}">‹</a></li>
         {% endif %}
         {% if page.page < page.page_count %}
-        <li class="page-item"><a class="page-link" href="?q={{ q or '' }}&search_in={{ search_in }}&page={{ page.page + 1 }}">›</a></li>
+        <li class="page-item"><a class="page-link" href="{{ base }}&page={{ page.page + 1 }}">›</a></li>
         {% endif %}
       </ul>
     </nav>

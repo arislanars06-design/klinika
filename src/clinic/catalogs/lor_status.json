@@ -1,271 +1,548 @@
 {
   "sides": [
-    { "code": "left",  "uz": "Chapda",     "ru": "Слева" },
-    { "code": "right", "uz": "O'ngda",     "ru": "Справа" },
-    { "code": "both",  "uz": "Ikkalasi",   "ru": "С обеих сторон" }
+    {
+      "code": "left",
+      "uz": "Chapda",
+      "ru": "Слева"
+    },
+    {
+      "code": "right",
+      "uz": "O'ngda",
+      "ru": "Справа"
+    },
+    {
+      "code": "both",
+      "uz": "Ikkalasi",
+      "ru": "С обеих сторон"
+    }
   ],
   "degrees": [
-    { "code": "none",  "uz": "Yo'q", "ru": "Нет", "is_norm": true },
-    { "code": "I",     "uz": "I daraja",  "ru": "I ст." },
-    { "code": "II",    "uz": "II daraja", "ru": "II ст." },
-    { "code": "III",   "uz": "III daraja","ru": "III ст." }
+    {
+      "code": "none",
+      "uz": "Yo'q",
+      "ru": "Нет",
+      "is_norm": true
+    },
+    {
+      "code": "I",
+      "uz": "I daraja",
+      "ru": "I ст."
+    },
+    {
+      "code": "II",
+      "uz": "II daraja",
+      "ru": "II ст."
+    },
+    {
+      "code": "III",
+      "uz": "III daraja",
+      "ru": "III ст."
+    }
   ],
   "methods": [
     {
       "code": "rhinoscopy",
-      "icon": "\ud83d\udc43",
-      "name": { "uz": "RINOSKOPIYA", "ru": "РИНОСКОПИЯ" },
+      "icon": "👃",
+      "name": {
+        "uz": "RINOSKOPIYA",
+        "ru": "РИНОСКОПИЯ"
+      },
       "sections": [
         {
           "code": "external_nose",
-          "name": { "uz": "Tashqi burun", "ru": "Наружный нос" },
+          "name": {
+            "uz": "Tashqi burun",
+            "ru": "Наружный нос"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "unchanged", "uz": "O'zgarmagan", "ru": "Не изменен", "is_norm": true },
-                { "code": "deformed",  "uz": "Deformatsiya", "ru": "Деформация" }
+                {
+                  "code": "unchanged",
+                  "uz": "O'zgarmagan",
+                  "ru": "Не изменен",
+                  "is_norm": true
+                },
+                {
+                  "code": "deformed",
+                  "uz": "Deformatsiya",
+                  "ru": "Деформация"
+                }
               ]
             },
             {
-              "code": "deformity_type", "type": "checkbox_multi",
-              "visible_when": { "state": "deformed" },
+              "code": "deformity_type",
+              "type": "checkbox_multi",
+              "visible_when": {
+                "state": "deformed"
+              },
               "options": [
-                { "code": "sunken",    "uz": "Cho'kish",  "ru": "Западение" },
-                { "code": "hump",      "uz": "Bukrilik",  "ru": "Горбинка" },
-                { "code": "scoliosis", "uz": "Skolioz",   "ru": "Сколиоз" }
+                {
+                  "code": "sunken",
+                  "uz": "Cho'kish",
+                  "ru": "Западение"
+                },
+                {
+                  "code": "hump",
+                  "uz": "Bukrilik",
+                  "ru": "Горбинка"
+                },
+                {
+                  "code": "scoliosis",
+                  "uz": "Skolioz",
+                  "ru": "Сколиоз"
+                }
               ]
             },
-            { "code": "side", "type": "side", "visible_when": { "state": "deformed" } },
             {
-              "code": "part", "type": "radio", "visible_when": { "state": "deformed" },
+              "code": "side",
+              "type": "side",
+              "visible_when": {
+                "state": "deformed"
+              }
+            },
+            {
+              "code": "part",
+              "type": "radio",
+              "visible_when": {
+                "state": "deformed"
+              },
               "options": [
-                { "code": "bone",      "uz": "Suyak qismi",  "ru": "Костная часть" },
-                { "code": "cartilage", "uz": "Tog'ay qismi", "ru": "Хрящевая часть" }
+                {
+                  "code": "bone",
+                  "uz": "Suyak qismi",
+                  "ru": "Костная часть"
+                },
+                {
+                  "code": "cartilage",
+                  "uz": "Tog'ay qismi",
+                  "ru": "Хрящевая часть"
+                }
               ]
             },
             {
-              "code": "location", "type": "checkbox_multi",
-              "visible_when": { "state": "deformed" },
+              "code": "location",
+              "type": "checkbox_multi",
+              "visible_when": {
+                "state": "deformed"
+              },
               "options": [
-                { "code": "dorsum",   "uz": "Burun orqasi",    "ru": "Спинка" },
-                { "code": "wings",    "uz": "Qanotlari",       "ru": "Крылья" },
-                { "code": "tip",      "uz": "Uchi",            "ru": "Кончик" },
-                { "code": "nostrils", "uz": "Burun teshiklari","ru": "Ноздри" }
+                {
+                  "code": "dorsum",
+                  "uz": "Burun orqasi",
+                  "ru": "Спинка"
+                },
+                {
+                  "code": "wings",
+                  "uz": "Qanotlari",
+                  "ru": "Крылья"
+                },
+                {
+                  "code": "tip",
+                  "uz": "Uchi",
+                  "ru": "Кончик"
+                },
+                {
+                  "code": "nostrils",
+                  "uz": "Burun teshiklari",
+                  "ru": "Ноздри"
+                }
               ]
             }
           ]
         },
         {
           "code": "trigeminal",
-          "name": { "uz": "Uch shoxli nerv chiqish nuqtalari", "ru": "Точки выхода тройничного нерва" },
+          "name": {
+            "uz": "Uch shoxli nerv chiqish nuqtalari",
+            "ru": "Точки выхода тройничного нерва"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "painless", "uz": "Og'riqsiz", "ru": "Безболезненны", "is_norm": true },
-                { "code": "painful",  "uz": "Og'riqli",  "ru": "Болезненны" }
+                {
+                  "code": "painless",
+                  "uz": "Og'riqsiz",
+                  "ru": "Безболезненны",
+                  "is_norm": true
+                },
+                {
+                  "code": "painful",
+                  "uz": "Og'riqli",
+                  "ru": "Болезненны"
+                }
               ]
             },
-            { "code": "side", "type": "side", "visible_when": { "state": "painful" } },
             {
-              "code": "branch", "type": "checkbox_multi",
-              "visible_when": { "state": "painful" },
+              "code": "side",
+              "type": "side",
+              "visible_when": {
+                "state": "painful"
+              }
+            },
+            {
+              "code": "branch",
+              "type": "checkbox_multi",
+              "visible_when": {
+                "state": "painful"
+              },
               "options": [
-                { "code": "I",   "uz": "I shox",   "ru": "I ветвь" },
-                { "code": "II",  "uz": "II shox",  "ru": "II ветвь" },
-                { "code": "III", "uz": "III shox", "ru": "III ветвь" }
+                {
+                  "code": "I",
+                  "uz": "I shox",
+                  "ru": "I ветвь"
+                },
+                {
+                  "code": "II",
+                  "uz": "II shox",
+                  "ru": "II ветвь"
+                },
+                {
+                  "code": "III",
+                  "uz": "III shox",
+                  "ru": "III ветвь"
+                }
               ]
             }
           ]
         },
         {
           "code": "breathing",
-          "name": { "uz": "Burun orqali nafas olish", "ru": "Дыхание через нос" },
+          "name": {
+            "uz": "Burun orqali nafas olish",
+            "ru": "Дыхание через нос"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "free",      "uz": "Erkin",         "ru": "Свободное",  "is_norm": true },
-                { "code": "difficult", "uz": "Qiyinlashgan",  "ru": "Затруднено" },
-                { "code": "absent",    "uz": "Mavjud emas",   "ru": "Отсутствует" }
+                {
+                  "code": "free",
+                  "uz": "Erkin",
+                  "ru": "Свободное",
+                  "is_norm": true
+                },
+                {
+                  "code": "difficult",
+                  "uz": "Qiyinlashgan",
+                  "ru": "Затруднено"
+                },
+                {
+                  "code": "absent",
+                  "uz": "Mavjud emas",
+                  "ru": "Отсутствует"
+                }
               ]
             },
-            { "code": "side", "type": "side", "visible_when": { "state": ["difficult", "absent"] } }
+            {
+              "code": "side",
+              "type": "side",
+              "visible_when": {
+                "state": [
+                  "difficult",
+                  "absent"
+                ]
+              }
+            }
           ]
         },
         {
           "code": "vestibule",
-          "name": { "uz": "Burun dahlizi", "ru": "Преддверие" },
+          "name": {
+            "uz": "Burun dahlizi",
+            "ru": "Преддверие"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "unchanged", "uz": "O'zgarmagan", "ru": "Не изменено", "is_norm": true },
-                { "code": "narrowed",  "uz": "Toraygan",    "ru": "Сужено" }
+                {
+                  "code": "unchanged",
+                  "uz": "O'zgarmagan",
+                  "ru": "Не изменено",
+                  "is_norm": true
+                },
+                {
+                  "code": "narrowed",
+                  "uz": "Toraygan",
+                  "ru": "Сужено"
+                }
               ]
             },
-            { "code": "side", "type": "side", "visible_when": { "state": "narrowed" } }
+            {
+              "code": "side",
+              "type": "side",
+              "visible_when": {
+                "state": "narrowed"
+              }
+            }
           ]
         },
         {
           "code": "olfaction",
-          "name": { "uz": "Hid bilish", "ru": "Обоняние" },
+          "name": {
+            "uz": "Hid bilish",
+            "ru": "Обоняние"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "preserved", "uz": "Saqlangan",  "ru": "Сохранено", "is_norm": true },
-                { "code": "hyposmia",  "uz": "Giposmiya",  "ru": "Гипосмия" },
-                { "code": "anosmia",   "uz": "Anosmiya",   "ru": "Аносмия" },
-                { "code": "hyperosmia","uz": "Giperosmiya","ru": "Гиперосмия" }
+                {
+                  "code": "preserved",
+                  "uz": "Saqlangan",
+                  "ru": "Сохранено",
+                  "is_norm": true
+                },
+                {
+                  "code": "hyposmia",
+                  "uz": "Giposmiya",
+                  "ru": "Гипосмия"
+                },
+                {
+                  "code": "anosmia",
+                  "uz": "Anosmiya",
+                  "ru": "Аносмия"
+                },
+                {
+                  "code": "hyperosmia",
+                  "uz": "Giperosmiya",
+                  "ru": "Гиперосмия"
+                }
               ]
             },
-            { "code": "side", "type": "side", "visible_when": { "state": ["hyposmia", "anosmia", "hyperosmia"] } }
+            {
+              "code": "side",
+              "type": "side",
+              "visible_when": {
+                "state": [
+                  "hyposmia",
+                  "anosmia",
+                  "hyperosmia"
+                ]
+              }
+            }
           ]
         },
         {
           "code": "mucosa",
-          "name": { "uz": "Shilliq qavat", "ru": "Слизистая оболочка" },
+          "name": {
+            "uz": "Shilliq qavat",
+            "ru": "Слизистая оболочка"
+          },
           "fields": [
             {
-              "code": "color", "type": "radio",
+              "code": "color",
+              "type": "radio",
               "options": [
-                { "code": "pink",       "uz": "Pushti",              "ru": "Розовая", "is_norm": true },
-                { "code": "pale_pink",  "uz": "Oqartirilgan pushti", "ru": "Бледно-розовая" },
-                { "code": "bluish",     "uz": "Ko'kimtir",           "ru": "Синюшная" },
-                { "code": "hyperemic",  "uz": "Giperemiyalangan",    "ru": "Гиперемирована" }
+                {
+                  "code": "pink",
+                  "uz": "Pushti",
+                  "ru": "Розовая",
+                  "is_norm": true
+                },
+                {
+                  "code": "pale_pink",
+                  "uz": "Oqartirilgan pushti",
+                  "ru": "Бледно-розовая"
+                },
+                {
+                  "code": "bluish",
+                  "uz": "Ko'kimtir",
+                  "ru": "Синюшная"
+                },
+                {
+                  "code": "hyperemic",
+                  "uz": "Giperemiyalangan",
+                  "ru": "Гиперемирована"
+                }
               ]
             },
             {
-              "code": "moisture", "type": "radio",
+              "code": "moisture",
+              "type": "radio",
               "options": [
-                { "code": "moist", "uz": "Nam",   "ru": "Влажная", "is_norm": true },
-                { "code": "dry",   "uz": "Quruq", "ru": "Сухая" }
+                {
+                  "code": "moist",
+                  "uz": "Nam",
+                  "ru": "Влажная",
+                  "is_norm": true
+                },
+                {
+                  "code": "dry",
+                  "uz": "Quruq",
+                  "ru": "Сухая"
+                }
               ]
             },
             {
-              "code": "condition", "type": "checkbox_multi",
+              "code": "condition",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "hypertrophied", "uz": "Gipertrofiyalangan", "ru": "Гипертрофирована" },
-                { "code": "ulcerated",     "uz": "Yaralangan",         "ru": "Изъязвлена" }
+                {
+                  "code": "hypertrophied",
+                  "uz": "Gipertrofiyalangan",
+                  "ru": "Гипертрофирована"
+                },
+                {
+                  "code": "ulcerated",
+                  "uz": "Yaralangan",
+                  "ru": "Изъязвлена"
+                }
               ]
             },
             {
-              "code": "location", "type": "checkbox_multi",
+              "code": "location",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "septum",             "uz": "Burun to'sig'i sohasi", "ru": "Область перегородки носа" },
-                { "code": "turbinate_inferior", "uz": "Pastki chig'anoq",      "ru": "Нижняя носовая раковина" },
-                { "code": "turbinate_middle",   "uz": "O'rta chig'anoq",       "ru": "Средняя носовая раковина" },
-                { "code": "turbinate_superior", "uz": "Yuqori chig'anoq",      "ru": "Верхняя носовая раковина" },
-                { "code": "meatus_inferior",    "uz": "Pastki burun yo'li",    "ru": "Нижний носовой ход" },
-                { "code": "meatus_middle",      "uz": "O'rta burun yo'li",     "ru": "Средний носовой ход" },
-                { "code": "meatus_superior",    "uz": "Yuqori burun yo'li",    "ru": "Верхний носовой ход" },
-                { "code": "end_anterior",       "uz": "Oldingi uchi",          "ru": "Передний конец" },
-                { "code": "end_posterior",      "uz": "Orqa uchi",             "ru": "Задний конец" }
+                {
+                  "code": "septum",
+                  "uz": "Burun to'sig'i sohasi",
+                  "ru": "Область перегородки носа"
+                },
+                {
+                  "code": "turbinate_inferior",
+                  "uz": "Pastki chig'anoq",
+                  "ru": "Нижняя носовая раковина"
+                },
+                {
+                  "code": "turbinate_middle",
+                  "uz": "O'rta chig'anoq",
+                  "ru": "Средняя носовая раковина"
+                },
+                {
+                  "code": "turbinate_superior",
+                  "uz": "Yuqori chig'anoq",
+                  "ru": "Верхняя носовая раковина"
+                },
+                {
+                  "code": "meatus_inferior",
+                  "uz": "Pastki burun yo'li",
+                  "ru": "Нижний носовой ход"
+                },
+                {
+                  "code": "meatus_middle",
+                  "uz": "O'rta burun yo'li",
+                  "ru": "Средний носовой ход"
+                },
+                {
+                  "code": "meatus_superior",
+                  "uz": "Yuqori burun yo'li",
+                  "ru": "Верхний носовой ход"
+                },
+                {
+                  "code": "end_anterior",
+                  "uz": "Oldingi uchi",
+                  "ru": "Передний конец"
+                },
+                {
+                  "code": "end_posterior",
+                  "uz": "Orqa uchi",
+                  "ru": "Задний конец"
+                }
               ]
             }
           ]
         },
         {
           "code": "septum",
-          "name": { "uz": "Burun to'sig'i", "ru": "Носовая перегородка" },
+          "name": {
+            "uz": "Burun to'sig'i",
+            "ru": "Носовая перегородка"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "midline", "uz": "O'rta chiziqda", "ru": "По средней линии", "is_norm": true },
-                { "code": "curved",  "uz": "Qiyshaygan",     "ru": "Искривлена" }
+                {
+                  "code": "midline",
+                  "uz": "O'rta chiziqda",
+                  "ru": "По средней линии",
+                  "is_norm": true
+                },
+                {
+                  "code": "curved",
+                  "uz": "Qiyshaygan",
+                  "ru": "Искривлена"
+                }
               ]
             },
             {
-              "code": "features", "type": "checkbox_multi",
-              "visible_when": { "state": "curved" },
+              "code": "features",
+              "type": "checkbox_multi",
+              "visible_when": {
+                "state": "curved"
+              },
               "options": [
-                { "code": "bulge",  "uz": "Bo'rtma", "ru": "Бугор" },
-                { "code": "ridge",  "uz": "Qirra",   "ru": "Гребень" },
-                { "code": "spike",  "uz": "Tikancha","ru": "Шип" }
+                {
+                  "code": "bulge",
+                  "uz": "Bo'rtma",
+                  "ru": "Бугор"
+                },
+                {
+                  "code": "ridge",
+                  "uz": "Qirra",
+                  "ru": "Гребень"
+                },
+                {
+                  "code": "spike",
+                  "uz": "Tikancha",
+                  "ru": "Шип"
+                }
               ]
             },
             {
-              "code": "shape", "type": "radio",
-              "visible_when": { "state": "curved" },
+              "code": "shape",
+              "type": "radio",
+              "visible_when": {
+                "state": "curved"
+              },
               "options": [
-                { "code": "c_shaped", "uz": "C-simon", "ru": "С-образно" },
-                { "code": "s_shaped", "uz": "S-simon", "ru": "S-образно" }
-              ]
-            },
-            { "code": "side", "type": "side", "visible_when": { "state": "curved" } },
-            {
-              "code": "part", "type": "radio",
-              "visible_when": { "state": "curved" },
-              "options": [
-                { "code": "cartilage", "uz": "Tog'ay qismida", "ru": "В хрящевом отделе" },
-                { "code": "bone",      "uz": "Suyak qismida",  "ru": "В костном отделе" }
-              ]
-            }
-          ]
-        },
-        {
-          "code": "posterior_choanae",
-          "name": { "uz": "Xoanalar (orqa rinoskopiya)", "ru": "Хоаны (задняя риноскопия)" },
-          "fields": [
-            {
-              "code": "state", "type": "radio",
-              "options": [
-                { "code": "free",   "uz": "Erkin",   "ru": "Свободны", "is_norm": true },
-                { "code": "closed", "uz": "Yopilgan","ru": "Закрыты" }
+                {
+                  "code": "c_shaped",
+                  "uz": "C-simon",
+                  "ru": "С-образно"
+                },
+                {
+                  "code": "s_shaped",
+                  "uz": "S-simon",
+                  "ru": "S-образно"
+                }
               ]
             },
             {
-              "code": "cause", "type": "checkbox_multi",
-              "visible_when": { "state": "closed" },
-              "options": [
-                { "code": "turbinate_hyper_inf", "uz": "Pastki chig'anoqlar gipertrofiyasi", "ru": "Гипертрофия нижних раковин" },
-                { "code": "turbinate_hyper_mid", "uz": "O'rta chig'anoqlar gipertrofiyasi", "ru": "Гипертрофия средних раковин" },
-                { "code": "polyp",    "uz": "Polip",     "ru": "Полип" },
-                { "code": "tumor",    "uz": "O'sma",     "ru": "Новообразование" },
-                { "code": "adenoids", "uz": "Adenoidlar","ru": "Аденоиды" }
-              ]
-            }
-          ]
-        },
-        {
-          "code": "posterior_vault",
-          "name": { "uz": "Gumbaz", "ru": "Свод" },
-          "fields": [
-            {
-              "code": "state", "type": "radio",
-              "options": [
-                { "code": "free",     "uz": "Erkin",       "ru": "Свободен", "is_norm": true },
-                { "code": "tumor",    "uz": "O'sma",       "ru": "Новообразование" },
-                { "code": "adenoids", "uz": "Adenoidlar",  "ru": "Аденоиды" }
-              ]
-            },
-            { "code": "adenoid_degree", "type": "degree", "visible_when": { "state": "adenoids" } }
-          ]
-        },
-        {
-          "code": "auditory_tubes",
-          "name": { "uz": "Eshituv naylari og'zi", "ru": "Устья слуховых труб" },
-          "fields": [
-            {
-              "code": "state", "type": "radio",
-              "options": [
-                { "code": "well_visible", "uz": "Yaxshi ko'rinadi, erkin", "ru": "Хорошо контурируются, свободны", "is_norm": true },
-                { "code": "narrowed",     "uz": "Toraygan",                "ru": "Сужены" }
-              ]
+              "code": "side",
+              "type": "side",
+              "visible_when": {
+                "state": "curved"
+              }
             },
             {
-              "code": "contents", "type": "checkbox_multi",
+              "code": "part",
+              "type": "radio",
+              "visible_when": {
+                "state": "curved"
+              },
               "options": [
-                { "code": "mucus", "uz": "Shilliq", "ru": "Слизь" },
-                { "code": "pus",   "uz": "Yiring",  "ru": "Гной" }
+                {
+                  "code": "cartilage",
+                  "uz": "Tog'ay qismida",
+                  "ru": "В хрящевом отделе"
+                },
+                {
+                  "code": "bone",
+                  "uz": "Suyak qismida",
+                  "ru": "В костном отделе"
+                }
               ]
-            },
-            {
-              "code": "hypertrophy", "type": "checkbox",
-              "label": { "uz": "Nay valiklari va bodomsimon bezlar gipertrofiyasi", "ru": "Гипертрофия трубных валиков и миндалин" }
             }
           ]
         }
@@ -273,207 +550,637 @@
     },
     {
       "code": "pharyngoscopy",
-      "icon": "\ud83d\ude2e",
-      "name": { "uz": "FARINGOSKOPIYA", "ru": "ФАРИНГОСКОПИЯ" },
+      "icon": "😮",
+      "name": {
+        "uz": "FARINGOSKOPIYA",
+        "ru": "ФАРИНГОСКОПИЯ"
+      },
       "sections": [
         {
           "code": "mouth_opening",
-          "name": { "uz": "Og'iz ochilishi", "ru": "Открывание рта" },
+          "name": {
+            "uz": "Og'iz ochilishi",
+            "ru": "Открывание рта"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "free",    "uz": "Erkin",   "ru": "Свободное", "is_norm": true },
-                { "code": "trismus", "uz": "Trizm",   "ru": "Тризм" },
-                { "code": "painful", "uz": "Og'riqli","ru": "Болезненное" }
+                {
+                  "code": "free",
+                  "uz": "Erkin",
+                  "ru": "Свободное",
+                  "is_norm": true
+                },
+                {
+                  "code": "trismus",
+                  "uz": "Trizm",
+                  "ru": "Тризм"
+                },
+                {
+                  "code": "painful",
+                  "uz": "Og'riqli",
+                  "ru": "Болезненное"
+                }
               ]
             }
           ]
         },
         {
           "code": "oral_mucosa",
-          "name": { "uz": "Og'iz shilliq qavati", "ru": "Слизистая оболочка полости рта" },
+          "name": {
+            "uz": "Og'iz shilliq qavati",
+            "ru": "Слизистая оболочка полости рта"
+          },
           "fields": [
             {
-              "code": "color", "type": "radio",
+              "code": "color",
+              "type": "radio",
               "options": [
-                { "code": "pale_pink", "uz": "Oqartirilgan pushti", "ru": "Бледно-розовая", "is_norm": true },
-                { "code": "hyperemic", "uz": "Giperemiyalangan",    "ru": "Гиперемирована" }
+                {
+                  "code": "pale_pink",
+                  "uz": "Oqartirilgan pushti",
+                  "ru": "Бледно-розовая",
+                  "is_norm": true
+                },
+                {
+                  "code": "hyperemic",
+                  "uz": "Giperemiyalangan",
+                  "ru": "Гиперемирована"
+                }
               ]
             },
             {
-              "code": "pathology", "type": "checkbox_multi",
+              "code": "pathology",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "aphthae", "uz": "Aftalar", "ru": "Афты" },
-                { "code": "ulcers",  "uz": "Yaralar", "ru": "Язвы" }
+                {
+                  "code": "aphthae",
+                  "uz": "Aftalar",
+                  "ru": "Афты"
+                },
+                {
+                  "code": "ulcers",
+                  "uz": "Yaralar",
+                  "ru": "Язвы"
+                }
               ]
             },
             {
-              "code": "location", "type": "checkbox_multi",
+              "code": "location",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "tongue",       "uz": "Til",          "ru": "Язык" },
-                { "code": "soft_palate",  "uz": "Yumshoq tanglay", "ru": "Мягкое небо" },
-                { "code": "mouth_floor",  "uz": "Og'iz tubi",   "ru": "Дно полости рта" }
+                {
+                  "code": "tongue",
+                  "uz": "Til",
+                  "ru": "Язык"
+                },
+                {
+                  "code": "soft_palate",
+                  "uz": "Yumshoq tanglay",
+                  "ru": "Мягкое небо"
+                },
+                {
+                  "code": "mouth_floor",
+                  "uz": "Og'iz tubi",
+                  "ru": "Дно полости рта"
+                }
               ]
             }
           ]
         },
         {
           "code": "tongue",
-          "name": { "uz": "Til", "ru": "Язык" },
+          "name": {
+            "uz": "Til",
+            "ru": "Язык"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "clean",      "uz": "Toza, nam",           "ru": "Чистый, влажный", "is_norm": true },
-                { "code": "white_coat", "uz": "Oq karash bilan qoplangan", "ru": "Обложен белым налетом" }
+                {
+                  "code": "clean",
+                  "uz": "Toza, nam",
+                  "ru": "Чистый, влажный",
+                  "is_norm": true
+                },
+                {
+                  "code": "white_coat",
+                  "uz": "Oq karash bilan qoplangan",
+                  "ru": "Обложен белым налетом"
+                }
               ]
             },
             {
-              "code": "pathology", "type": "checkbox_multi",
+              "code": "pathology",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "aphtha",         "uz": "Afta",          "ru": "Афта" },
-                { "code": "ulcer",          "uz": "Yara",          "ru": "Язва" },
-                { "code": "infiltration",   "uz": "Infiltratsiya", "ru": "Инфильтрация" }
+                {
+                  "code": "aphtha",
+                  "uz": "Afta",
+                  "ru": "Афта"
+                },
+                {
+                  "code": "ulcer",
+                  "uz": "Yara",
+                  "ru": "Язва"
+                },
+                {
+                  "code": "infiltration",
+                  "uz": "Infiltratsiya",
+                  "ru": "Инфильтрация"
+                }
               ]
             },
             {
-              "code": "pain", "type": "radio",
+              "code": "pain",
+              "type": "radio",
               "options": [
-                { "code": "none",    "uz": "Og'riq yo'q", "ru": "Безболезненный", "is_norm": true },
-                { "code": "present", "uz": "Og'riqli",    "ru": "Болезненный" }
+                {
+                  "code": "none",
+                  "uz": "Og'riq yo'q",
+                  "ru": "Безболезненный",
+                  "is_norm": true
+                },
+                {
+                  "code": "present",
+                  "uz": "Og'riqli",
+                  "ru": "Болезненный"
+                }
               ]
             },
-            { "code": "side", "type": "side", "visible_when": { "pain": "present" } }
+            {
+              "code": "side",
+              "type": "side",
+              "visible_when": {
+                "pain": "present"
+              }
+            }
           ]
         },
         {
           "code": "teeth",
-          "name": { "uz": "Tishlar", "ru": "Зубы" },
+          "name": {
+            "uz": "Tishlar",
+            "ru": "Зубы"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "healthy",  "uz": "Sog'lom",          "ru": "Здоровы", "is_norm": true },
-                { "code": "sanitized","uz": "Sanatsiya qilingan","ru": "Санированы" },
-                { "code": "caries",   "uz": "Karies",           "ru": "Кариес" }
+                {
+                  "code": "healthy",
+                  "uz": "Sog'lom",
+                  "ru": "Здоровы",
+                  "is_norm": true
+                },
+                {
+                  "code": "sanitized",
+                  "uz": "Sanatsiya qilingan",
+                  "ru": "Санированы"
+                },
+                {
+                  "code": "caries",
+                  "uz": "Karies",
+                  "ru": "Кариес"
+                }
               ]
             },
             {
-              "code": "prostheses", "type": "checkbox",
-              "label": { "uz": "Protezlar mavjud", "ru": "Протезы имеются" }
+              "code": "prostheses",
+              "type": "checkbox",
+              "label": {
+                "uz": "Protezlar mavjud",
+                "ru": "Протезы имеются"
+              }
             }
           ]
         },
         {
           "code": "palatine_arches",
-          "name": { "uz": "Tanglay yoylari", "ru": "Небные дужки" },
+          "name": {
+            "uz": "Tanglay yoylari",
+            "ru": "Небные дужки"
+          },
           "fields": [
             {
-              "code": "visibility", "type": "radio",
+              "code": "visibility",
+              "type": "radio",
               "options": [
-                { "code": "well_visible", "uz": "Yaxshi ko'rinadi", "ru": "Хорошо контурируются", "is_norm": true },
-                { "code": "altered",      "uz": "O'zgargan",        "ru": "Изменены" }
+                {
+                  "code": "well_visible",
+                  "uz": "Yaxshi ko'rinadi",
+                  "ru": "Хорошо контурируются",
+                  "is_norm": true
+                },
+                {
+                  "code": "altered",
+                  "uz": "O'zgargan",
+                  "ru": "Изменены"
+                }
               ]
             },
             {
-              "code": "pathology", "type": "checkbox_multi",
+              "code": "pathology",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "edema",       "uz": "Shishgan",          "ru": "Отечны" },
-                { "code": "hyperemic",   "uz": "Giperemiyalangan",  "ru": "Гиперемированы" },
-                { "code": "infiltrated", "uz": "Infiltratsiyalangan", "ru": "Инфильтрированы" },
-                { "code": "adherent",    "uz": "Bodomsimon bez bilan yopishgan", "ru": "Спаяны с миндалиной" }
+                {
+                  "code": "edema",
+                  "uz": "Shishgan",
+                  "ru": "Отечны"
+                },
+                {
+                  "code": "hyperemic",
+                  "uz": "Giperemiyalangan",
+                  "ru": "Гиперемированы"
+                },
+                {
+                  "code": "infiltrated",
+                  "uz": "Infiltratsiyalangan",
+                  "ru": "Инфильтрированы"
+                },
+                {
+                  "code": "adherent",
+                  "uz": "Bodomsimon bez bilan yopishgan",
+                  "ru": "Спаяны с миндалиной"
+                }
               ]
             },
             {
-              "code": "features", "type": "checkbox_multi",
+              "code": "features",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "cushion",       "uz": "Yostiqsimon bo'rtish",     "ru": "Подушкообразное выпячивание" },
-                { "code": "hiss_fold",     "uz": "Giss burmasi qalinlashgan","ru": "Складка Гиса утолщена" }
+                {
+                  "code": "cushion",
+                  "uz": "Yostiqsimon bo'rtish",
+                  "ru": "Подушкообразное выпячивание"
+                },
+                {
+                  "code": "hiss_fold",
+                  "uz": "Giss burmasi qalinlashgan",
+                  "ru": "Складка Гиса утолщена"
+                }
               ]
             }
           ]
         },
         {
           "code": "palatine_tonsils",
-          "name": { "uz": "Tanglay bodomsimon bezlari", "ru": "Небные миндалины" },
+          "name": {
+            "uz": "Tanglay bodomsimon bezlari",
+            "ru": "Небные миндалины"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "not_protruding","uz": "Tanglay yoyidan chiqmaydi","ru": "Не выступают из-за дужек", "is_norm": true },
-                { "code": "hypertrophied", "uz": "Gipertrofiya",             "ru": "Гипертрофия" }
-              ]
-            },
-            { "code": "hypertrophy_degree", "type": "degree", "visible_when": { "state": "hypertrophied" } },
-            {
-              "code": "surface", "type": "radio",
-              "options": [
-                { "code": "smooth", "uz": "Silliq",     "ru": "Гладкая", "is_norm": true },
-                { "code": "bumpy",  "uz": "G'adir-budir","ru": "Бугристая" }
-              ]
-            },
-            {
-              "code": "lacunae", "type": "radio",
-              "options": [
-                { "code": "not_dilated", "uz": "Lakunalar kengaymagan", "ru": "Лакуны не расширены", "is_norm": true },
-                { "code": "dilated",     "uz": "Lakunalar kengaygan",   "ru": "Лакуны расширены" }
+                {
+                  "code": "not_protruding",
+                  "uz": "Tanglay yoyidan chiqmaydi",
+                  "ru": "Не выступают из-за дужек",
+                  "is_norm": true
+                },
+                {
+                  "code": "hypertrophied",
+                  "uz": "Gipertrofiya",
+                  "ru": "Гипертрофия"
+                }
               ]
             },
             {
-              "code": "lacunae_contents", "type": "checkbox_multi",
+              "code": "hypertrophy_degree",
+              "type": "degree",
+              "visible_when": {
+                "state": "hypertrophied"
+              }
+            },
+            {
+              "code": "surface",
+              "type": "radio",
               "options": [
-                { "code": "none",           "uz": "Yo'q",                 "ru": "Нет", "is_norm": true },
-                { "code": "caseous_plugs",  "uz": "Kazeoz tiqinlar",      "ru": "Казеозные пробки" },
-                { "code": "purulent_plugs", "uz": "Yiringli tiqinlar",    "ru": "Гнойные пробки" },
-                { "code": "mucous_plugs",   "uz": "Shilliq tiqinlar",     "ru": "Слизистые пробки" },
-                { "code": "pus",            "uz": "Yiring",               "ru": "Гной" },
-                { "code": "mucus",          "uz": "Shilliq",              "ru": "Слизь" }
+                {
+                  "code": "smooth",
+                  "uz": "Silliq",
+                  "ru": "Гладкая",
+                  "is_norm": true
+                },
+                {
+                  "code": "bumpy",
+                  "uz": "G'adir-budir",
+                  "ru": "Бугристая"
+                }
+              ]
+            },
+            {
+              "code": "lacunae",
+              "type": "radio",
+              "options": [
+                {
+                  "code": "not_dilated",
+                  "uz": "Lakunalar kengaymagan",
+                  "ru": "Лакуны не расширены",
+                  "is_norm": true
+                },
+                {
+                  "code": "dilated",
+                  "uz": "Lakunalar kengaygan",
+                  "ru": "Лакуны расширены"
+                }
+              ]
+            },
+            {
+              "code": "lacunae_contents",
+              "type": "checkbox_multi",
+              "options": [
+                {
+                  "code": "none",
+                  "uz": "Yo'q",
+                  "ru": "Нет",
+                  "is_norm": true
+                },
+                {
+                  "code": "caseous_plugs",
+                  "uz": "Kazeoz tiqinlar",
+                  "ru": "Казеозные пробки"
+                },
+                {
+                  "code": "purulent_plugs",
+                  "uz": "Yiringli tiqinlar",
+                  "ru": "Гнойные пробки"
+                },
+                {
+                  "code": "mucous_plugs",
+                  "uz": "Shilliq tiqinlar",
+                  "ru": "Слизистые пробки"
+                },
+                {
+                  "code": "pus",
+                  "uz": "Yiring",
+                  "ru": "Гной"
+                },
+                {
+                  "code": "mucus",
+                  "uz": "Shilliq",
+                  "ru": "Слизь"
+                }
               ]
             }
           ]
         },
         {
           "code": "posterior_pharynx",
-          "name": { "uz": "Halqum orqa devori", "ru": "Задняя стенка глотки" },
+          "name": {
+            "uz": "Halqum orqa devori",
+            "ru": "Задняя стенка глотки"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "pink_smooth", "uz": "Pushti, silliq", "ru": "Розовая, гладкая", "is_norm": true },
-                { "code": "altered",     "uz": "O'zgargan",      "ru": "Изменена" }
+                {
+                  "code": "pink_smooth",
+                  "uz": "Pushti, silliq",
+                  "ru": "Розовая, гладкая",
+                  "is_norm": true
+                },
+                {
+                  "code": "altered",
+                  "uz": "O'zgargan",
+                  "ru": "Изменена"
+                }
               ]
             },
             {
-              "code": "pathology", "type": "checkbox_multi",
+              "code": "pathology",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "granules_hyper", "uz": "Limfoid granulalar gipertrofiyasi", "ru": "Гипертрофия лимфоидных гранул" },
-                { "code": "lateral_hyper",  "uz": "Yon valiklar gipertrofiyasi",       "ru": "Гипертрофия боковых валиков" },
-                { "code": "atrophy",        "uz": "Atrofiya",                          "ru": "Атрофия" }
+                {
+                  "code": "granules_hyper",
+                  "uz": "Limfoid granulalar gipertrofiyasi",
+                  "ru": "Гипертрофия лимфоидных гранул"
+                },
+                {
+                  "code": "lateral_hyper",
+                  "uz": "Yon valiklar gipertrofiyasi",
+                  "ru": "Гипертрофия боковых валиков"
+                },
+                {
+                  "code": "atrophy",
+                  "uz": "Atrofiya",
+                  "ru": "Атрофия"
+                }
               ]
             },
             {
-              "code": "contents", "type": "checkbox_multi",
+              "code": "contents",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "pus",    "uz": "Yiring",  "ru": "Гной" },
-                { "code": "crusts", "uz": "Qobiqlar","ru": "Корки" },
-                { "code": "mucus",  "uz": "Shilliq", "ru": "Слизь" },
-                { "code": "blood",  "uz": "Qon",     "ru": "Кровь" }
+                {
+                  "code": "pus",
+                  "uz": "Yiring",
+                  "ru": "Гной"
+                },
+                {
+                  "code": "crusts",
+                  "uz": "Qobiqlar",
+                  "ru": "Корки"
+                },
+                {
+                  "code": "mucus",
+                  "uz": "Shilliq",
+                  "ru": "Слизь"
+                },
+                {
+                  "code": "blood",
+                  "uz": "Qon",
+                  "ru": "Кровь"
+                }
               ]
             }
           ]
         },
         {
           "code": "pharyngeal_reflex",
-          "name": { "uz": "Halqum refleksi", "ru": "Глоточный рефлекс" },
+          "name": {
+            "uz": "Halqum refleksi",
+            "ru": "Глоточный рефлекс"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "preserved", "uz": "Saqlangan", "ru": "Сохранен", "is_norm": true },
-                { "code": "reduced",   "uz": "Pasaygan",  "ru": "Снижен" },
-                { "code": "elevated",  "uz": "Yuqori",    "ru": "Высокий" }
+                {
+                  "code": "preserved",
+                  "uz": "Saqlangan",
+                  "ru": "Сохранен",
+                  "is_norm": true
+                },
+                {
+                  "code": "reduced",
+                  "uz": "Pasaygan",
+                  "ru": "Снижен"
+                },
+                {
+                  "code": "elevated",
+                  "uz": "Yuqori",
+                  "ru": "Высокий"
+                }
               ]
+            }
+          ]
+        },
+        {
+          "code": "posterior_choanae",
+          "name": {
+            "uz": "Xoanalar (orqa rinoskopiya)",
+            "ru": "Хоаны (задняя риноскопия)"
+          },
+          "fields": [
+            {
+              "code": "state",
+              "type": "radio",
+              "options": [
+                {
+                  "code": "free",
+                  "uz": "Erkin",
+                  "ru": "Свободны",
+                  "is_norm": true
+                },
+                {
+                  "code": "closed",
+                  "uz": "Yopilgan",
+                  "ru": "Закрыты"
+                }
+              ]
+            },
+            {
+              "code": "cause",
+              "type": "checkbox_multi",
+              "visible_when": {
+                "state": "closed"
+              },
+              "options": [
+                {
+                  "code": "turbinate_hyper_inf",
+                  "uz": "Pastki chig'anoqlar gipertrofiyasi",
+                  "ru": "Гипертрофия нижних раковин"
+                },
+                {
+                  "code": "turbinate_hyper_mid",
+                  "uz": "O'rta chig'anoqlar gipertrofiyasi",
+                  "ru": "Гипертрофия средних раковин"
+                },
+                {
+                  "code": "polyp",
+                  "uz": "Polip",
+                  "ru": "Полип"
+                },
+                {
+                  "code": "tumor",
+                  "uz": "O'sma",
+                  "ru": "Новообразование"
+                },
+                {
+                  "code": "adenoids",
+                  "uz": "Adenoidlar",
+                  "ru": "Аденоиды"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "code": "posterior_vault",
+          "name": {
+            "uz": "Gumbaz",
+            "ru": "Свод"
+          },
+          "fields": [
+            {
+              "code": "state",
+              "type": "radio",
+              "options": [
+                {
+                  "code": "free",
+                  "uz": "Erkin",
+                  "ru": "Свободен",
+                  "is_norm": true
+                },
+                {
+                  "code": "tumor",
+                  "uz": "O'sma",
+                  "ru": "Новообразование"
+                },
+                {
+                  "code": "adenoids",
+                  "uz": "Adenoidlar",
+                  "ru": "Аденоиды"
+                }
+              ]
+            },
+            {
+              "code": "adenoid_degree",
+              "type": "degree",
+              "visible_when": {
+                "state": "adenoids"
+              }
+            }
+          ]
+        },
+        {
+          "code": "auditory_tubes",
+          "name": {
+            "uz": "Eshituv naylari og'zi",
+            "ru": "Устья слуховых труб"
+          },
+          "fields": [
+            {
+              "code": "state",
+              "type": "radio",
+              "options": [
+                {
+                  "code": "well_visible",
+                  "uz": "Yaxshi ko'rinadi, erkin",
+                  "ru": "Хорошо контурируются, свободны",
+                  "is_norm": true
+                },
+                {
+                  "code": "narrowed",
+                  "uz": "Toraygan",
+                  "ru": "Сужены"
+                }
+              ]
+            },
+            {
+              "code": "contents",
+              "type": "checkbox_multi",
+              "options": [
+                {
+                  "code": "mucus",
+                  "uz": "Shilliq",
+                  "ru": "Слизь"
+                },
+                {
+                  "code": "pus",
+                  "uz": "Yiring",
+                  "ru": "Гной"
+                }
+              ]
+            },
+            {
+              "code": "hypertrophy",
+              "type": "checkbox",
+              "label": {
+                "uz": "Nay valiklari va bodomsimon bezlar gipertrofiyasi",
+                "ru": "Гипертрофия трубных валиков и миндалин"
+              }
             }
           ]
         }
@@ -481,114 +1188,293 @@
     },
     {
       "code": "otoscopy",
-      "icon": "\ud83d\udc42",
-      "name": { "uz": "OTOSKOPIYA (AD/AS)", "ru": "ОТОСКОПИЯ (AD/AS)" },
+      "icon": "👂",
+      "name": {
+        "uz": "OTOSKOPIYA (AD/AS)",
+        "ru": "ОТОСКОПИЯ (AD/AS)"
+      },
       "per_ear": true,
       "ears": [
-        { "code": "AD", "uz": "AD (o'ng)", "ru": "AD (правое)" },
-        { "code": "AS", "uz": "AS (chap)", "ru": "AS (левое)" }
+        {
+          "code": "AD",
+          "uz": "AD (o'ng)",
+          "ru": "AD (правое)"
+        },
+        {
+          "code": "AS",
+          "uz": "AS (chap)",
+          "ru": "AS (левое)"
+        }
       ],
       "sections": [
         {
           "code": "auricle_canal",
-          "name": { "uz": "Quloq suprasi va tashqi eshituv yo'li", "ru": "Ушная раковина и наружный слуховой проход" },
+          "name": {
+            "uz": "Quloq suprasi va tashqi eshituv yo'li",
+            "ru": "Ушная раковина и наружный слуховой проход"
+          },
           "fields": [
             {
-              "code": "shape", "type": "radio",
+              "code": "shape",
+              "type": "radio",
               "options": [
-                { "code": "normal",  "uz": "To'g'ri shaklda", "ru": "Правильной формы", "is_norm": true },
-                { "code": "altered", "uz": "O'zgargan",       "ru": "Изменена" }
+                {
+                  "code": "normal",
+                  "uz": "To'g'ri shaklda",
+                  "ru": "Правильной формы",
+                  "is_norm": true
+                },
+                {
+                  "code": "altered",
+                  "uz": "O'zgargan",
+                  "ru": "Изменена"
+                }
               ]
             },
             {
-              "code": "canal_width", "type": "radio",
+              "code": "canal_width",
+              "type": "radio",
               "options": [
-                { "code": "normal", "uz": "Normal", "ru": "Нормальный", "is_norm": true },
-                { "code": "wide",   "uz": "Keng",   "ru": "Широкий" },
-                { "code": "narrow", "uz": "Tor",    "ru": "Узкий" }
+                {
+                  "code": "normal",
+                  "uz": "Normal",
+                  "ru": "Нормальный",
+                  "is_norm": true
+                },
+                {
+                  "code": "wide",
+                  "uz": "Keng",
+                  "ru": "Широкий"
+                },
+                {
+                  "code": "narrow",
+                  "uz": "Tor",
+                  "ru": "Узкий"
+                }
               ]
             },
             {
-              "code": "pathology", "type": "checkbox_multi",
+              "code": "pathology",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "exostosis",     "uz": "Ekzostoz",       "ru": "Экзостоз" },
-                { "code": "pain",          "uz": "Og'riqli",       "ru": "Болезненный" },
-                { "code": "infiltration",  "uz": "Infiltratsiya",  "ru": "Инфильтрация" },
-                { "code": "hyperemia",     "uz": "Giperemiya",     "ru": "Гиперемия" }
+                {
+                  "code": "exostosis",
+                  "uz": "Ekzostoz",
+                  "ru": "Экзостоз"
+                },
+                {
+                  "code": "pain",
+                  "uz": "Og'riqli",
+                  "ru": "Болезненный"
+                },
+                {
+                  "code": "infiltration",
+                  "uz": "Infiltratsiya",
+                  "ru": "Инфильтрация"
+                },
+                {
+                  "code": "hyperemia",
+                  "uz": "Giperemiya",
+                  "ru": "Гиперемия"
+                }
               ]
             },
             {
-              "code": "pain_part", "type": "radio", "visible_when": { "pathology": "pain" },
+              "code": "pain_part",
+              "type": "radio",
+              "visible_when": {
+                "pathology": "pain"
+              },
               "options": [
-                { "code": "bone",      "uz": "Suyak qismi",  "ru": "Костная часть" },
-                { "code": "cartilage", "uz": "Tog'ay qismi", "ru": "Хрящевая часть" }
+                {
+                  "code": "bone",
+                  "uz": "Suyak qismi",
+                  "ru": "Костная часть"
+                },
+                {
+                  "code": "cartilage",
+                  "uz": "Tog'ay qismi",
+                  "ru": "Хрящевая часть"
+                }
               ]
             },
             {
-              "code": "contents", "type": "checkbox_multi",
+              "code": "contents",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "clean",   "uz": "Toza",         "ru": "Свободный", "is_norm": true },
-                { "code": "cerumen", "uz": "Oltingugurt",  "ru": "Сера" },
-                { "code": "crusts",  "uz": "Qobiqlar",     "ru": "Корки" },
-                { "code": "plug",    "uz": "Tiqin",        "ru": "Пробка" },
-                { "code": "pus",     "uz": "Yiring",       "ru": "Гной" },
-                { "code": "blood",   "uz": "Qon",          "ru": "Кровь" },
-                { "code": "films",   "uz": "Pardalar",     "ru": "Пленки" }
+                {
+                  "code": "clean",
+                  "uz": "Toza",
+                  "ru": "Свободный",
+                  "is_norm": true
+                },
+                {
+                  "code": "cerumen",
+                  "uz": "Oltingugurt",
+                  "ru": "Сера"
+                },
+                {
+                  "code": "crusts",
+                  "uz": "Qobiqlar",
+                  "ru": "Корки"
+                },
+                {
+                  "code": "plug",
+                  "uz": "Tiqin",
+                  "ru": "Пробка"
+                },
+                {
+                  "code": "pus",
+                  "uz": "Yiring",
+                  "ru": "Гной"
+                },
+                {
+                  "code": "blood",
+                  "uz": "Qon",
+                  "ru": "Кровь"
+                },
+                {
+                  "code": "films",
+                  "uz": "Pardalar",
+                  "ru": "Пленки"
+                }
               ]
             }
           ]
         },
         {
           "code": "tympanic_membrane",
-          "name": { "uz": "Baraban pardasi", "ru": "Барабанная перепонка" },
+          "name": {
+            "uz": "Baraban pardasi",
+            "ru": "Барабанная перепонка"
+          },
           "fields": [
             {
-              "code": "color", "type": "radio",
+              "code": "color",
+              "type": "radio",
               "options": [
-                { "code": "pearly_gray", "uz": "Marvaridsimon kulrang", "ru": "Перламутрово-серая", "is_norm": true },
-                { "code": "hyperemic",   "uz": "Giperemiyalangan",       "ru": "Гиперемирована" }
+                {
+                  "code": "pearly_gray",
+                  "uz": "Marvaridsimon kulrang",
+                  "ru": "Перламутрово-серая",
+                  "is_norm": true
+                },
+                {
+                  "code": "hyperemic",
+                  "uz": "Giperemiyalangan",
+                  "ru": "Гиперемирована"
+                }
               ]
             },
             {
-              "code": "landmarks", "type": "radio",
+              "code": "landmarks",
+              "type": "radio",
               "options": [
-                { "code": "visible",     "uz": "Yaxshi ko'rinadi",  "ru": "Выражены хорошо", "is_norm": true },
-                { "code": "not_visible", "uz": "Yaxshi ko'rinmaydi","ru": "Не выражены" }
+                {
+                  "code": "visible",
+                  "uz": "Yaxshi ko'rinadi",
+                  "ru": "Выражены хорошо",
+                  "is_norm": true
+                },
+                {
+                  "code": "not_visible",
+                  "uz": "Yaxshi ko'rinmaydi",
+                  "ru": "Не выражены"
+                }
               ]
             },
             {
-              "code": "perforation", "type": "radio",
+              "code": "perforation",
+              "type": "radio",
               "options": [
-                { "code": "none",     "uz": "Yo'q",       "ru": "Нет", "is_norm": true },
-                { "code": "marginal", "uz": "Chekka",     "ru": "Краевая" },
-                { "code": "central",  "uz": "Markaziy",   "ru": "Некраевая (центральная)" }
+                {
+                  "code": "none",
+                  "uz": "Yo'q",
+                  "ru": "Нет",
+                  "is_norm": true
+                },
+                {
+                  "code": "marginal",
+                  "uz": "Chekka",
+                  "ru": "Краевая"
+                },
+                {
+                  "code": "central",
+                  "uz": "Markaziy",
+                  "ru": "Некраевая (центральная)"
+                }
               ]
             },
             {
-              "code": "pathology", "type": "checkbox_multi",
+              "code": "pathology",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "pulsating",    "uz": "Pulsatsiyalovchi refleks", "ru": "Пульсирующий рефлекс" },
-                { "code": "infiltration", "uz": "Infiltratsiya",            "ru": "Инфильтрация" },
-                { "code": "retraction",   "uz": "Retraksiya",               "ru": "Втянутость" },
-                { "code": "scars",        "uz": "Chandiqlar",               "ru": "Рубцы" },
-                { "code": "calcinates",   "uz": "Kalsinatlar",              "ru": "Кальцинаты" }
+                {
+                  "code": "pulsating",
+                  "uz": "Pulsatsiyalovchi refleks",
+                  "ru": "Пульсирующий рефлекс"
+                },
+                {
+                  "code": "infiltration",
+                  "uz": "Infiltratsiya",
+                  "ru": "Инфильтрация"
+                },
+                {
+                  "code": "retraction",
+                  "uz": "Retraksiya",
+                  "ru": "Втянутость"
+                },
+                {
+                  "code": "scars",
+                  "uz": "Chandiqlar",
+                  "ru": "Рубцы"
+                },
+                {
+                  "code": "calcinates",
+                  "uz": "Kalsinatlar",
+                  "ru": "Кальцинаты"
+                }
               ]
             }
           ]
         },
         {
           "code": "tympanic_cavity",
-          "name": { "uz": "Baraban bo'shlig'i", "ru": "Барабанная полость" },
+          "name": {
+            "uz": "Baraban bo'shlig'i",
+            "ru": "Барабанная полость"
+          },
           "visible_when_perforation": true,
           "fields": [
             {
-              "code": "contents", "type": "checkbox_multi",
+              "code": "contents",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "pus",           "uz": "Yiring",              "ru": "Гной" },
-                { "code": "granulations",  "uz": "Granulyatsiyalar",    "ru": "Грануляции" },
-                { "code": "polyp",         "uz": "Polip",               "ru": "Полип" },
-                { "code": "cholesteatoma", "uz": "Xolesteatoma massalari","ru": "Холестеатомные массы" },
-                { "code": "blood",         "uz": "Qon",                 "ru": "Кровь" }
+                {
+                  "code": "pus",
+                  "uz": "Yiring",
+                  "ru": "Гной"
+                },
+                {
+                  "code": "granulations",
+                  "uz": "Granulyatsiyalar",
+                  "ru": "Грануляции"
+                },
+                {
+                  "code": "polyp",
+                  "uz": "Polip",
+                  "ru": "Полип"
+                },
+                {
+                  "code": "cholesteatoma",
+                  "uz": "Xolesteatoma massalari",
+                  "ru": "Холестеатомные массы"
+                },
+                {
+                  "code": "blood",
+                  "uz": "Qon",
+                  "ru": "Кровь"
+                }
               ]
             }
           ]
@@ -597,188 +1483,431 @@
     },
     {
       "code": "laryngoscopy",
-      "icon": "\ud83d\udde3",
-      "name": { "uz": "LARINGOSKOPIYA", "ru": "ЛАРИНГОСКОПИЯ" },
+      "icon": "🗣",
+      "name": {
+        "uz": "LARINGOSKOPIYA",
+        "ru": "ЛАРИНГОСКОПИЯ"
+      },
       "sections": [
         {
           "code": "lingual_tonsil",
-          "name": { "uz": "Til bodomsimon bezi", "ru": "Язычная миндалина" },
+          "name": {
+            "uz": "Til bodomsimon bezi",
+            "ru": "Язычная миндалина"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "not_enlarged", "uz": "Kattalashmagan", "ru": "Не увеличена", "is_norm": true },
-                { "code": "enlarged",     "uz": "Kattalashgan",   "ru": "Увеличена" }
+                {
+                  "code": "not_enlarged",
+                  "uz": "Kattalashmagan",
+                  "ru": "Не увеличена",
+                  "is_norm": true
+                },
+                {
+                  "code": "enlarged",
+                  "uz": "Kattalashgan",
+                  "ru": "Увеличена"
+                }
               ]
             },
             {
-              "code": "features", "type": "checkbox_multi",
+              "code": "features",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "no_plaque",   "uz": "Karash yo'q",         "ru": "Налетов нет", "is_norm": true },
-                { "code": "hyperemic",   "uz": "Giperemiyalangan",    "ru": "Гиперемирована" }
+                {
+                  "code": "no_plaque",
+                  "uz": "Karash yo'q",
+                  "ru": "Налетов нет",
+                  "is_norm": true
+                },
+                {
+                  "code": "hyperemic",
+                  "uz": "Giperemiyalangan",
+                  "ru": "Гиперемирована"
+                }
               ]
             }
           ]
         },
         {
           "code": "valleculae",
-          "name": { "uz": "Vallekulalar", "ru": "Валлекулы" },
+          "name": {
+            "uz": "Vallekulalar",
+            "ru": "Валлекулы"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "free",    "uz": "Erkin",     "ru": "Свободны", "is_norm": true },
-                { "code": "altered", "uz": "O'zgargan", "ru": "Изменены" }
+                {
+                  "code": "free",
+                  "uz": "Erkin",
+                  "ru": "Свободны",
+                  "is_norm": true
+                },
+                {
+                  "code": "altered",
+                  "uz": "O'zgargan",
+                  "ru": "Изменены"
+                }
               ]
             },
             {
-              "code": "color", "type": "radio",
+              "code": "color",
+              "type": "radio",
               "options": [
-                { "code": "pale_pink", "uz": "Oqartirilgan pushti", "ru": "Бледно-розовая", "is_norm": true },
-                { "code": "hyperemic", "uz": "Giperemiyalangan",    "ru": "Гиперемирована" }
+                {
+                  "code": "pale_pink",
+                  "uz": "Oqartirilgan pushti",
+                  "ru": "Бледно-розовая",
+                  "is_norm": true
+                },
+                {
+                  "code": "hyperemic",
+                  "uz": "Giperemiyalangan",
+                  "ru": "Гиперемирована"
+                }
               ]
             }
           ]
         },
         {
           "code": "pharynx_walls",
-          "name": { "uz": "Orqa va yon devorlar", "ru": "Задняя и боковые стенки" },
+          "name": {
+            "uz": "Orqa va yon devorlar",
+            "ru": "Задняя и боковые стенки"
+          },
           "fields": [
             {
-              "code": "color", "type": "radio",
+              "code": "color",
+              "type": "radio",
               "options": [
-                { "code": "pale_pink", "uz": "Oqartirilgan pushti", "ru": "Бледно-розовая", "is_norm": true },
-                { "code": "hyperemic", "uz": "Giperemiyalangan",    "ru": "Гиперемирована" }
+                {
+                  "code": "pale_pink",
+                  "uz": "Oqartirilgan pushti",
+                  "ru": "Бледно-розовая",
+                  "is_norm": true
+                },
+                {
+                  "code": "hyperemic",
+                  "uz": "Giperemiyalangan",
+                  "ru": "Гиперемирована"
+                }
               ]
             },
             {
-              "code": "pathology", "type": "checkbox_multi",
+              "code": "pathology",
+              "type": "checkbox_multi",
               "options": [
-                { "code": "edema",        "uz": "Shishgan",           "ru": "Отечна" },
-                { "code": "infiltrated",  "uz": "Infiltratsiyalangan","ru": "Инфильтрирована" }
+                {
+                  "code": "edema",
+                  "uz": "Shishgan",
+                  "ru": "Отечна"
+                },
+                {
+                  "code": "infiltrated",
+                  "uz": "Infiltratsiyalangan",
+                  "ru": "Инфильтрирована"
+                }
               ]
             }
           ]
         },
         {
           "code": "external_larynx",
-          "name": { "uz": "Hiqildoq tashqi ko'rigi", "ru": "Гортань — наружный осмотр" },
+          "name": {
+            "uz": "Hiqildoq tashqi ko'rigi",
+            "ru": "Гортань — наружный осмотр"
+          },
           "fields": [
             {
-              "code": "contour", "type": "radio",
+              "code": "contour",
+              "type": "radio",
               "options": [
-                { "code": "well",    "uz": "Yaxshi konturlanadi", "ru": "Хорошо контурируется", "is_norm": true },
-                { "code": "altered", "uz": "O'zgargan",           "ru": "Изменена" }
+                {
+                  "code": "well",
+                  "uz": "Yaxshi konturlanadi",
+                  "ru": "Хорошо контурируется",
+                  "is_norm": true
+                },
+                {
+                  "code": "altered",
+                  "uz": "O'zgargan",
+                  "ru": "Изменена"
+                }
               ]
             },
             {
-              "code": "mobility", "type": "radio",
+              "code": "mobility",
+              "type": "radio",
               "options": [
-                { "code": "passive_mobile", "uz": "Passiv harakatchan", "ru": "Пассивно подвижна", "is_norm": true },
-                { "code": "immobile",       "uz": "Harakatsiz",         "ru": "Неподвижна" }
+                {
+                  "code": "passive_mobile",
+                  "uz": "Passiv harakatchan",
+                  "ru": "Пассивно подвижна",
+                  "is_norm": true
+                },
+                {
+                  "code": "immobile",
+                  "uz": "Harakatsiz",
+                  "ru": "Неподвижна"
+                }
               ]
             },
             {
-              "code": "shape", "type": "radio",
+              "code": "shape",
+              "type": "radio",
               "options": [
-                { "code": "normal",     "uz": "To'g'ri shaklda", "ru": "Правильной формы", "is_norm": true },
-                { "code": "deformed",   "uz": "Deformatsiya",    "ru": "Деформирована" }
+                {
+                  "code": "normal",
+                  "uz": "To'g'ri shaklda",
+                  "ru": "Правильной формы",
+                  "is_norm": true
+                },
+                {
+                  "code": "deformed",
+                  "uz": "Deformatsiya",
+                  "ru": "Деформирована"
+                }
               ]
             },
             {
-              "code": "crepitus", "type": "radio",
+              "code": "crepitus",
+              "type": "radio",
               "options": [
-                { "code": "negative", "uz": "\u00abTog'ay qirsillashi\u00bb manfiy", "ru": "Симптом \u00abхруста хрящей\u00bb отрицательный", "is_norm": true },
-                { "code": "positive", "uz": "\u00abTog'ay qirsillashi\u00bb musbat", "ru": "Симптом \u00abхруста хрящей\u00bb положительный" }
+                {
+                  "code": "negative",
+                  "uz": "«Tog'ay qirsillashi» manfiy",
+                  "ru": "Симптом «хруста хрящей» отрицательный",
+                  "is_norm": true
+                },
+                {
+                  "code": "positive",
+                  "uz": "«Tog'ay qirsillashi» musbat",
+                  "ru": "Симптом «хруста хрящей» положительный"
+                }
               ]
             }
           ]
         },
         {
           "code": "vocal_folds",
-          "name": { "uz": "Ovoz boylamlari", "ru": "Голосовые складки" },
+          "name": {
+            "uz": "Ovoz boylamlari",
+            "ru": "Голосовые складки"
+          },
           "fields": [
             {
-              "code": "color", "type": "radio",
+              "code": "color",
+              "type": "radio",
               "options": [
-                { "code": "whitish",   "uz": "Oqartirilgan",     "ru": "Белесоватые", "is_norm": true },
-                { "code": "hyperemic", "uz": "Giperemiyalangan", "ru": "Гиперемированы" }
+                {
+                  "code": "whitish",
+                  "uz": "Oqartirilgan",
+                  "ru": "Белесоватые",
+                  "is_norm": true
+                },
+                {
+                  "code": "hyperemic",
+                  "uz": "Giperemiyalangan",
+                  "ru": "Гиперемированы"
+                }
               ]
             },
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "clean",         "uz": "Toza",              "ru": "Чистые", "is_norm": true },
-                { "code": "plaques",       "uz": "Karashlar mavjud",  "ru": "Налеты" },
-                { "code": "tumor",         "uz": "O'sma",             "ru": "Новообразование" },
-                { "code": "hypertrophy",   "uz": "Gipertrofiya",      "ru": "Гипертрофия" }
+                {
+                  "code": "clean",
+                  "uz": "Toza",
+                  "ru": "Чистые",
+                  "is_norm": true
+                },
+                {
+                  "code": "plaques",
+                  "uz": "Karashlar mavjud",
+                  "ru": "Налеты"
+                },
+                {
+                  "code": "tumor",
+                  "uz": "O'sma",
+                  "ru": "Новообразование"
+                },
+                {
+                  "code": "hypertrophy",
+                  "uz": "Gipertrofiya",
+                  "ru": "Гипертрофия"
+                }
               ]
             },
             {
-              "code": "closure", "type": "radio",
+              "code": "closure",
+              "type": "radio",
               "options": [
-                { "code": "full",     "uz": "Fonatsiyada to'liq yopiladi",    "ru": "Полностью смыкаются", "is_norm": true },
-                { "code": "not_full", "uz": "Fonatsiyada to'liq yopilmaydi",  "ru": "Полностью не смыкаются" }
+                {
+                  "code": "full",
+                  "uz": "Fonatsiyada to'liq yopiladi",
+                  "ru": "Полностью смыкаются",
+                  "is_norm": true
+                },
+                {
+                  "code": "not_full",
+                  "uz": "Fonatsiyada to'liq yopilmaydi",
+                  "ru": "Полностью не смыкаются"
+                }
               ]
             },
             {
-              "code": "movement", "type": "radio",
+              "code": "movement",
+              "type": "radio",
               "options": [
-                { "code": "free",     "uz": "Erkin",               "ru": "Свободные", "is_norm": true },
-                { "code": "limited",  "uz": "Harakati cheklangan","ru": "Ограничены в движении" },
-                { "code": "immobile", "uz": "Harakatsiz",          "ru": "Неподвижны" }
+                {
+                  "code": "free",
+                  "uz": "Erkin",
+                  "ru": "Свободные",
+                  "is_norm": true
+                },
+                {
+                  "code": "limited",
+                  "uz": "Harakati cheklangan",
+                  "ru": "Ограничены в движении"
+                },
+                {
+                  "code": "immobile",
+                  "uz": "Harakatsiz",
+                  "ru": "Неподвижны"
+                }
               ]
             },
-            { "code": "side", "type": "side", "visible_when": { "state": ["plaques", "tumor", "hypertrophy"] } }
+            {
+              "code": "side",
+              "type": "side",
+              "visible_when": {
+                "state": [
+                  "plaques",
+                  "tumor",
+                  "hypertrophy"
+                ]
+              }
+            }
           ]
         },
         {
           "code": "voice",
-          "name": { "uz": "Ovoz", "ru": "Голос" },
+          "name": {
+            "uz": "Ovoz",
+            "ru": "Голос"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "sonorous", "uz": "Jarangdor", "ru": "Звучный", "is_norm": true },
-                { "code": "hoarse",   "uz": "Xirillagan","ru": "Хриплый" },
-                { "code": "aphonia",  "uz": "Afoniya",   "ru": "Афония" }
+                {
+                  "code": "sonorous",
+                  "uz": "Jarangdor",
+                  "ru": "Звучный",
+                  "is_norm": true
+                },
+                {
+                  "code": "hoarse",
+                  "uz": "Xirillagan",
+                  "ru": "Хриплый"
+                },
+                {
+                  "code": "aphonia",
+                  "uz": "Afoniya",
+                  "ru": "Афония"
+                }
               ]
             }
           ]
         },
         {
           "code": "dyspnea",
-          "name": { "uz": "Hansirash", "ru": "Одышка" },
+          "name": {
+            "uz": "Hansirash",
+            "ru": "Одышка"
+          },
           "fields": [
             {
-              "code": "state", "type": "radio",
+              "code": "state",
+              "type": "radio",
               "options": [
-                { "code": "none",    "uz": "Yo'q", "ru": "Нет", "is_norm": true },
-                { "code": "present", "uz": "Bor",  "ru": "Есть" }
+                {
+                  "code": "none",
+                  "uz": "Yo'q",
+                  "ru": "Нет",
+                  "is_norm": true
+                },
+                {
+                  "code": "present",
+                  "uz": "Bor",
+                  "ru": "Есть"
+                }
               ]
             },
             {
-              "code": "type", "type": "radio", "visible_when": { "state": "present" },
+              "code": "type",
+              "type": "radio",
+              "visible_when": {
+                "state": "present"
+              },
               "options": [
-                { "code": "inspiratory", "uz": "Inspirator", "ru": "Инспираторная" },
-                { "code": "expiratory",  "uz": "Ekspirator", "ru": "Экспираторная" },
-                { "code": "mixed",       "uz": "Aralash",    "ru": "Смешанная" }
+                {
+                  "code": "inspiratory",
+                  "uz": "Inspirator",
+                  "ru": "Инспираторная"
+                },
+                {
+                  "code": "expiratory",
+                  "uz": "Ekspirator",
+                  "ru": "Экспираторная"
+                },
+                {
+                  "code": "mixed",
+                  "uz": "Aralash",
+                  "ru": "Смешанная"
+                }
               ]
             },
             {
-              "code": "when", "type": "radio", "visible_when": { "state": "present" },
+              "code": "when",
+              "type": "radio",
+              "visible_when": {
+                "state": "present"
+              },
               "options": [
-                { "code": "rest",     "uz": "Tinch holatda","ru": "В покое" },
-                { "code": "exertion", "uz": "Yuklamada",    "ru": "При нагрузке" }
+                {
+                  "code": "rest",
+                  "uz": "Tinch holatda",
+                  "ru": "В покое"
+                },
+                {
+                  "code": "exertion",
+                  "uz": "Yuklamada",
+                  "ru": "При нагрузке"
+                }
               ]
             }
           ]
         },
         {
           "code": "stenosis",
-          "name": { "uz": "Hiqildoq stenozi", "ru": "Стеноз гортани" },
+          "name": {
+            "uz": "Hiqildoq stenozi",
+            "ru": "Стеноз гортани"
+          },
           "fields": [
-            { "code": "degree", "type": "degree" }
+            {
+              "code": "degree",
+              "type": "degree"
+            }
           ]
         }
       ]
