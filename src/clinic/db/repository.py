@@ -163,28 +163,44 @@ class PatientRepository:
         if text:
             query = text.strip()
             if query:
-                like = f"%{query.lower()}%"
+                # Cross-alphabet: expand ``query`` into both Latin and
+                # Cyrillic script variants so operators can search in either.
+                # SQLite's default ``LIKE`` is ASCII-case-insensitive but
+                # case-sensitive for Cyrillic. To cover both, we generate
+                # multiple case forms of each variant and OR them together;
+                # this stays index-friendly (no ``lower()`` on the column).
+                from clinic.infrastructure.translit import expand_variants
+
+                variants = expand_variants(query) or [query]
+                cases: set[str] = set()
+                for v in variants:
+                    for form in {v, v.lower(), v.upper(), v.title(), v.capitalize()}:
+                        if form:
+                            cases.add(f"%{form}%")
+                likes = list(cases)
                 clauses = []
+
+                def _like_any(col):
+                    return or_(*(col.like(pat) for pat in likes))
+
                 if search_in.full_name:
-                    clauses.append(func.lower(Patient.full_name).like(like))
+                    clauses.append(_like_any(Patient.full_name))
                 if search_in.phone:
-                    clauses.append(func.lower(Patient.phone).like(like))
+                    # Numbers rarely change script — a single like on the raw
+                    # column is enough (SQLite ASCII LIKE handles digits).
+                    clauses.append(Patient.phone.like(f"%{query}%"))
                 if search_in.birth_year and query.isdigit():
                     clauses.append(Patient.birth_year == int(query))
                 if search_in.diagnosis:
-                    # Sub-condition: patient has at least one reception with a
-                    # matching diagnosis.
                     diagnosis_subq = (
                         select(Reception.patient_id)
-                        .where(func.lower(Reception.diagnosis).like(like))
+                        .where(_like_any(Reception.diagnosis))
                     )
                     clauses.append(Patient.id.in_(diagnosis_subq))
                 if search_in.medication:
-                    # Sub-condition: patient has a reception whose
-                    # recommendation / prescription mentions the term.
                     medication_subq = (
                         select(Reception.patient_id)
-                        .where(func.lower(Reception.recommendation).like(like))
+                        .where(_like_any(Reception.recommendation))
                     )
                     clauses.append(Patient.id.in_(medication_subq))
                 if clauses:

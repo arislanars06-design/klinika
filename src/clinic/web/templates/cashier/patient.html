@@ -55,7 +55,9 @@
               <tfoot>
                 <tr>
                   <th colspan="2" class="text-end">{{ t("cashier.subtotal") }}</th>
-                  <th class="text-end" id="subtotal-cell">0</th>
+                  <th class="text-end fs-5" id="subtotal-cell">
+                    <span class="text-muted">—</span>
+                  </th>
                   <th></th>
                 </tr>
               </tfoot>
@@ -199,21 +201,29 @@
     let subtotal = 0;
     let hasLines = false;
     cartBody.querySelectorAll("tr").forEach(row => {
-      const sid = row.querySelector('[name="service_id"]').value;
-      const qty = parseInt(row.querySelector('[name="quantity"]').value || "0", 10) || 0;
+      const sidEl = row.querySelector('[name="service_id"]');
+      const qtyEl = row.querySelector('[name="quantity"]');
+      if (!sidEl || !qtyEl) return;
+      const sid = sidEl.value;
+      const qty = parseInt(qtyEl.value || "0", 10) || 0;
       const svc = svcMap[sid];
+      const cell = row.querySelector(".line-total");
       if (svc && qty > 0) {
         const lineTotal = parseFloat(svc.price) * qty;
-        row.querySelector(".line-total").textContent = fmtMoney(lineTotal);
+        if (cell) cell.textContent = fmtMoney(lineTotal);
         subtotal += lineTotal;
         hasLines = true;
       } else {
-        row.querySelector(".line-total").textContent = fmtMoney(0);
+        if (cell) cell.innerHTML = '<span class="text-muted">—</span>';
       }
     });
-    subtotalCell.textContent = fmtMoney(subtotal);
+    if (subtotal > 0) {
+      subtotalCell.textContent = fmtMoney(subtotal);
+    } else {
+      subtotalCell.innerHTML = '<span class="text-muted">—</span>';
+    }
     if (!userTouchedTotal) {
-      overrideInput.value = subtotal || "";
+      overrideInput.value = subtotal > 0 ? Math.round(subtotal) : "";
     }
     saveBtn.disabled = !hasLines;
   }
@@ -236,8 +246,6 @@
         </button>
       </td>
     `;
-    tr.querySelector('[name="service_id"]').addEventListener("change", recalcTotal);
-    tr.querySelector('[name="quantity"]').addEventListener("input", recalcTotal);
     tr.querySelector(".remove-line").addEventListener("click", () => {
       tr.remove();
       recalcTotal();
@@ -245,6 +253,11 @@
     cartBody.appendChild(tr);
     recalcTotal();
   }
+
+  // Delegated listeners — recalc on any change/input inside the cart body.
+  // This is more robust than binding per-row when rows are added dynamically.
+  cartBody.addEventListener("change", recalcTotal);
+  cartBody.addEventListener("input", recalcTotal);
 
   overrideInput?.addEventListener("input", () => {
     userTouchedTotal = overrideInput.value !== "";

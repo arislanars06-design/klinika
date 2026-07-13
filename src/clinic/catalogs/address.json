@@ -1,0 +1,280 @@
+{
+  "regions": [
+    {
+      "code": "toshkent_shahar",
+      "name": { "uz": "Toshkent shahar", "ru": "Ташкент (город)" },
+      "districts": [
+        { "code": "bektemir",   "name": { "uz": "Bektemir tumani",    "ru": "Бектемирский р-н" } },
+        { "code": "chilonzor",  "name": { "uz": "Chilonzor tumani",   "ru": "Чиланзарский р-н" } },
+        { "code": "mirzo_ulugbek", "name": { "uz": "Mirzo Ulug'bek tumani", "ru": "Мирзо-Улугбекский р-н" } },
+        { "code": "mirobod",    "name": { "uz": "Mirobod tumani",     "ru": "Мирабадский р-н" } },
+        { "code": "olmazor",    "name": { "uz": "Olmazor tumani",     "ru": "Алмазарский р-н" } },
+        { "code": "sergeli",    "name": { "uz": "Sergeli tumani",     "ru": "Сергелийский р-н" } },
+        { "code": "shayxontohur", "name": { "uz": "Shayxontohur tumani", "ru": "Шайхантаурский р-н" } },
+        { "code": "uchtepa",    "name": { "uz": "Uchtepa tumani",     "ru": "Учтепинский р-н" } },
+        { "code": "yakkasaroy", "name": { "uz": "Yakkasaroy tumani",  "ru": "Яккасарайский р-н" } },
+        { "code": "yashnobod",  "name": { "uz": "Yashnobod tumani",   "ru": "Яшнабадский р-н" } },
+        { "code": "yangihayot", "name": { "uz": "Yangi Hayot tumani", "ru": "Янгихаётский р-н" } },
+        { "code": "yunusobod",  "name": { "uz": "Yunusobod tumani",   "ru": "Юнусабадский р-н" } }
+      ]
+    },
+    {
+      "code": "toshkent_viloyati",
+      "name": { "uz": "Toshkent viloyati", "ru": "Ташкентская обл." },
+      "districts": [
+        { "code": "angren",       "name": { "uz": "Angren shahri",       "ru": "г. Ангрен" } },
+        { "code": "bekobod",      "name": { "uz": "Bekobod shahri",      "ru": "г. Бекабад" } },
+        { "code": "chirchiq",     "name": { "uz": "Chirchiq shahri",     "ru": "г. Чирчик" } },
+        { "code": "olmaliq",      "name": { "uz": "Olmaliq shahri",      "ru": "г. Алмалык" } },
+        { "code": "yangiyol",     "name": { "uz": "Yangiyo'l shahri",    "ru": "г. Янгиюль" } },
+        { "code": "nurafshon",    "name": { "uz": "Nurafshon shahri",    "ru": "г. Нурафшон" } },
+        { "code": "boka",         "name": { "uz": "Bo'ka tumani",         "ru": "Букинский р-н" } },
+        { "code": "boztun",       "name": { "uz": "Bo'stonliq tumani",    "ru": "Бостанлыкский р-н" } },
+        { "code": "chinoz",       "name": { "uz": "Chinoz tumani",        "ru": "Чиназский р-н" } },
+        { "code": "qibray",       "name": { "uz": "Qibray tumani",        "ru": "Кибрайский р-н" } },
+        { "code": "ohangaron",    "name": { "uz": "Ohangaron tumani",     "ru": "Ахангаранский р-н" } },
+        { "code": "oqqorgon",     "name": { "uz": "Oqqo'rg'on tumani",    "ru": "Аккурганский р-н" } },
+        { "code": "parkent",      "name": { "uz": "Parkent tumani",       "ru": "Паркентский р-н" } },
+        { "code": "piskent",      "name": { "uz": "Piskent tumani",       "ru": "Пскентский р-н" } },
+        { "code": "toshkent_r",   "name": { "uz": "Toshkent tumani",      "ru": "Ташкентский р-н" } },
+        { "code": "quyichirchiq", "name": { "uz": "Quyichirchiq tumani",  "ru": "Куйичирчикский р-н" } },
+        { "code": "yangiyol_r",   "name": { "uz": "Yangiyo'l tumani",     "ru": "Янгиюльский р-н" } },
+        { "code": "yukorichirchiq","name": { "uz": "Yuqorichirchiq tumani","ru": "Верхнечирчикский р-н" } },
+        { "code": "zangiota",     "name": { "uz": "Zangiota tumani",      "ru": "Зангиатинский р-н" } }
+      ]
+    },
+    {
+      "code": "andijon",
+      "name": { "uz": "Andijon viloyati", "ru": "Андижанская обл." },
+      "districts": [
+        { "code": "andijon_c",   "name": { "uz": "Andijon shahri",    "ru": "г. Андижан" } },
+        { "code": "asaka",       "name": { "uz": "Asaka tumani",      "ru": "Асакинский р-н" } },
+        { "code": "baliqchi",    "name": { "uz": "Baliqchi tumani",   "ru": "Балыкчинский р-н" } },
+        { "code": "buloqboshi",  "name": { "uz": "Buloqboshi tumani", "ru": "Булакбашинский р-н" } },
+        { "code": "boston_and",  "name": { "uz": "Bo'ston tumani",    "ru": "Бустанский р-н" } },
+        { "code": "izboskan",    "name": { "uz": "Izboskan tumani",   "ru": "Избасканский р-н" } },
+        { "code": "jalaquduq",   "name": { "uz": "Jalaquduq tumani",  "ru": "Джалакудукский р-н" } },
+        { "code": "xojaobod",    "name": { "uz": "Xo'jaobod tumani",  "ru": "Ходжаабадский р-н" } },
+        { "code": "xonobod",     "name": { "uz": "Xonobod shahri",    "ru": "г. Ханабад" } },
+        { "code": "korgontepa",  "name": { "uz": "Qo'rg'ontepa tumani","ru": "Кургантепинский р-н" } },
+        { "code": "marhamat",    "name": { "uz": "Marhamat tumani",   "ru": "Мархаматский р-н" } },
+        { "code": "oltinkol",    "name": { "uz": "Oltinko'l tumani",  "ru": "Алтынкульский р-н" } },
+        { "code": "paxtaobod",   "name": { "uz": "Paxtaobod tumani",  "ru": "Пахтаабадский р-н" } },
+        { "code": "shahrixon",   "name": { "uz": "Shahrixon tumani",  "ru": "Шахриханский р-н" } },
+        { "code": "ulugnor",     "name": { "uz": "Ulug'nor tumani",   "ru": "Улугнорский р-н" } }
+      ]
+    },
+    {
+      "code": "buxoro",
+      "name": { "uz": "Buxoro viloyati", "ru": "Бухарская обл." },
+      "districts": [
+        { "code": "buxoro_c",  "name": { "uz": "Buxoro shahri",   "ru": "г. Бухара" } },
+        { "code": "olot",      "name": { "uz": "Olot tumani",     "ru": "Алатский р-н" } },
+        { "code": "buxoro_r",  "name": { "uz": "Buxoro tumani",   "ru": "Бухарский р-н" } },
+        { "code": "gijduvon",  "name": { "uz": "G'ijduvon tumani","ru": "Гиждуванский р-н" } },
+        { "code": "jondor",    "name": { "uz": "Jondor tumani",   "ru": "Джандарский р-н" } },
+        { "code": "kogon",     "name": { "uz": "Kogon tumani",    "ru": "Каганский р-н" } },
+        { "code": "peshku",    "name": { "uz": "Peshku tumani",   "ru": "Пешкунский р-н" } },
+        { "code": "romitan",   "name": { "uz": "Romitan tumani",  "ru": "Ромитанский р-н" } },
+        { "code": "shofirkon", "name": { "uz": "Shofirkon tumani","ru": "Шафирканский р-н" } },
+        { "code": "vobkent",   "name": { "uz": "Vobkent tumani",  "ru": "Вабкентский р-н" } },
+        { "code": "qorakol",   "name": { "uz": "Qorako'l tumani", "ru": "Каракульский р-н" } },
+        { "code": "qorovulbozor","name": { "uz": "Qorovulbozor tumani","ru": "Караулбазарский р-н" } }
+      ]
+    },
+    {
+      "code": "fargona",
+      "name": { "uz": "Farg'ona viloyati", "ru": "Ферганская обл." },
+      "districts": [
+        { "code": "fargona_c", "name": { "uz": "Farg'ona shahri", "ru": "г. Фергана" } },
+        { "code": "qoqon",     "name": { "uz": "Qo'qon shahri",   "ru": "г. Коканд" } },
+        { "code": "quva",      "name": { "uz": "Quva tumani",     "ru": "Кувинский р-н" } },
+        { "code": "beshariq",  "name": { "uz": "Beshariq tumani", "ru": "Бешарыкский р-н" } },
+        { "code": "bagdod",    "name": { "uz": "Bag'dod tumani",  "ru": "Багдадский р-н" } },
+        { "code": "buvayda",   "name": { "uz": "Buvayda tumani",  "ru": "Бувайдинский р-н" } },
+        { "code": "dangara",   "name": { "uz": "Dang'ara tumani", "ru": "Дангаринский р-н" } },
+        { "code": "fargona_r", "name": { "uz": "Farg'ona tumani", "ru": "Ферганский р-н" } },
+        { "code": "furqat",    "name": { "uz": "Furqat tumani",   "ru": "Фуркатский р-н" } },
+        { "code": "oltiariq",  "name": { "uz": "Oltiariq tumani", "ru": "Алтыарыкский р-н" } },
+        { "code": "qoshtepa",  "name": { "uz": "Qo'shtepa tumani","ru": "Куштепинский р-н" } },
+        { "code": "quvasoy",   "name": { "uz": "Quvasoy shahri",  "ru": "г. Кувасай" } },
+        { "code": "rishton",   "name": { "uz": "Rishton tumani",  "ru": "Риштанский р-н" } },
+        { "code": "sox",       "name": { "uz": "So'x tumani",     "ru": "Сохский р-н" } },
+        { "code": "toshloq",   "name": { "uz": "Toshloq tumani",  "ru": "Ташлакский р-н" } },
+        { "code": "uchkoprik", "name": { "uz": "Uchko'prik tumani","ru": "Учкуприкский р-н" } },
+        { "code": "yozyovon",  "name": { "uz": "Yozyovon tumani", "ru": "Язъяванский р-н" } }
+      ]
+    },
+    {
+      "code": "namangan",
+      "name": { "uz": "Namangan viloyati", "ru": "Наманганская обл." },
+      "districts": [
+        { "code": "namangan_c",  "name": { "uz": "Namangan shahri",   "ru": "г. Наманган" } },
+        { "code": "chortoq",     "name": { "uz": "Chortoq tumani",    "ru": "Чартакский р-н" } },
+        { "code": "chust",       "name": { "uz": "Chust tumani",      "ru": "Чустский р-н" } },
+        { "code": "kosonsoy",    "name": { "uz": "Kosonsoy tumani",   "ru": "Касансайский р-н" } },
+        { "code": "mingbuloq",   "name": { "uz": "Mingbuloq tumani",  "ru": "Мингбулакский р-н" } },
+        { "code": "namangan_r",  "name": { "uz": "Namangan tumani",   "ru": "Наманганский р-н" } },
+        { "code": "norin",       "name": { "uz": "Norin tumani",      "ru": "Нарынский р-н" } },
+        { "code": "pop",         "name": { "uz": "Pop tumani",        "ru": "Папский р-н" } },
+        { "code": "toraqorgon",  "name": { "uz": "To'raqo'rg'on tumani","ru": "Туракурганский р-н" } },
+        { "code": "uchqorgon",   "name": { "uz": "Uchqo'rg'on tumani","ru": "Учкурганский р-н" } },
+        { "code": "uychi",       "name": { "uz": "Uychi tumani",      "ru": "Уйчинский р-н" } },
+        { "code": "yangikorgon", "name": { "uz": "Yangiqo'rg'on tumani","ru": "Янгикурганский р-н" } }
+      ]
+    },
+    {
+      "code": "samarkand",
+      "name": { "uz": "Samarqand viloyati", "ru": "Самаркандская обл." },
+      "districts": [
+        { "code": "samarqand_c", "name": { "uz": "Samarqand shahri",  "ru": "г. Самарканд" } },
+        { "code": "bulungur",    "name": { "uz": "Bulung'ur tumani",  "ru": "Булунгурский р-н" } },
+        { "code": "jomboy",      "name": { "uz": "Jomboy tumani",     "ru": "Джамбайский р-н" } },
+        { "code": "ishtixon",    "name": { "uz": "Ishtixon tumani",   "ru": "Иштыханский р-н" } },
+        { "code": "kattaqorgon", "name": { "uz": "Kattaqo'rg'on tumani","ru": "Каттакурганский р-н" } },
+        { "code": "narpay",      "name": { "uz": "Narpay tumani",     "ru": "Нарпайский р-н" } },
+        { "code": "nurobod_s",   "name": { "uz": "Nurobod tumani",    "ru": "Нурабадский р-н" } },
+        { "code": "oqdaryo",     "name": { "uz": "Oqdaryo tumani",    "ru": "Акдарьинский р-н" } },
+        { "code": "paxtachi",    "name": { "uz": "Paxtachi tumani",   "ru": "Пахтачийский р-н" } },
+        { "code": "payariq",     "name": { "uz": "Payariq tumani",    "ru": "Пайарыкский р-н" } },
+        { "code": "pastdargom",  "name": { "uz": "Pastdarg'om tumani","ru": "Пастдаргомский р-н" } },
+        { "code": "qoshrabot",   "name": { "uz": "Qo'shrabot tumani", "ru": "Кошрабадский р-н" } },
+        { "code": "samarqand_r", "name": { "uz": "Samarqand tumani",  "ru": "Самаркандский р-н" } },
+        { "code": "toylok",      "name": { "uz": "Toyloq tumani",     "ru": "Тайлакский р-н" } },
+        { "code": "urgut",       "name": { "uz": "Urgut tumani",      "ru": "Ургутский р-н" } }
+      ]
+    },
+    {
+      "code": "qashqadaryo",
+      "name": { "uz": "Qashqadaryo viloyati", "ru": "Кашкадарьинская обл." },
+      "districts": [
+        { "code": "qarshi_c",   "name": { "uz": "Qarshi shahri",    "ru": "г. Карши" } },
+        { "code": "chiroqchi",  "name": { "uz": "Chiroqchi tumani", "ru": "Чиракчинский р-н" } },
+        { "code": "dehqonobod", "name": { "uz": "Dehqonobod tumani","ru": "Дехканабадский р-н" } },
+        { "code": "guzor",      "name": { "uz": "G'uzor tumani",    "ru": "Гузарский р-н" } },
+        { "code": "qamashi",    "name": { "uz": "Qamashi tumani",   "ru": "Камашинский р-н" } },
+        { "code": "qarshi_r",   "name": { "uz": "Qarshi tumani",    "ru": "Каршинский р-н" } },
+        { "code": "kasbi",      "name": { "uz": "Kasbi tumani",     "ru": "Касбийский р-н" } },
+        { "code": "kitob",      "name": { "uz": "Kitob tumani",     "ru": "Китабский р-н" } },
+        { "code": "koson",      "name": { "uz": "Koson tumani",     "ru": "Касанский р-н" } },
+        { "code": "mirishkor",  "name": { "uz": "Mirishkor tumani", "ru": "Миришкорский р-н" } },
+        { "code": "muborak",    "name": { "uz": "Muborak tumani",   "ru": "Мубарекский р-н" } },
+        { "code": "nishon",     "name": { "uz": "Nishon tumani",    "ru": "Нишанский р-н" } },
+        { "code": "shahrisabz", "name": { "uz": "Shahrisabz tumani","ru": "Шахрисабзский р-н" } },
+        { "code": "yakkabog",   "name": { "uz": "Yakkabog' tumani", "ru": "Яккабагский р-н" } }
+      ]
+    },
+    {
+      "code": "surxondaryo",
+      "name": { "uz": "Surxondaryo viloyati", "ru": "Сурхандарьинская обл." },
+      "districts": [
+        { "code": "termiz_c",     "name": { "uz": "Termiz shahri",     "ru": "г. Термез" } },
+        { "code": "angor",        "name": { "uz": "Angor tumani",      "ru": "Ангорский р-н" } },
+        { "code": "boysun",       "name": { "uz": "Boysun tumani",     "ru": "Байсунский р-н" } },
+        { "code": "denov",        "name": { "uz": "Denov tumani",      "ru": "Денауский р-н" } },
+        { "code": "jarqorgon",    "name": { "uz": "Jarqo'rg'on tumani","ru": "Джаркурганский р-н" } },
+        { "code": "muzrabot",     "name": { "uz": "Muzrabot tumani",   "ru": "Музрабатский р-н" } },
+        { "code": "oltinsoy",     "name": { "uz": "Oltinsoy tumani",   "ru": "Алтынсайский р-н" } },
+        { "code": "qiziriq",      "name": { "uz": "Qiziriq tumani",    "ru": "Кизирикский р-н" } },
+        { "code": "qumqorgon",    "name": { "uz": "Qumqo'rg'on tumani","ru": "Кумкурганский р-н" } },
+        { "code": "sariosiyo",    "name": { "uz": "Sariosiyo tumani",  "ru": "Сариасийский р-н" } },
+        { "code": "sherobod",     "name": { "uz": "Sherobod tumani",   "ru": "Шерабадский р-н" } },
+        { "code": "shorchi",      "name": { "uz": "Sho'rchi tumani",   "ru": "Шурчинский р-н" } },
+        { "code": "termiz_r",     "name": { "uz": "Termiz tumani",     "ru": "Термезский р-н" } },
+        { "code": "uzun",         "name": { "uz": "Uzun tumani",       "ru": "Узунский р-н" } }
+      ]
+    },
+    {
+      "code": "sirdaryo",
+      "name": { "uz": "Sirdaryo viloyati", "ru": "Сырдарьинская обл." },
+      "districts": [
+        { "code": "guliston_c",   "name": { "uz": "Guliston shahri",   "ru": "г. Гулистан" } },
+        { "code": "shirin_c",     "name": { "uz": "Shirin shahri",     "ru": "г. Ширин" } },
+        { "code": "yangiyer_c",   "name": { "uz": "Yangiyer shahri",   "ru": "г. Янгиер" } },
+        { "code": "boyovut",      "name": { "uz": "Boyovut tumani",    "ru": "Баяутский р-н" } },
+        { "code": "guliston_r",   "name": { "uz": "Guliston tumani",   "ru": "Гулистанский р-н" } },
+        { "code": "xovos",        "name": { "uz": "Xovos tumani",      "ru": "Хавастский р-н" } },
+        { "code": "mirzaobod",    "name": { "uz": "Mirzaobod tumani",  "ru": "Мирзаабадский р-н" } },
+        { "code": "oqoltin",      "name": { "uz": "Oqoltin tumani",    "ru": "Акалтынский р-н" } },
+        { "code": "sardoba",      "name": { "uz": "Sardoba tumani",    "ru": "Сардобинский р-н" } },
+        { "code": "sirdaryo_r",   "name": { "uz": "Sirdaryo tumani",   "ru": "Сырдарьинский р-н" } },
+        { "code": "sayxunobod",   "name": { "uz": "Sayxunobod tumani", "ru": "Сайхунабадский р-н" } }
+      ]
+    },
+    {
+      "code": "jizzax",
+      "name": { "uz": "Jizzax viloyati", "ru": "Джизакская обл." },
+      "districts": [
+        { "code": "jizzax_c",     "name": { "uz": "Jizzax shahri",     "ru": "г. Джизак" } },
+        { "code": "arnasoy",      "name": { "uz": "Arnasoy tumani",    "ru": "Арнасайский р-н" } },
+        { "code": "baxmal",       "name": { "uz": "Baxmal tumani",     "ru": "Бахмалский р-н" } },
+        { "code": "dostlik",      "name": { "uz": "Do'stlik tumani",   "ru": "Дустликский р-н" } },
+        { "code": "forish",       "name": { "uz": "Forish tumani",     "ru": "Фаришский р-н" } },
+        { "code": "gallaorol",    "name": { "uz": "G'allaorol tumani", "ru": "Галляаральский р-н" } },
+        { "code": "sharof_rashidov", "name": { "uz": "Sharof Rashidov tumani","ru": "Шарафрашидовский р-н" } },
+        { "code": "jizzax_r",     "name": { "uz": "Jizzax tumani",     "ru": "Джизакский р-н" } },
+        { "code": "mirzachol",    "name": { "uz": "Mirzacho'l tumani", "ru": "Мирзачульский р-н" } },
+        { "code": "paxtakor",     "name": { "uz": "Paxtakor tumani",   "ru": "Пахтакорский р-н" } },
+        { "code": "yangiobod",    "name": { "uz": "Yangiobod tumani",  "ru": "Янгиабадский р-н" } },
+        { "code": "zomin",        "name": { "uz": "Zomin tumani",      "ru": "Зааминский р-н" } },
+        { "code": "zafarobod",    "name": { "uz": "Zafarobod tumani",  "ru": "Зафарабадский р-н" } }
+      ]
+    },
+    {
+      "code": "navoiy",
+      "name": { "uz": "Navoiy viloyati", "ru": "Навоийская обл." },
+      "districts": [
+        { "code": "navoiy_c",   "name": { "uz": "Navoiy shahri",     "ru": "г. Навои" } },
+        { "code": "zarafshon", "name": { "uz": "Zarafshon shahri",  "ru": "г. Зарафшан" } },
+        { "code": "karmana",   "name": { "uz": "Karmana tumani",    "ru": "Карманинский р-н" } },
+        { "code": "konimex",   "name": { "uz": "Konimex tumani",    "ru": "Канимехский р-н" } },
+        { "code": "nurota",    "name": { "uz": "Nurota tumani",     "ru": "Нуратинский р-н" } },
+        { "code": "qiziltepa", "name": { "uz": "Qiziltepa tumani",  "ru": "Кызылтепинский р-н" } },
+        { "code": "tomdi",     "name": { "uz": "Tomdi tumani",      "ru": "Томдинский р-н" } },
+        { "code": "uchquduq",  "name": { "uz": "Uchquduq tumani",   "ru": "Учкудукский р-н" } },
+        { "code": "xatirchi",  "name": { "uz": "Xatirchi tumani",   "ru": "Хатырчинский р-н" } }
+      ]
+    },
+    {
+      "code": "xorazm",
+      "name": { "uz": "Xorazm viloyati", "ru": "Хорезмская обл." },
+      "districts": [
+        { "code": "urganch_c",   "name": { "uz": "Urganch shahri",    "ru": "г. Ургенч" } },
+        { "code": "xiva_c",      "name": { "uz": "Xiva shahri",       "ru": "г. Хива" } },
+        { "code": "bogot",       "name": { "uz": "Bog'ot tumani",     "ru": "Багатский р-н" } },
+        { "code": "gurlan",      "name": { "uz": "Gurlan tumani",     "ru": "Гурленский р-н" } },
+        { "code": "hazorasp",    "name": { "uz": "Hazorasp tumani",   "ru": "Хазараспский р-н" } },
+        { "code": "xiva_r",      "name": { "uz": "Xiva tumani",       "ru": "Хивинский р-н" } },
+        { "code": "xonqa",       "name": { "uz": "Xonqa tumani",      "ru": "Ханкинский р-н" } },
+        { "code": "qoshkopir",   "name": { "uz": "Qo'shko'pir tumani","ru": "Кошкупырский р-н" } },
+        { "code": "shovot",      "name": { "uz": "Shovot tumani",     "ru": "Шаватский р-н" } },
+        { "code": "urganch_r",   "name": { "uz": "Urganch tumani",    "ru": "Ургенчский р-н" } },
+        { "code": "yangiariq",   "name": { "uz": "Yangiariq tumani",  "ru": "Янгиарыкский р-н" } },
+        { "code": "yangibozor",  "name": { "uz": "Yangibozor tumani", "ru": "Янгибазарский р-н" } },
+        { "code": "tuproqqala",  "name": { "uz": "Tuproqqal'a tumani","ru": "Тупраккалинский р-н" } }
+      ]
+    },
+    {
+      "code": "qoraqalpogiston",
+      "name": { "uz": "Qoraqalpog'iston Respublikasi", "ru": "Респ. Каракалпакстан" },
+      "districts": [
+        { "code": "nukus_c",      "name": { "uz": "Nukus shahri",       "ru": "г. Нукус" } },
+        { "code": "amudaryo",     "name": { "uz": "Amudaryo tumani",    "ru": "Амударьинский р-н" } },
+        { "code": "beruniy",      "name": { "uz": "Beruniy tumani",     "ru": "Берунийский р-н" } },
+        { "code": "chimboy",      "name": { "uz": "Chimboy tumani",     "ru": "Чимбайский р-н" } },
+        { "code": "ellikkala",    "name": { "uz": "Ellikkala tumani",   "ru": "Элликкалинский р-н" } },
+        { "code": "kegayli",      "name": { "uz": "Kegayli tumani",     "ru": "Кегейлийский р-н" } },
+        { "code": "moynoq",       "name": { "uz": "Mo'ynoq tumani",     "ru": "Муйнакский р-н" } },
+        { "code": "nukus_r",      "name": { "uz": "Nukus tumani",       "ru": "Нукусский р-н" } },
+        { "code": "qanlikol",     "name": { "uz": "Qanliko'l tumani",   "ru": "Канлыкульский р-н" } },
+        { "code": "qorozhap",     "name": { "uz": "Qorao'zak tumani",   "ru": "Караузякский р-н" } },
+        { "code": "qongirot",     "name": { "uz": "Qo'ng'irot tumani",  "ru": "Кунградский р-н" } },
+        { "code": "shumanay",     "name": { "uz": "Shumanay tumani",    "ru": "Шуманайский р-н" } },
+        { "code": "taxiatosh",    "name": { "uz": "Taxiatosh tumani",   "ru": "Тахиаташский р-н" } },
+        { "code": "taxtakopir",   "name": { "uz": "Taxtako'pir tumani", "ru": "Тахтакупырский р-н" } },
+        { "code": "torkopir",     "name": { "uz": "Turtko'l tumani",    "ru": "Турткульский р-н" } },
+        { "code": "xojayli",      "name": { "uz": "Xo'jayli tumani",    "ru": "Ходжейлийский р-н" } }
+      ]
+    }
+  ]
+}

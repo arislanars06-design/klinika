@@ -460,5 +460,20 @@
   "patients.search_medication": "Dori / tavsiya",
   "settings.default_theme": "Standart rejim",
   "settings.save_folder": "Word'ni saqlash papkasi",
-  "settings.save_folder_hint": "Ixtiyoriy. Fayl nomiga qo'shiladigan yo'l ko'rsatgichi. Brauzer default yuklash papkasini o'zi tanlaydi."
+  "settings.save_folder_hint": "Ixtiyoriy. Fayl nomiga qo'shiladigan yo'l ko'rsatgichi. Brauzer default yuklash papkasini o'zi tanlaydi.",
+  "home.stat_patients_today": "Bugungi bemorlar",
+  "home.stat_patients_today_hint": "Qabul + kassa bo'yicha",
+  "home.stat_receptions_today": "Bugungi qabullar",
+  "home.stat_receptions_today_hint": "Shifokor kiritganlari",
+  "reception.region": "Viloyat / Shahar",
+  "reception.district": "Tuman",
+  "reception.address_extra": "Aniq manzil",
+  "reception.address_extra_hint": "ko'cha, uy, xonadon",
+  "reception.recommendation_hint": "dorilar + kelgusi tashrif",
+  "reception.recommendation_placeholder": "1. Dori nomi, dozasi, davomiyligi\n2. Qayta ko'rikga sana",
+  "patients.stat_total": "Jami bemorlar",
+  "patients.stat_new": "Yangi bemorlar",
+  "patients.stat_repeat": "Takroriy qabullar",
+  "patients.this_month": "shu oy davomida",
+  "cashier.today_payers": "Bugungi to'lovchilar"
 }

@@ -29,16 +29,35 @@ def list_patients(
     page: int = 1,
     _user: str = Depends(require_login),
 ):
+    from sqlalchemy import func
+
+    from clinic.db.database import session_scope
+    from clinic.db.models import Patient
+    from clinic.domain import stats_service
+
     mode = _SEARCH_MODES.get(search_in, ANY_FIELD_SEARCH)
     page_data = patient_service.paginated_search(
         text=q or None,
         search_in=mode,
         page=max(1, page),
     )
+
+    month_period = stats_service.build_period(stats_service.PeriodPreset.MONTH)
+    monthly = stats_service.patient_stats(month_period)
+    with session_scope() as session:
+        total_patients = int(session.query(func.count(Patient.id)).scalar() or 0)
+
+    patient_stats = {
+        "total": total_patients,
+        "new_this_month": monthly.new_patients,
+        "repeat_receptions": monthly.repeat_receptions,
+    }
+
     return render(request, "patients/list.html", {
         "page": page_data,
         "q": q,
         "search_in": search_in if search_in in _SEARCH_MODES else "any",
+        "patient_stats": patient_stats,
     })
 
 

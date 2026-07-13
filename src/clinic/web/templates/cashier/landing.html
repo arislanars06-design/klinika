@@ -14,33 +14,104 @@
   </div>
 </div>
 
-<!-- Today revenue KPIs -->
-<div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card border-0 bg-body-tertiary">
-      <div class="card-body">
+<!-- Today revenue KPIs — total + breakdown by payment type -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row align-items-center g-3">
+      <div class="col-md-4">
         <div class="text-muted small">{{ t("cashier.today_revenue") }}</div>
-        <div class="fs-3 fw-semibold">{{ today_stats.total_revenue }} <span class="fs-6 text-muted">{{ t("cashier.currency") }}</span></div>
+        <div class="fs-1 fw-semibold text-primary">
+          {{ today_stats.total_revenue }}
+          <span class="fs-5 text-muted">{{ t("cashier.currency") }}</span>
+        </div>
+        <div class="small text-muted">
+          {{ today_stats.receipts_count }} · {{ t("cashier.today_receipts") }}
+          {% if today_stats.receipts_count %}
+          · {{ t("cashier.today_avg") }}: {{ today_stats.average_receipt }}
+          {% endif %}
+        </div>
       </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card border-0 bg-body-tertiary">
-      <div class="card-body">
-        <div class="text-muted small">{{ t("cashier.today_receipts") }}</div>
-        <div class="fs-3 fw-semibold">{{ today_stats.receipts_count }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card border-0 bg-body-tertiary">
-      <div class="card-body">
-        <div class="text-muted small">{{ t("cashier.today_avg") }}</div>
-        <div class="fs-3 fw-semibold">{{ today_stats.average_receipt }} <span class="fs-6 text-muted">{{ t("cashier.currency") }}</span></div>
+      <div class="col-md-8">
+        <div class="row g-2 text-center">
+          <div class="col-4">
+            <div class="p-2 rounded bg-body-tertiary">
+              <div class="small text-muted"><i class="bi bi-cash-stack"></i> {{ t("cashier.pt_cash") }}</div>
+              <div class="fs-4 fw-semibold">{{ today_by_type.cash }}</div>
+              <div class="small text-muted">{{ t("cashier.currency") }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 rounded bg-body-tertiary">
+              <div class="small text-muted"><i class="bi bi-bank"></i> {{ t("cashier.pt_transfer") }}</div>
+              <div class="fs-4 fw-semibold">{{ today_by_type.transfer }}</div>
+              <div class="small text-muted">{{ t("cashier.currency") }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 rounded bg-body-tertiary">
+              <div class="small text-muted"><i class="bi bi-credit-card-2-front"></i> {{ t("cashier.pt_terminal") }}</div>
+              <div class="fs-4 fw-semibold">{{ today_by_type.terminal }}</div>
+              <div class="small text-muted">{{ t("cashier.currency") }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Today's payers -->
+{% if today_receipts %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header">
+    <i class="bi bi-people-fill"></i> {{ t("cashier.today_payers") }}
+    <span class="badge text-bg-secondary">{{ today_receipts | length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>{{ t("reception.patient_section") }}</th>
+          <th>{{ t("reception.date") }}</th>
+          <th>{{ t("cashier.payment_type") }}</th>
+          <th class="text-end">{{ t("cashier.line_total") }}</th>
+          <th class="text-end">{{ t("common.actions") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rc in today_receipts %}
+        {% set pid = rc["items"][0].patient_id %}
+        {% set pt = rc["items"][0].payment_type %}
+        <tr>
+          <td class="text-muted small">{{ loop.index }}</td>
+          <td class="fw-medium">
+            <a href="/patients/{{ pid }}" class="text-decoration-none">
+              {{ patient_names.get(pid, "—") }}
+            </a>
+          </td>
+          <td class="small text-muted">{{ rc.paid_at.strftime('%H:%M') }}</td>
+          <td>
+            <span class="badge text-bg-{% if pt == 'cash' %}success{% elif pt == 'transfer' %}info{% else %}warning{% endif %}">
+              {{ t("cashier.pt_" ~ pt) }}
+            </span>
+          </td>
+          <td class="text-end fw-semibold">{{ rc.total }} <span class="text-muted small">{{ t("cashier.currency") }}</span></td>
+          <td class="text-end">
+            <a href="/cashier/receipt/{{ rc.first_id }}" class="btn btn-sm btn-outline-secondary" title="{{ t('common.view') }}">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href="/print/receipt/{{ rc.first_id }}.docx" class="btn btn-sm btn-outline-primary" title="{{ t('cashier.print') }}">
+              <i class="bi bi-printer"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 
 <div class="card shadow-sm">
   <div class="card-header"><i class="bi bi-search"></i> {{ t("cashier.pick_patient") }}</div>
