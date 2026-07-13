@@ -90,7 +90,7 @@
   "patients.column.last_visit": "Последний приём",
   "patients.column.actions": "Действия",
   "patients.no_visits": "Нет приёмов",
-  "patients.confirm_delete": "Удалить пациента и все его приёмы и оплаты? Отменить будет нельзя.",
+  "patients.confirm_delete": "Удалить этого пациента? Все приёмы и оплаты также будут удалены.",
   "patients.deleted": "Пациент удалён",
   "patients.card.title": "Карточка пациента",
   "patients.card.age": "лет",
@@ -246,7 +246,7 @@
   "validation.quantity_positive": "Количество должно быть положительным",
   "validation.service_not_found": "Услуга не найдена",
   "info.saved": "Успешно сохранено",
-  "info.deleted": "Удалено",
+  "info.deleted": "Удалено.",
   "info.printing": "Подготовка к печати…",
   "info.not_implemented": "Этот раздел будет добавлен позже",
   "print.filter": "Документы Word (*.docx)",
@@ -482,5 +482,6 @@
   "stats.last_paid": "Последняя оплата",
   "stats.paid_amount": "Оплаченная сумма",
   "cashier.total_placeholder": "рассчитывается автоматически",
-  "cashier.editable_hint2": "Оставьте пустым — будет использована сумма услуг."
+  "cashier.editable_hint2": "Оставьте пустым — будет использована сумма услуг.",
+  "cashier.all_time_patients": "Все пациенты кассы"
 }

@@ -305,7 +305,7 @@ async def create_reception(request: Request, _user: str = Depends(require_login)
     _auto_save_docx(rec.id, lang)
     request.session.setdefault("flash", []).append({
         "level": "success",
-        "text": "Qabul saqlandi." if lang == "uz" else "Приём сохранён.",
+        "text": "Қабул сақланди." if lang == "uz" else "Приём сохранён.",
     })
     return RedirectResponse(url=f"/reception/{rec.id}", status_code=303)
 
@@ -384,6 +384,6 @@ async def update_reception(
     _auto_save_docx(reception_id, lang)
     request.session.setdefault("flash", []).append({
         "level": "success",
-        "text": "Qabul yangilandi." if lang == "uz" else "Приём обновлён.",
+        "text": "Қабул янгиланди." if lang == "uz" else "Приём обновлён.",
     })
     return RedirectResponse(url=f"/reception/{reception_id}", status_code=303)

@@ -157,6 +157,41 @@ def cashier_landing(request: Request, q: str | None = None, _user: str = Depends
             if p:
                 patient_names[pid] = p.full_name
 
+    # ---- Accumulating "all cashier patients" list ----
+    # Every patient who ever had a payment, newest first. This is the
+    # rolling ledger the operator sees at the bottom of the landing.
+    from clinic.db.models import Patient
+
+    with session_scope() as session:
+        all_rows = (
+            session.query(
+                Patient.id,
+                Patient.full_name,
+                Patient.birth_year,
+                Patient.phone,
+                func.coalesce(func.sum(CashierRecord.total), 0).label("total"),
+                func.count(CashierRecord.id).label("lines"),
+                func.max(CashierRecord.paid_at).label("last_paid_at"),
+            )
+            .join(CashierRecord, CashierRecord.patient_id == Patient.id)
+            .group_by(Patient.id)
+            .order_by(func.max(CashierRecord.paid_at).desc())
+            .limit(50)
+            .all()
+        )
+    all_cashier_patients = [
+        {
+            "id": r.id,
+            "full_name": r.full_name,
+            "birth_year": r.birth_year,
+            "phone": r.phone,
+            "total": Decimal(r.total or 0),
+            "lines": int(r.lines or 0),
+            "last_paid_at": r.last_paid_at,
+        }
+        for r in all_rows
+    ]
+
     patients = []
     if q and len(q.strip()) >= 2:
         patients = patient_service.search(q, limit=20)
@@ -168,6 +203,7 @@ def cashier_landing(request: Request, q: str | None = None, _user: str = Depends
         "today_by_type": by_type,
         "today_receipts": today_receipts,
         "patient_names": patient_names,
+        "all_cashier_patients": all_cashier_patients,
     })
 
 
@@ -200,7 +236,7 @@ async def cashier_quick_create(request: Request, _user: str = Depends(require_lo
         request.session.setdefault("flash", []).append({
             "level": "danger",
             "text": (
-                f"Bemorni saqlab bo'lmadi: {joined}" if lang == "uz"
+                f"Беморни сақлаб бўлмади: {joined}" if lang == "uz"
                 else f"Не удалось сохранить пациента: {joined}"
             ),
         })
@@ -209,7 +245,7 @@ async def cashier_quick_create(request: Request, _user: str = Depends(require_lo
     request.session.setdefault("flash", []).append({
         "level": "info",
         "text": (
-            f"Bemor tayyor: {patient.full_name}." if lang == "uz"
+            f"Бемор тайёр: {patient.full_name}." if lang == "uz"
             else f"Пациент готов: {patient.full_name}."
         ),
     })
@@ -311,14 +347,14 @@ async def cashier_save(
         joined = "; ".join(messages) if messages else translator.t("common.validation_failed")
         request.session.setdefault("flash", []).append(
             {"level": "danger",
-             "text": (f"To'lovda xatolik: {joined}" if lang == "uz"
+             "text": (f"Тўловда хатолик: {joined}" if lang == "uz"
                       else f"Ошибка платежа: {joined}")}
         )
         return RedirectResponse(url=f"/cashier/patient/{patient_id}", status_code=303)
 
     request.session.setdefault("flash", []).append(
         {"level": "success",
-         "text": (f"{len(records)} qator saqlandi." if lang == "uz"
+         "text": (f"{len(records)} қатор сақланди." if lang == "uz"
                   else f"Сохранено {len(records)} строк.")}
     )
     if records:
@@ -359,8 +395,8 @@ def delete_record(request: Request, record_id: int, _user: str = Depends(require
     lang = resolve_language(request)
     request.session.setdefault("flash", []).append(
         {"level": "success" if ok else "warning",
-         "text": ("Qator o'chirildi." if lang == "uz" else "Строка удалена.")
-                 if ok else ("Qator topilmadi." if lang == "uz" else "Строка не найдена.")}
+         "text": ("Қатор ўчирилди." if lang == "uz" else "Строка удалена.")
+                 if ok else ("Қатор топилмади." if lang == "uz" else "Строка не найдена.")}
     )
     dest = f"/cashier/patient/{patient_id}" if patient_id else "/cashier"
     return RedirectResponse(url=dest, status_code=303)

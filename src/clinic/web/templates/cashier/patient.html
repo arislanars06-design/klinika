@@ -137,7 +137,7 @@
               <div class="fw-medium">{{ rc.paid_at.strftime('%d.%m.%Y %H:%M') }}</div>
               <div class="small text-muted">
                 {% if rc.reception_id %}
-                  <a href="/reception/{{ rc.reception_id }}">Qabul #{{ rc.reception_id }}</a>
+                  <a href="/reception/{{ rc.reception_id }}">{{ t("reception.title") }} #{{ rc.reception_id }}</a>
                 {% else %}
                   {{ t("cashier.no_reception") }}
                 {% endif %}

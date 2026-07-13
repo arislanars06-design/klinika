@@ -137,8 +137,8 @@ class TestAddress:
         patient = patient_service.get(rec.patient_id)
         # Composed as "<region>, <district>, <extra>"
         assert patient.address is not None
-        assert "Toshkent shahar" in patient.address
-        assert "Sergeli" in patient.address
+        assert "Тошкент шаҳар" in patient.address
+        assert "Сергели" in patient.address
         assert "7-mavze" in patient.address
 
 
@@ -205,9 +205,9 @@ def test_patient_list_shows_stats_block(admin_client: TestClient) -> None:
     resp = admin_client.get("/patients")
     assert resp.status_code == 200
     # Localized KPI labels present
-    assert "Jami bemorlar" in resp.text or "Жами беморлар" in resp.text or "Всего пациентов" in resp.text
-    assert "Yangi bemorlar" in resp.text or "Йанги беморлар" in resp.text or "Новых пациентов" in resp.text
-    assert "Takroriy qabullar" in resp.text or "Такрорий қабуллар" in resp.text or "Повторных приёмов" in resp.text
+    assert "Жами беморлар" in resp.text or "Всего пациентов" in resp.text
+    assert "Янги беморлар" in resp.text or "Новых пациентов" in resp.text
+    assert "Такрорий қабуллар" in resp.text or "Повторных приёмов" in resp.text
 
 
 # ---------------------------------------------------------------------------

@@ -66,11 +66,11 @@ def _index_discharge_types(lang: str) -> dict[str, str]:
 
 
 COMPLAINTS_INTRO = {
-    "uz": "Bemor quyidagilarga shikoyat qiladi",
+    "uz": "Бемор қуйидагиларга шикоят қилади",
     "ru": "Пациент предъявляет жалобы на",
 }
 COMPLAINTS_ADDITIONAL = {
-    "uz": "Qo'shimcha",
+    "uz": "Қўшимча",
     "ru": "Дополнительно",
 }
 
