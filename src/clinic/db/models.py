@@ -225,6 +225,36 @@ class LorCatalogCustom(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
+# ----- web users (Phase 3) ---------------------------------------------------
+
+
+class WebUser(Base):
+    """Clinic staff account for the web app.
+
+    Roles (string enum, kept simple to sidestep migrations):
+
+    - ``admin``   → full access (settings, users, backup, delete anything)
+    - ``staff``   → reception, patients, cashier, stats. Cannot touch users
+      or backup, cannot delete records.
+    """
+
+    __tablename__ = "web_users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False, default="staff")
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = _created_at()
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    __table_args__ = (
+        CheckConstraint("role IN ('admin','staff')", name="ck_web_users_role"),
+        Index("idx_web_users_active", "is_active"),
+    )
+
+
 __all__ = [
     "Base",
     "CashierRecord",
@@ -235,4 +265,5 @@ __all__ = [
     "Reception",
     "Service",
     "Setting",
+    "WebUser",
 ]

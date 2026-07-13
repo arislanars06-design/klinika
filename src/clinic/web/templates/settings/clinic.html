@@ -1,0 +1,46 @@
+{% extends "settings/_layout.html" %}
+{% block title %}{{ t("settings.tab_clinic") }}{% endblock %}
+
+{% block settings_body %}
+<form method="post" action="/settings/clinic" class="card shadow-sm">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{{ t("settings.name_uz") }}</label>
+        <input type="text" name="name_uz" class="form-control" value="{{ info.name_uz }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ t("settings.name_ru") }}</label>
+        <input type="text" name="name_ru" class="form-control" value="{{ info.name_ru }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ t("settings.address_uz") }}</label>
+        <input type="text" name="address_uz" class="form-control" value="{{ info.address_uz }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ t("settings.address_ru") }}</label>
+        <input type="text" name="address_ru" class="form-control" value="{{ info.address_ru }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">{{ t("reception.phone") }}</label>
+        <input type="tel" name="phone" class="form-control" value="{{ info.phone }}" placeholder="+998 ...">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">{{ t("settings.logo_path") }}</label>
+        <input type="text" name="logo_path" class="form-control" value="{{ info.logo_path }}"
+               placeholder="/absolute/path/to/logo.png">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">{{ t("settings.default_language") }}</label>
+        <select name="language" class="form-select">
+          <option value="uz" {% if info.language == 'uz' %}selected{% endif %}>O'zbekcha</option>
+          <option value="ru" {% if info.language == 'ru' %}selected{% endif %}>Русский</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer d-flex justify-content-end">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> {{ t("common.save") }}</button>
+  </div>
+</form>
+{% endblock %}

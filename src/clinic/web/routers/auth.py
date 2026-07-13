@@ -6,7 +6,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 
 from clinic.i18n.translator import SUPPORTED_LANGUAGES, translator
-from clinic.web.auth import check_password
+from clinic.web.auth import try_login
 from clinic.web.dependencies import render
 
 router = APIRouter()
@@ -31,21 +31,34 @@ def login_page(request: Request, next: str | None = None, error: str | None = No
 
 
 @router.post("/login")
-def login_submit(request: Request, password: str = Form(...), next: str = Form("/")):
-    if not check_password(password):
+def login_submit(
+    request: Request,
+    username: str = Form(""),
+    password: str = Form(...),
+    next: str = Form("/"),
+):
+    outcome = try_login(username, password)
+    if outcome.user is None:
         return render(
             request,
             "login.html",
-            {"next_url": _safe_next(next), "error": translator.t("auth.wrong_password")},
+            {
+                "next_url": _safe_next(next),
+                "error": translator.t(outcome.reason or "auth.wrong_password"),
+                "prefilled_username": username,
+            },
             status_code=401,
         )
-    request.session["user"] = "clinic"
+    request.session["user"] = outcome.user.username
+    request.session["role"] = outcome.user.role
+    request.session["full_name"] = outcome.user.full_name
     return RedirectResponse(url=_safe_next(next), status_code=303)
 
 
 @router.get("/logout")
 def logout(request: Request):
-    request.session.pop("user", None)
+    for key in ("user", "role", "full_name"):
+        request.session.pop(key, None)
     return RedirectResponse(url="/login", status_code=303)
 
 

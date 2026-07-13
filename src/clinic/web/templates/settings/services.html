@@ -1,0 +1,81 @@
+{% extends "settings/_layout.html" %}
+{% block title %}{{ t("settings.tab_services") }}{% endblock %}
+
+{% block settings_body %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-plus-lg"></i> {{ t("settings.add_service") }}</div>
+      <form method="post" action="/settings/services/new">
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.name_uz") }} *</label>
+            <input type="text" name="name_uz" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.name_ru") }} *</label>
+            <input type="text" name="name_ru" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("cashier.unit_price") }} ({{ t("cashier.currency") }}) *</label>
+            <input type="number" name="price" min="0" step="1000" class="form-control" required>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> {{ t("common.add") }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header">{{ t("settings.services_list") }} — {{ services | length }}</div>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>{{ t("settings.name_uz") }}</th>
+              <th>{{ t("settings.name_ru") }}</th>
+              <th class="text-end">{{ t("cashier.unit_price") }}</th>
+              <th>{{ t("settings.status") }}</th>
+              <th class="text-end">{{ t("common.actions") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in services %}
+            <tr class="{% if not s.is_active %}text-muted{% endif %}">
+              <td class="small">{{ s.id }}</td>
+              <td colspan="3">
+                <form method="post" action="/settings/services/{{ s.id }}/edit" class="d-flex gap-2 flex-wrap">
+                  <input type="text" name="name_uz" class="form-control form-control-sm" value="{{ s.name_uz }}" style="min-width: 140px;">
+                  <input type="text" name="name_ru" class="form-control form-control-sm" value="{{ s.name_ru }}" style="min-width: 140px;">
+                  <input type="number" name="price" step="1000" min="0" class="form-control form-control-sm" value="{{ s.price }}" style="max-width: 130px;">
+                  <button class="btn btn-sm btn-outline-primary"><i class="bi bi-check-lg"></i></button>
+                </form>
+              </td>
+              <td>
+                {% if s.is_active %}
+                  <span class="badge text-bg-success">{{ t("settings.active") }}</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ t("common.archived") }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <form method="post" action="/settings/services/{{ s.id }}/toggle" class="d-inline">
+                  <button class="btn btn-sm {% if s.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                    {% if s.is_active %}<i class="bi bi-archive"></i>{% else %}<i class="bi bi-arrow-counterclockwise"></i>{% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">{{ t("settings.no_services") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

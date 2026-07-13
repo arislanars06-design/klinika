@@ -1,0 +1,76 @@
+{% extends "settings/_layout.html" %}
+{% block title %}{{ t("settings.tab_doctors") }}{% endblock %}
+
+{% block settings_body %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-plus-lg"></i> {{ t("settings.add_doctor") }}</div>
+      <form method="post" action="/settings/doctors/new">
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">{{ t("reception.full_name") }} *</label>
+            <input type="text" name="full_name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("reception.phone") }}</label>
+            <input type="tel" name="phone" class="form-control" placeholder="+998 ...">
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> {{ t("common.add") }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header">{{ t("settings.doctors_list") }} — {{ doctors | length }}</div>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>{{ t("reception.full_name") }}</th>
+              <th>{{ t("reception.phone") }}</th>
+              <th>{{ t("settings.status") }}</th>
+              <th class="text-end">{{ t("common.actions") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in doctors %}
+            <tr class="{% if not d.is_active %}text-muted{% endif %}">
+              <td class="small">{{ d.id }}</td>
+              <td>
+                <form method="post" action="/settings/doctors/{{ d.id }}/edit" class="d-flex gap-2">
+                  <input type="text" name="full_name" class="form-control form-control-sm" value="{{ d.full_name }}">
+                  <input type="tel" name="phone" class="form-control form-control-sm" value="{{ d.phone or '' }}" placeholder="{{ t('reception.phone') }}">
+                  <button class="btn btn-sm btn-outline-primary" title="{{ t('common.save') }}"><i class="bi bi-check-lg"></i></button>
+                </form>
+              </td>
+              <td class="small">{{ d.phone or "—" }}</td>
+              <td>
+                {% if d.is_active %}
+                  <span class="badge text-bg-success">{{ t("settings.active") }}</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ t("common.archived") }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <form method="post" action="/settings/doctors/{{ d.id }}/toggle" class="d-inline">
+                  <button class="btn btn-sm {% if d.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                    {% if d.is_active %}<i class="bi bi-archive"></i>{% else %}<i class="bi bi-arrow-counterclockwise"></i>{% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">{{ t("settings.no_doctors") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

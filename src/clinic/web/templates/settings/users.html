@@ -1,0 +1,90 @@
+{% extends "settings/_layout.html" %}
+{% block title %}{{ t("settings.tab_users") }}{% endblock %}
+
+{% block settings_body %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-plus-lg"></i> {{ t("settings.add_user") }}</div>
+      <form method="post" action="/settings/users/new">
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">{{ t("auth.username") }} *</label>
+            <input type="text" name="username" class="form-control" required minlength="3" autocapitalize="none">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("reception.full_name") }}</label>
+            <input type="text" name="full_name" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("auth.password") }} *</label>
+            <input type="password" name="password" class="form-control" required minlength="4">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.role") }} *</label>
+            <select name="role" class="form-select">
+              <option value="staff">{{ t("settings.role_staff") }}</option>
+              <option value="admin">{{ t("settings.role_admin") }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> {{ t("common.add") }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header">{{ t("settings.users_list") }} — {{ users | length }}</div>
+      <div class="list-group list-group-flush">
+        {% for u in users %}
+        <div class="list-group-item {% if not u.is_active %}bg-body-tertiary{% endif %}">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-3">
+              <div class="fw-semibold">
+                {{ u.username }}
+                {% if u.role == 'admin' %}<span class="badge text-bg-danger ms-1">admin</span>{% endif %}
+              </div>
+              <div class="text-muted small">
+                {{ u.full_name or "—" }}
+                {% if u.last_login_at %}
+                  · {{ u.last_login_at.strftime('%d.%m %H:%M') }}
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-5">
+              <form method="post" action="/settings/users/{{ u.id }}/edit" class="d-flex gap-2">
+                <input type="text" name="full_name" class="form-control form-control-sm" value="{{ u.full_name }}" placeholder="{{ t('reception.full_name') }}">
+                <select name="role" class="form-select form-select-sm" style="max-width: 130px;">
+                  <option value="staff" {% if u.role == 'staff' %}selected{% endif %}>{{ t("settings.role_staff") }}</option>
+                  <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>{{ t("settings.role_admin") }}</option>
+                </select>
+                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-check-lg"></i></button>
+              </form>
+            </div>
+            <div class="col-md-3">
+              <form method="post" action="/settings/users/{{ u.id }}/reset-password" class="d-flex gap-2">
+                <input type="password" name="password" class="form-control form-control-sm"
+                       placeholder="{{ t('settings.new_password') }}" minlength="4">
+                <button class="btn btn-sm btn-outline-warning" title="{{ t('settings.reset_password') }}">
+                  <i class="bi bi-key"></i>
+                </button>
+              </form>
+            </div>
+            <div class="col-md-1 text-end">
+              <form method="post" action="/settings/users/{{ u.id }}/toggle" class="d-inline">
+                <button class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                        title="{% if u.is_active %}{{ t('settings.deactivate') }}{% else %}{{ t('settings.activate') }}{% endif %}">
+                  {% if u.is_active %}<i class="bi bi-power"></i>{% else %}<i class="bi bi-check2-circle"></i>{% endif %}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0"><i class="bi bi-gear text-secondary"></i> {{ t("menu.settings") }}</h3>
+</div>
+
+<ul class="nav nav-tabs mb-4 flex-nowrap overflow-auto">
+  <li class="nav-item"><a class="nav-link {% if tab == 'clinic'   %}active{% endif %}" href="/settings/clinic"><i class="bi bi-hospital"></i> {{ t("settings.tab_clinic") }}</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == 'doctors'  %}active{% endif %}" href="/settings/doctors"><i class="bi bi-person-badge"></i> {{ t("settings.tab_doctors") }}</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == 'services' %}active{% endif %}" href="/settings/services"><i class="bi bi-tag"></i> {{ t("settings.tab_services") }}</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == 'users'    %}active{% endif %}" href="/settings/users"><i class="bi bi-people"></i> {{ t("settings.tab_users") }}</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == 'backup'   %}active{% endif %}" href="/settings/backup"><i class="bi bi-hdd"></i> {{ t("settings.tab_backup") }}</a></li>
+</ul>
+
+{% block settings_body %}{% endblock %}
+{% endblock %}
