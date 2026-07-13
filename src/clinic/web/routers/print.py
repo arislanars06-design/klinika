@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import io
+import unicodedata
 from datetime import date
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -32,6 +34,58 @@ router = APIRouter(prefix="/print")
 DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
+# ---------------------------------------------------------------------------
+# Filename encoding for HTTP headers
+# ---------------------------------------------------------------------------
+#
+# HTTP headers are latin-1 only. RFC 6266 (Content-Disposition) says that
+# when the filename contains non-ASCII characters, the server should emit:
+#
+#     Content-Disposition: attachment;
+#       filename="<ASCII-safe fallback>";
+#       filename*=UTF-8''<percent-encoded UTF-8>
+#
+# We build both forms so that legacy clients get a readable name and modern
+# browsers use the UTF-8 form for Cyrillic / other scripts.
+
+
+# Simple Uzbek Cyrillic → Latin transliteration for the ASCII fallback name.
+_CYR_TO_LAT = str.maketrans({
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo",
+    "ж": "j", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m",
+    "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+    "ф": "f", "х": "x", "ч": "ch", "ш": "sh", "ъ": "'", "ы": "i", "ь": "",
+    "э": "e", "ю": "yu", "я": "ya", "ў": "o'", "ғ": "g'", "қ": "q", "ҳ": "h",
+    "А": "A", "Б": "B", "В": "V", "Г": "G", "Д": "D", "Е": "E", "Ё": "Yo",
+    "Ж": "J", "З": "Z", "И": "I", "Й": "Y", "К": "K", "Л": "L", "М": "M",
+    "Н": "N", "О": "O", "П": "P", "Р": "R", "С": "S", "Т": "T", "У": "U",
+    "Ф": "F", "Х": "X", "Ч": "Ch", "Ш": "Sh", "Ъ": "'", "Ы": "I", "Ь": "",
+    "Э": "E", "Ю": "Yu", "Я": "Ya", "Ў": "O'", "Ғ": "G'", "Қ": "Q", "Ҳ": "H",
+})
+
+
+def _ascii_fallback(name: str) -> str:
+    """Return a latin-1-safe rendering of ``name`` for legacy clients.
+
+    Cyrillic characters are transliterated back to Latin Uzbek; any remaining
+    non-ASCII cluster is stripped via NFKD decomposition. If the result is
+    empty (defensive fallback), returns ``"document"``.
+    """
+    tr = name.translate(_CYR_TO_LAT)
+    normalised = unicodedata.normalize("NFKD", tr)
+    ascii_only = normalised.encode("ascii", "ignore").decode("ascii").strip()
+    # Backslashes and double quotes would corrupt the filename= parameter.
+    ascii_only = ascii_only.replace("\\", "_").replace('"', "'")
+    return ascii_only or "document"
+
+
+def _content_disposition(filename: str) -> str:
+    """Build an RFC 6266-compliant ``Content-Disposition`` header value."""
+    fallback = _ascii_fallback(filename)
+    quoted = quote(filename, safe="")
+    return f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quoted}"
+
+
 def _stream_doc(doc, filename: str) -> StreamingResponse:
     buf = io.BytesIO()
     doc.save(buf)
@@ -39,7 +93,7 @@ def _stream_doc(doc, filename: str) -> StreamingResponse:
     return StreamingResponse(
         buf,
         media_type=DOCX_MIME,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": _content_disposition(filename)},
     )
 
 
