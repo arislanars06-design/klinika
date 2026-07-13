@@ -119,3 +119,15 @@ def set_active(service_id: int, is_active: bool) -> ServiceDTO | None:
     with session_scope() as session:
         row = ServiceRepository(session).update(service_id, is_active=is_active)
         return ServiceDTO.from_orm(row) if row else None
+
+
+def delete(service_id: int) -> bool:
+    """Permanently delete a service by id. Returns True if deleted."""
+    from clinic.db.models import Service
+
+    with session_scope() as session:
+        svc = session.get(Service, service_id)
+        if svc is None:
+            return False
+        session.delete(svc)
+        return True

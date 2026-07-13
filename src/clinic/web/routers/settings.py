@@ -116,6 +116,13 @@ def doctors_toggle(doctor_id: int, request: Request, _: str = Depends(require_ad
     return RedirectResponse(url="/settings/doctors", status_code=303)
 
 
+@router.post("/doctors/{doctor_id}/delete")
+def doctors_delete(doctor_id: int, request: Request, _: str = Depends(require_admin)):
+    ok = doctor_service.delete(doctor_id)
+    _flash(request, "success" if ok else "warning", "info.deleted" if ok else "common.not_found")
+    return RedirectResponse(url="/settings/doctors", status_code=303)
+
+
 # ---------------------------------------------------------------------------
 # Services
 # ---------------------------------------------------------------------------
@@ -167,6 +174,13 @@ def services_toggle(service_id: int, request: Request, _: str = Depends(require_
         raise HTTPException(status_code=404, detail="service_not_found")
     service_service.set_active(service_id, not current.is_active)
     _flash(request, "success", "settings.service_toggled")
+    return RedirectResponse(url="/settings/services", status_code=303)
+
+
+@router.post("/services/{service_id}/delete")
+def services_delete(service_id: int, request: Request, _: str = Depends(require_admin)):
+    ok = service_service.delete(service_id)
+    _flash(request, "success" if ok else "warning", "info.deleted" if ok else "common.not_found")
     return RedirectResponse(url="/settings/services", status_code=303)
 
 

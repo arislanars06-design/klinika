@@ -91,3 +91,15 @@ def set_active(doctor_id: int, is_active: bool) -> DoctorDTO | None:
     with session_scope() as session:
         row = DoctorRepository(session).set_active(doctor_id, is_active)
         return DoctorDTO.from_orm(row) if row else None
+
+
+def delete(doctor_id: int) -> bool:
+    """Permanently delete a doctor by id. Returns True if deleted."""
+    from clinic.db.models import Doctor
+
+    with session_scope() as session:
+        doctor = session.get(Doctor, doctor_id)
+        if doctor is None:
+            return False
+        session.delete(doctor)
+        return True

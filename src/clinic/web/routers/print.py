@@ -86,7 +86,8 @@ def print_reception(request: Request, reception_id: int, _user: str = Depends(re
         clinic=_clinic_dict(),
         lang=lang,
     )
-    return _stream_doc(doc, f"reception_{reception_id}.docx")
+    filename = f"{patient.full_name} {patient.birth_year}.docx"
+    return _stream_doc(doc, filename)
 
 
 # ---------------------------------------------------------------------------

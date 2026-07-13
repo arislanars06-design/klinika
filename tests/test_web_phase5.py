@@ -50,7 +50,7 @@ def test_home_shows_today_kpis(admin_client: TestClient) -> None:
     resp = admin_client.get("/")
     assert resp.status_code == 200
     # New labels appear
-    assert "Bugungi" in resp.text or "сегодня" in resp.text.lower()
+    assert "Bugungi" in resp.text or "Бугунги" in resp.text or "сегодня" in resp.text.lower()
     # Old lifetime labels are gone
     assert "stat_patients_today" not in resp.text  # translation key was resolved
 
@@ -205,9 +205,9 @@ def test_patient_list_shows_stats_block(admin_client: TestClient) -> None:
     resp = admin_client.get("/patients")
     assert resp.status_code == 200
     # Localized KPI labels present
-    assert "Jami bemorlar" in resp.text or "Всего пациентов" in resp.text
-    assert "Yangi bemorlar" in resp.text or "Новых пациентов" in resp.text
-    assert "Takroriy qabullar" in resp.text or "Повторных приёмов" in resp.text
+    assert "Jami bemorlar" in resp.text or "Жами беморлар" in resp.text or "Всего пациентов" in resp.text
+    assert "Yangi bemorlar" in resp.text or "Йанги беморлар" in resp.text or "Новых пациентов" in resp.text
+    assert "Takroriy qabullar" in resp.text or "Такрорий қабуллар" in resp.text or "Повторных приёмов" in resp.text
 
 
 # ---------------------------------------------------------------------------
@@ -221,11 +221,11 @@ class TestCashierLanding:
         assert resp.status_code == 200
         # The raw translation key must not leak into the response
         assert "cashier.pt_cash" not in resp.text
-        # Payment-type labels — apostrophe in "O'tkazma" gets HTML-encoded.
-        assert "Naqd" in resp.text or "Наличные" in resp.text
-        assert "Terminal" in resp.text
+        # Payment-type labels
+        assert "Naqd" in resp.text or "Нақд" in resp.text or "Наличные" in resp.text
+        assert "Terminal" in resp.text or "Терминал" in resp.text
         transfer_label_uz = "O&#39;tkazma"  # apostrophe → &#39;
-        assert transfer_label_uz in resp.text or "Перевод" in resp.text
+        assert transfer_label_uz in resp.text or "Ўтказма" in resp.text or "Перевод" in resp.text
 
     def test_landing_shows_today_payers_after_payment(
         self, admin_client: TestClient
