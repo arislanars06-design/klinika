@@ -460,5 +460,20 @@
   "patients.search_medication": "Лекарство / рекомендация",
   "settings.default_theme": "Тема по умолчанию",
   "settings.save_folder": "Папка сохранения Word",
-  "settings.save_folder_hint": "Необязательно. Подсказка пути, добавляемая к имени файла. Браузер сам выбирает папку загрузки по умолчанию."
+  "settings.save_folder_hint": "Необязательно. Подсказка пути, добавляемая к имени файла. Браузер сам выбирает папку загрузки по умолчанию.",
+  "home.stat_patients_today": "Пациенты сегодня",
+  "home.stat_patients_today_hint": "Приёмы + касса",
+  "home.stat_receptions_today": "Приёмы сегодня",
+  "home.stat_receptions_today_hint": "Записанные врачом",
+  "reception.region": "Область / Город",
+  "reception.district": "Район",
+  "reception.address_extra": "Подробный адрес",
+  "reception.address_extra_hint": "улица, дом, квартира",
+  "reception.recommendation_hint": "лекарства + следующий визит",
+  "reception.recommendation_placeholder": "1. Название препарата, дозировка, длительность\n2. Дата повторного приёма",
+  "patients.stat_total": "Всего пациентов",
+  "patients.stat_new": "Новых пациентов",
+  "patients.stat_repeat": "Повторных приёмов",
+  "patients.this_month": "за этот месяц",
+  "cashier.today_payers": "Оплатили сегодня"
 }

@@ -40,9 +40,16 @@ def discharge_types_catalog() -> dict[str, Any]:
     return _load_json("discharge_types.json")
 
 
+@lru_cache(maxsize=1)
+def address_catalog() -> dict[str, Any]:
+    """Uzbekistan regions + districts (used by the reception address selects)."""
+    return _load_json("address.json")
+
+
 def reload_all() -> None:
     """Drop cached copies (useful after user edits catalog files)."""
     complaints_catalog.cache_clear()
     lor_status_catalog.cache_clear()
     discharge_types_catalog.cache_clear()
+    address_catalog.cache_clear()
     logger.debug("Catalog caches cleared")

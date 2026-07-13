@@ -91,10 +91,71 @@ def _find_receipt_for(record_id: int) -> tuple[CashierRecordDTO, list[CashierRec
 
 @router.get("")
 def cashier_landing(request: Request, q: str | None = None, _user: str = Depends(require_login)):
+    from sqlalchemy import func
+
+    from clinic.db.database import session_scope
+    from clinic.db.models import CashierRecord
     from clinic.domain import stats_service
 
     period = stats_service.build_period(stats_service.PeriodPreset.TODAY)
     stats = stats_service.cashier_stats(period)
+
+    # Per-payment-type breakdown for today.
+    with session_scope() as session:
+        rows = (
+            session.query(CashierRecord.payment_type, func.coalesce(func.sum(CashierRecord.total), 0))
+            .filter(CashierRecord.paid_at >= period.start)
+            .filter(CashierRecord.paid_at <= period.end)
+            .group_by(CashierRecord.payment_type)
+            .all()
+        )
+    by_type = {pt: Decimal(0) for pt in ("cash", "transfer", "terminal")}
+    for pt, total in rows:
+        by_type[pt or "cash"] = Decimal(total or 0)
+
+    # Today's payers list — one entry per receipt (grouped by paid_at bucket).
+    today_history = [
+        r for r in cashier_service.list_for_period(period.start, period.end)
+    ] if hasattr(cashier_service, "list_for_period") else []
+    if not today_history:
+        # Fall back — walk each recent patient's payments.
+        with session_scope() as session:
+            record_ids = [
+                r_id for (r_id,) in session.query(CashierRecord.id)
+                .filter(CashierRecord.paid_at >= period.start)
+                .filter(CashierRecord.paid_at <= period.end)
+                .all()
+            ]
+        today_records: list[CashierRecordDTO] = []
+        seen_patients: set[int] = set()
+        # Cheap path: rebuild via list_for_patient (already indexed) but keep it
+        # capped so a huge day doesn't blow up the landing page.
+        limit = 60
+        with session_scope() as session:
+            for rid in record_ids:
+                if len(today_records) >= limit:
+                    break
+                row = session.get(CashierRecord, rid)
+                if row is None:
+                    continue
+                if row.patient_id in seen_patients:
+                    continue
+                seen_patients.add(row.patient_id)
+                for r in cashier_service.list_for_patient(row.patient_id):
+                    if period.start <= r.paid_at <= period.end:
+                        today_records.append(r)
+        today_history = today_records
+
+    today_receipts = _group_receipts(today_history)[:20]
+
+    # Load patient names in bulk so the template stays chatter-free.
+    patient_names: dict[int, str] = {}
+    for rc in today_receipts:
+        pid = rc["items"][0].patient_id
+        if pid not in patient_names:
+            p = patient_service.get(pid)
+            if p:
+                patient_names[pid] = p.full_name
 
     patients = []
     if q and len(q.strip()) >= 2:
@@ -104,6 +165,9 @@ def cashier_landing(request: Request, q: str | None = None, _user: str = Depends
         "q": q,
         "patients": patients,
         "today_stats": stats,
+        "today_by_type": by_type,
+        "today_receipts": today_receipts,
+        "patient_names": patient_names,
     })
 
 

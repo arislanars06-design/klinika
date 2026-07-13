@@ -49,35 +49,47 @@
 </div>
 
 <div class="row g-3 mt-4">
-  <div class="col-md-3">
-    <div class="card border-0 bg-body-tertiary">
+  <div class="col-md-3 col-sm-6">
+    <div class="card border-0 bg-body-tertiary h-100">
       <div class="card-body">
-        <div class="text-muted small">{{ t("home.stat_patients") }}</div>
-        <div class="fs-3 fw-semibold">{{ stats.patients }}</div>
+        <div class="text-muted small">
+          <i class="bi bi-people"></i> {{ t("home.stat_patients_today") }}
+        </div>
+        <div class="fs-2 fw-semibold text-primary">{{ stats.patients_today }}</div>
+        <div class="small text-muted">{{ t("home.stat_patients_today_hint") }}</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card border-0 bg-body-tertiary">
+  <div class="col-md-3 col-sm-6">
+    <div class="card border-0 bg-body-tertiary h-100">
       <div class="card-body">
-        <div class="text-muted small">{{ t("home.stat_receptions") }}</div>
-        <div class="fs-3 fw-semibold">{{ stats.receptions }}</div>
+        <div class="text-muted small">
+          <i class="bi bi-clipboard2-pulse"></i> {{ t("home.stat_receptions_today") }}
+        </div>
+        <div class="fs-2 fw-semibold text-success">{{ stats.receptions_today }}</div>
+        <div class="small text-muted">{{ t("home.stat_receptions_today_hint") }}</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card border-0 bg-body-tertiary">
+  <div class="col-md-3 col-sm-6">
+    <div class="card border-0 bg-body-tertiary h-100">
       <div class="card-body">
-        <div class="text-muted small">{{ t("home.stat_doctors") }}</div>
-        <div class="fs-3 fw-semibold">{{ stats.doctors }}</div>
+        <div class="text-muted small">
+          <i class="bi bi-person-badge"></i> {{ t("home.stat_doctors") }}
+        </div>
+        <div class="fs-2 fw-semibold">{{ stats.doctors }}</div>
+        <div class="small text-muted">{{ t("settings.active") }}</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card border-0 bg-body-tertiary">
+  <div class="col-md-3 col-sm-6">
+    <div class="card border-0 bg-body-tertiary h-100">
       <div class="card-body">
-        <div class="text-muted small">{{ t("home.stat_services") }}</div>
-        <div class="fs-3 fw-semibold">{{ stats.services }}</div>
+        <div class="text-muted small">
+          <i class="bi bi-tag"></i> {{ t("home.stat_services") }}
+        </div>
+        <div class="fs-2 fw-semibold">{{ stats.services }}</div>
+        <div class="small text-muted">{{ t("settings.active") }}</div>
       </div>
     </div>
   </div>

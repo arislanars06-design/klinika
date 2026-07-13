@@ -60,14 +60,49 @@
           <input type="tel" name="phone" class="form-control"
                  value="{{ form.phone or '' }}" placeholder="+998 ...">
         </div>
-        <div class="col-12">
-          <label class="form-label">{{ t("reception.address") }}</label>
+        <div class="col-md-4">
+          <label class="form-label">{{ t("reception.region") }}</label>
+          <select name="address_region" id="address-region" class="form-select">
+            <option value="">— {{ t("common.choose") }} —</option>
+            {% for reg in address_catalog["regions"] %}
+            <option value="{{ reg['code'] }}"
+                    {% if form.address_region == reg["code"] %}selected{% endif %}>
+              {{ reg["name"][lang] }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ t("reception.district") }}</label>
+          <select name="address_district" id="address-district" class="form-select"
+                  {% if not form.address_region %}disabled{% endif %}>
+            <option value="">— {{ t("common.choose") }} —</option>
+            {% if form.address_region %}
+              {% for reg in address_catalog["regions"] if reg["code"] == form.address_region %}
+                {% for d in reg["districts"] %}
+                <option value="{{ d['code'] }}"
+                        {% if form.address_district == d["code"] %}selected{% endif %}>
+                  {{ d["name"][lang] }}
+                </option>
+                {% endfor %}
+              {% endfor %}
+            {% endif %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ t("reception.address_extra") }}</label>
           <input type="text" name="address" class="form-control"
+                 placeholder="{{ t('reception.address_extra_hint') }}"
                  value="{{ form.address or '' }}">
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Address catalog data for the district cascade JS -->
+  <script id="address-catalog-json" type="application/json">
+    {{ address_catalog | tojson }}
+  </script>
 
   <!-- ============ COMPLAINTS (accordion, no emoji) ============ -->
   <div class="card shadow-sm mb-3">
@@ -161,6 +196,7 @@
               </button>
             </div>
 
+            <div class="lor-section-body">
             {% for field in section["fields"] %}
             {% set fname = "lor__" ~ prefix ~ "__" ~ section["code"] ~ "__" ~ field["code"] %}
             {% set current = (form.lor_status or {}).get(prefix, {}).get(section["code"], {}).get(field["code"]) %}
@@ -242,6 +278,7 @@
               {% endif %}
             </div>
             {% endfor %}
+            </div>
           </div>
           {% endfor %}
           {% endfor %}
@@ -281,8 +318,13 @@
           </div>
         </div>
         <div class="col-12">
-          <label class="form-label">{{ t("reception.recommendation") }}</label>
-          <textarea name="recommendation" class="form-control" rows="3">{{ form.recommendation or '' }}</textarea>
+          <label class="form-label">
+            {{ t("reception.recommendation") }}
+            <span class="text-muted small">— {{ t("reception.recommendation_hint") }}</span>
+          </label>
+          <textarea name="recommendation" class="form-control recommendation-area"
+                    rows="8" placeholder="{{ t('reception.recommendation_placeholder') }}"
+                    >{{ form.recommendation or '' }}</textarea>
         </div>
       </div>
     </div>
@@ -443,6 +485,49 @@
       const match = Array.from(suggestions.options).find(o => o.value === fullNameInput.value);
       patientIdField.value = match ? match.dataset.id || "" : "";
     });
+  }
+
+  // --------------------------------------------------------------
+  // (6) Address cascade — region → district
+  // --------------------------------------------------------------
+  const addressCatalog = JSON.parse(document.getElementById("address-catalog-json").textContent);
+  const regionSelect = document.getElementById("address-region");
+  const districtSelect = document.getElementById("address-district");
+  const currentLang = "{{ lang }}";
+
+  function refreshDistricts(regionCode, keepValue) {
+    districtSelect.innerHTML = '<option value="">— {{ t("common.choose") }} —</option>';
+    const region = addressCatalog.regions.find(r => r.code === regionCode);
+    if (!region) {
+      districtSelect.disabled = true;
+      return;
+    }
+    districtSelect.disabled = false;
+    region.districts.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.code;
+      opt.textContent = d.name[currentLang] || d.name.uz;
+      if (keepValue && keepValue === d.code) opt.selected = true;
+      districtSelect.appendChild(opt);
+    });
+  }
+  if (regionSelect && districtSelect) {
+    regionSelect.addEventListener("change", () => {
+      refreshDistricts(regionSelect.value, null);
+    });
+  }
+
+  // --------------------------------------------------------------
+  // (7) Recommendation textarea — auto-grow as user types
+  // --------------------------------------------------------------
+  const recArea = document.querySelector(".recommendation-area");
+  if (recArea) {
+    const grow = () => {
+      recArea.style.height = "auto";
+      recArea.style.height = Math.min(recArea.scrollHeight + 4, 500) + "px";
+    };
+    recArea.addEventListener("input", grow);
+    grow();
   }
 })();
 </script>

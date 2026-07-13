@@ -40,7 +40,69 @@ def _form_context(
         "doctors": doctor_service.list_all(active_only=False),
         "complaints": catalog_loader.complaints_catalog(),
         "lor_catalog": catalog_loader.lor_status_catalog(),
+        "address_catalog": catalog_loader.address_catalog(),
     }
+
+
+def _compose_address(region_code: str, district_code: str, extra: str) -> str:
+    """Build a human-readable free-text address from the cascade selection."""
+    parts: list[str] = []
+    if region_code or district_code:
+        cat = catalog_loader.address_catalog()
+        region = next((r for r in cat.get("regions", []) if r["code"] == region_code), None)
+        if region:
+            reg_name = region["name"].get("uz") or region["code"]
+            parts.append(reg_name)
+            if district_code:
+                district = next(
+                    (d for d in region.get("districts", []) if d["code"] == district_code),
+                    None,
+                )
+                if district:
+                    parts.append(district["name"].get("uz") or district["code"])
+    if extra and extra.strip():
+        parts.append(extra.strip())
+    return ", ".join(parts)
+
+
+def _parse_address(text: str | None) -> tuple[str, str, str]:
+    """Best-effort split of a stored address string back into region/district/extra.
+
+    We saved the address as ``"<region>, <district>, <extra>"``. If the first
+    two segments match catalog entries we return their codes; otherwise the
+    whole string flows into ``extra`` so the operator can still see it.
+    """
+    if not text:
+        return "", "", ""
+    cat = catalog_loader.address_catalog()
+    parts = [p.strip() for p in text.split(",") if p.strip()]
+    if not parts:
+        return "", "", ""
+
+    reg_name = parts[0]
+    region = next(
+        (r for r in cat.get("regions", [])
+         if r["name"].get("uz") == reg_name or r["name"].get("ru") == reg_name),
+        None,
+    )
+    if region is None:
+        return "", "", text
+    region_code = region["code"]
+
+    if len(parts) < 2:
+        return region_code, "", ""
+
+    dist_name = parts[1]
+    district = next(
+        (d for d in region.get("districts", [])
+         if d["name"].get("uz") == dist_name or d["name"].get("ru") == dist_name),
+        None,
+    )
+    if district is None:
+        return region_code, "", ", ".join(parts[1:])
+    district_code = district["code"]
+    extra = ", ".join(parts[2:]) if len(parts) > 2 else ""
+    return region_code, district_code, extra
 
 
 def _collect_lor_status(form_data, catalog: dict) -> dict:
@@ -114,10 +176,16 @@ def _parse_form(form_data, lor_catalog: dict) -> tuple[ReceptionInput, dict[str,
     raw_doctor_id = (form_data.get("doctor_id") or "").strip()
     doctor_id: int | None = int(raw_doctor_id) if raw_doctor_id.isdigit() else None
 
+    # Address: region + district selects + optional freetext extra.
+    address_region = (form_data.get("address_region") or "").strip()
+    address_district = (form_data.get("address_district") or "").strip()
+    address_extra = (form_data.get("address") or "").strip()
+    composed_address = _compose_address(address_region, address_district, address_extra)
+
     patient_input = PatientInput(
         full_name=(form_data.get("full_name") or "").strip(),
         birth_year=(form_data.get("birth_year") or "").strip(),
-        address=(form_data.get("address") or "").strip() or None,
+        address=composed_address or None,
         phone=(form_data.get("phone") or "").strip() or None,
     )
     rec_input = ReceptionInput(
@@ -137,7 +205,9 @@ def _parse_form(form_data, lor_catalog: dict) -> tuple[ReceptionInput, dict[str,
         "patient_id": patient_id,
         "full_name": patient_input.full_name,
         "birth_year": patient_input.birth_year,
-        "address": patient_input.address,
+        "address": address_extra,
+        "address_region": address_region,
+        "address_district": address_district,
         "phone": patient_input.phone,
         "complaints_codes": list(complaints_codes),
         "complaints_note": rec_input.complaints_note,
@@ -165,11 +235,14 @@ def new_reception(
     if patient_id:
         p = patient_service.get(patient_id)
         if p:
+            region_code, district_code, extra = _parse_address(p.address)
             form = {
                 "patient_id": p.id,
                 "full_name": p.full_name,
                 "birth_year": p.birth_year,
-                "address": p.address,
+                "address": extra,
+                "address_region": region_code,
+                "address_district": district_code,
                 "phone": p.phone,
             }
     return render(request, "reception/form.html", _form_context(request, form=form))
@@ -226,11 +299,14 @@ def edit_reception_form(
     patient = patient_service.get(rec.patient_id)
     if patient is None:
         raise HTTPException(status_code=404, detail="patient_not_found")
+    region_code, district_code, extra = _parse_address(patient.address)
     form = {
         "patient_id": patient.id,
         "full_name": patient.full_name,
         "birth_year": patient.birth_year,
-        "address": patient.address,
+        "address": extra,
+        "address_region": region_code,
+        "address_district": district_code,
         "phone": patient.phone,
         "complaints_codes": rec.complaints_codes,
         "complaints_note": rec.complaints_note,
