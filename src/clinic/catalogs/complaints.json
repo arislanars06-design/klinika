@@ -2,77 +2,255 @@
   "sections": [
     {
       "code": "general",
-      "name": { "uz": "UMUMIY SHIKOYATLAR", "ru": "ОБЩИЕ ЖАЛОБЫ" },
+      "name": {
+        "uz": "УМУМИЙ ШИКОЯТЛАР",
+        "ru": "ОБЩИЕ ЖАЛОБЫ"
+      },
       "items": [
-        { "code": "gen_headache",         "uz": "Bosh og'rig'i",            "ru": "Головная боль" },
-        { "code": "gen_fever_subfebrile", "uz": "Isitma (subfebril)",       "ru": "Температура (субфебрильная)" },
-        { "code": "gen_fever_febrile",    "uz": "Isitma (febril)",          "ru": "Температура (фебрильная)" },
-        { "code": "gen_fever_pyretic",    "uz": "Isitma (piretik)",         "ru": "Температура (пиретическая)" },
-        { "code": "gen_weakness",         "uz": "Umumiy holsizlik",         "ru": "Общая слабость" },
-        { "code": "gen_dizziness",        "uz": "Bosh aylanishi",           "ru": "Головокружение" },
-        { "code": "gen_nausea",           "uz": "Ko'ngil aynishi",          "ru": "Тошнота" },
-        { "code": "gen_vomiting",         "uz": "Qusish",                   "ru": "Рвота" },
-        { "code": "gen_diarrhea",         "uz": "Ich ketishi",              "ru": "Диарея" },
-        { "code": "gen_joint_pain",       "uz": "Bo'g'imlarda og'riq",      "ru": "Боль в суставах" },
-        { "code": "gen_back_pain",        "uz": "Bel sohasida og'riq",      "ru": "Боль в поясничной области" }
+        {
+          "code": "gen_headache",
+          "uz": "Бош оғриғи",
+          "ru": "Головная боль"
+        },
+        {
+          "code": "gen_fever_subfebrile",
+          "uz": "Иситма (субфебрил)",
+          "ru": "Температура (субфебрильная)"
+        },
+        {
+          "code": "gen_fever_febrile",
+          "uz": "Иситма (фебрил)",
+          "ru": "Температура (фебрильная)"
+        },
+        {
+          "code": "gen_fever_pyretic",
+          "uz": "Иситма (пиретик)",
+          "ru": "Температура (пиретическая)"
+        },
+        {
+          "code": "gen_weakness",
+          "uz": "Умумий ҳолсизлик",
+          "ru": "Общая слабость"
+        },
+        {
+          "code": "gen_dizziness",
+          "uz": "Бош айланиши",
+          "ru": "Головокружение"
+        },
+        {
+          "code": "gen_nausea",
+          "uz": "Кўнгил айниши",
+          "ru": "Тошнота"
+        },
+        {
+          "code": "gen_vomiting",
+          "uz": "Қусиш",
+          "ru": "Рвота"
+        },
+        {
+          "code": "gen_diarrhea",
+          "uz": "Ич кетиши",
+          "ru": "Диарея"
+        },
+        {
+          "code": "gen_joint_pain",
+          "uz": "Бўғимларда оғриқ",
+          "ru": "Боль в суставах"
+        },
+        {
+          "code": "gen_back_pain",
+          "uz": "Бел соҳасида оғриқ",
+          "ru": "Боль в поясничной области"
+        }
       ]
     },
     {
       "code": "ear",
-      "name": { "uz": "QULOQ", "ru": "УШИ" },
+      "name": {
+        "uz": "ҚУЛОҚ",
+        "ru": "УШИ"
+      },
       "items": [
         {
           "code": "ear_cosmetic",
-          "uz": "Quloq suprasida kosmetik nuqson (shalpang quloqlik, deformatsiya, o'sma, otogematoma)",
+          "uz": "Қулоқ супрасида косметик нуқсон (шалпанг қулоқлик, деформатсия, ўсма, отогематома)",
           "ru": "Ушная раковина — косметический дефект (лопоухость, деформация, новообразование, отогематома)"
         },
-        { "code": "ear_pain",          "uz": "Quloqda og'riq",       "ru": "Боль в ухе" },
-        { "code": "ear_noise",         "uz": "Quloqda shovqin",      "ru": "Шум в ушах" },
-        { "code": "ear_hearing_loss",  "uz": "Eshitish pasayishi",   "ru": "Снижение слуха" },
-        { "code": "ear_congestion",    "uz": "Quloq bitishi",        "ru": "Заложенность уха" },
-        { "code": "ear_discharge",     "uz": "Quloqdan ajralma kelishi", "ru": "Выделения из уха", "has_discharge_type": true },
-        { "code": "ear_itching",       "uz": "Quloqda qichishish",   "ru": "Зуд в ухе" },
-        { "code": "ear_discomfort",    "uz": "Quloqda noqulaylik hissi", "ru": "Чувство дискомфорта" }
+        {
+          "code": "ear_pain",
+          "uz": "Қулоқда оғриқ",
+          "ru": "Боль в ухе"
+        },
+        {
+          "code": "ear_noise",
+          "uz": "Қулоқда шовқин",
+          "ru": "Шум в ушах"
+        },
+        {
+          "code": "ear_hearing_loss",
+          "uz": "Ешитиш пасайиши",
+          "ru": "Снижение слуха"
+        },
+        {
+          "code": "ear_congestion",
+          "uz": "Қулоқ битиши",
+          "ru": "Заложенность уха"
+        },
+        {
+          "code": "ear_discharge",
+          "uz": "Қулоқдан ажралма келиши",
+          "ru": "Выделения из уха",
+          "has_discharge_type": true
+        },
+        {
+          "code": "ear_itching",
+          "uz": "Қулоқда қичишиш",
+          "ru": "Зуд в ухе"
+        },
+        {
+          "code": "ear_discomfort",
+          "uz": "Қулоқда ноқулайлик ҳисси",
+          "ru": "Чувство дискомфорта"
+        }
       ]
     },
     {
       "code": "nose",
-      "name": { "uz": "BURUN VA YONDOSH BURUN BO'SHLIQLARI", "ru": "НОС И ОКОЛОНОСОВЫЕ ПАЗУХИ" },
+      "name": {
+        "uz": "БУРУН ВА ЁНДОШ БУРУН БЎШЛИҚЛАРИ",
+        "ru": "НОС И ОКОЛОНОСОВЫЕ ПАЗУХИ"
+      },
       "items": [
-        { "code": "nose_cosmetic",       "uz": "Kosmetik nuqson yoki hosila", "ru": "Косметический дефект, образования" },
-        { "code": "nose_congestion",     "uz": "Burun bitishi",              "ru": "Заложенность носа" },
-        { "code": "nose_breathing",      "uz": "Burun orqali nafas olishning qiyinlashishi", "ru": "Затруднение дыхания через нос" },
-        { "code": "nose_discharge",      "uz": "Burundan ajralma kelishi",   "ru": "Выделения из носа", "has_discharge_type": true },
-        { "code": "nose_itching",        "uz": "Burunda qichishish",         "ru": "Зуд в носу" },
-        { "code": "nose_pain",           "uz": "Burun og'rig'i",             "ru": "Боль в носу" },
-        { "code": "nose_trigeminal_pain","uz": "Uch shoxli nervning I\u2013II shoxlari chiqish nuqtalarida og'riq", "ru": "Болезненность точек выхода I\u2013II ветвей тройничного нерва" },
-        { "code": "nose_face_heaviness", "uz": "Yuz sohasida og'irlik hissi", "ru": "Тяжесть в области лица" }
+        {
+          "code": "nose_cosmetic",
+          "uz": "Косметик нуқсон ёки ҳосила",
+          "ru": "Косметический дефект, образования"
+        },
+        {
+          "code": "nose_congestion",
+          "uz": "Бурун битиши",
+          "ru": "Заложенность носа"
+        },
+        {
+          "code": "nose_breathing",
+          "uz": "Бурун орқали нафас олишнинг қийинлашиши",
+          "ru": "Затруднение дыхания через нос"
+        },
+        {
+          "code": "nose_discharge",
+          "uz": "Бурундан ажралма келиши",
+          "ru": "Выделения из носа",
+          "has_discharge_type": true
+        },
+        {
+          "code": "nose_itching",
+          "uz": "Бурунда қичишиш",
+          "ru": "Зуд в носу"
+        },
+        {
+          "code": "nose_pain",
+          "uz": "Бурун оғриғи",
+          "ru": "Боль в носу"
+        },
+        {
+          "code": "nose_trigeminal_pain",
+          "uz": "Уч шохли нервнинг И–ИИ шохлари чиқиш нуқталарида оғриқ",
+          "ru": "Болезненность точек выхода I–II ветвей тройничного нерва"
+        },
+        {
+          "code": "nose_face_heaviness",
+          "uz": "Юз соҳасида оғирлик ҳисси",
+          "ru": "Тяжесть в области лица"
+        }
       ]
     },
     {
       "code": "pharynx",
-      "name": { "uz": "HALQUM", "ru": "ГЛОТКА" },
+      "name": {
+        "uz": "ҲАЛҚУМ",
+        "ru": "ГЛОТКА"
+      },
       "items": [
-        { "code": "pharynx_pain",         "uz": "Tomoq og'rig'i",              "ru": "Боль в горле" },
-        { "code": "pharynx_tickling",     "uz": "Qirilish yoki achishish hissi", "ru": "Першение" },
-        { "code": "pharynx_itching",      "uz": "Qichishish",                  "ru": "Зуд" },
-        { "code": "pharynx_lump",         "uz": "\u00abTomoqda tugun\u00bb hissi", "ru": "Чувство \u00abкомка\u00bb" },
-        { "code": "pharynx_foreign_body", "uz": "\u00abBegona jism\u00bb hissi", "ru": "Чувство инородного тела" },
-        { "code": "pharynx_discharge",    "uz": "Ajralma",                     "ru": "Отделяемое", "has_discharge_type": true },
-        { "code": "pharynx_swallowing",   "uz": "Yutishning qiyinlashishi",    "ru": "Затрудненное глотание" },
-        { "code": "pharynx_cough",        "uz": "Yo'tal",                      "ru": "Кашель" }
+        {
+          "code": "pharynx_pain",
+          "uz": "Томоқ оғриғи",
+          "ru": "Боль в горле"
+        },
+        {
+          "code": "pharynx_tickling",
+          "uz": "Қирилиш ёки ачишиш ҳисси",
+          "ru": "Першение"
+        },
+        {
+          "code": "pharynx_itching",
+          "uz": "Қичишиш",
+          "ru": "Зуд"
+        },
+        {
+          "code": "pharynx_lump",
+          "uz": "«Томоқда тугун» ҳисси",
+          "ru": "Чувство «комка»"
+        },
+        {
+          "code": "pharynx_foreign_body",
+          "uz": "«Бегона жисм» ҳисси",
+          "ru": "Чувство инородного тела"
+        },
+        {
+          "code": "pharynx_discharge",
+          "uz": "Ажралма",
+          "ru": "Отделяемое",
+          "has_discharge_type": true
+        },
+        {
+          "code": "pharynx_swallowing",
+          "uz": "Ютишнинг қийинлашиши",
+          "ru": "Затрудненное глотание"
+        },
+        {
+          "code": "pharynx_cough",
+          "uz": "Йўтал",
+          "ru": "Кашель"
+        }
       ]
     },
     {
       "code": "larynx",
-      "name": { "uz": "HIQILDOQ", "ru": "ГОРТАНЬ" },
+      "name": {
+        "uz": "ҲИҚИЛДОҚ",
+        "ru": "ГОРТАНЬ"
+      },
       "items": [
-        { "code": "larynx_voice_change",  "uz": "Ovoz funksiyasining o'zgarishi (xirillash, bo'g'ilish, ovoz yo'qolishi)", "ru": "Изменение голосовой функции (охриплость, осиплость, афония)" },
-        { "code": "larynx_cough",         "uz": "Yo'tal",                       "ru": "Кашель" },
-        { "code": "larynx_pain",          "uz": "Og'riq",                       "ru": "Боль" },
-        { "code": "larynx_foreign_body",  "uz": "Begona jism hissi",            "ru": "Чувство инородного тела" },
-        { "code": "larynx_breathing",     "uz": "Nafas olishning qiyinlashishi","ru": "Затрудненное дыхание" },
-        { "code": "larynx_swallowing",    "uz": "Yutishning qiyinlashishi",     "ru": "Затрудненное глотание" }
+        {
+          "code": "larynx_voice_change",
+          "uz": "Овоз функсиясининг ўзгариши (хириллаш, бўғилиш, овоз йўқолиши)",
+          "ru": "Изменение голосовой функции (охриплость, осиплость, афония)"
+        },
+        {
+          "code": "larynx_cough",
+          "uz": "Йўтал",
+          "ru": "Кашель"
+        },
+        {
+          "code": "larynx_pain",
+          "uz": "Оғриқ",
+          "ru": "Боль"
+        },
+        {
+          "code": "larynx_foreign_body",
+          "uz": "Бегона жисм ҳисси",
+          "ru": "Чувство инородного тела"
+        },
+        {
+          "code": "larynx_breathing",
+          "uz": "Нафас олишнинг қийинлашиши",
+          "ru": "Затрудненное дыхание"
+        },
+        {
+          "code": "larynx_swallowing",
+          "uz": "Ютишнинг қийинлашиши",
+          "ru": "Затрудненное глотание"
+        }
       ]
     }
   ]

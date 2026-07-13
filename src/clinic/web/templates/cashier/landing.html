@@ -169,6 +169,62 @@
   </div>
 </div>
 
+<!-- All-time payers list (accumulating) -->
+{% if all_cashier_patients %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="bi bi-clipboard2-check"></i> {{ t("cashier.all_time_patients") }}</span>
+    <span class="badge text-bg-secondary">{{ all_cashier_patients | length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>{{ t("reception.full_name") }}</th>
+          <th>{{ t("reception.birth_year") }}</th>
+          <th>{{ t("reception.phone") }}</th>
+          <th>{{ t("stats.last_paid") }}</th>
+          <th>{{ t("cashier.line_items") }}</th>
+          <th class="text-end">{{ t("stats.paid_amount") }}</th>
+          <th class="text-end">{{ t("common.actions") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in all_cashier_patients %}
+        <tr>
+          <td class="text-muted small">{{ loop.index }}</td>
+          <td class="fw-medium">
+            <a href="/patients/{{ p.id }}" class="text-decoration-none">{{ p.full_name }}</a>
+          </td>
+          <td>{{ p.birth_year }}</td>
+          <td class="small">{{ p.phone or "—" }}</td>
+          <td class="small text-muted">{{ p.last_paid_at.strftime('%d.%m.%Y %H:%M') if p.last_paid_at else "—" }}</td>
+          <td class="small">{{ p.lines }}</td>
+          <td class="text-end fw-semibold">
+            {{ p.total }} <span class="text-muted small">{{ t("cashier.currency") }}</span>
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="/cashier/patient/{{ p.id }}" class="btn btn-outline-secondary" title="{{ t('cashier.open') }}">
+                <i class="bi bi-cash-coin"></i>
+              </a>
+              <form method="post" action="/patients/{{ p.id }}/delete" class="d-inline"
+                    onsubmit="return confirm('{{ t('patients.confirm_delete') }}');">
+                <button class="btn btn-outline-danger" title="{{ t('common.delete') }}">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <!-- Quick-create modal: register a walk-in patient inline and jump to cart -->
 <div class="modal fade" id="quick-bill-modal" tabindex="-1">
   <div class="modal-dialog">

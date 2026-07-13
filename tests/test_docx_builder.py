@@ -82,7 +82,7 @@ def test_reception_default_uz(sample: dict, tmp_path: Path) -> None:
     assert "QABUL VARAQASI" in text
     assert "Aliyev Anvar" in text
     assert "Otitis media akuta" in text
-    assert "quloqda og'riq" in text.lower()
+    assert "қулоқда оғриқ" in text.lower()
     assert "LOR STATUS" in text
 
 

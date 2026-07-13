@@ -202,7 +202,7 @@ def test_selected_complaints_panel_scaffolding(admin_client: TestClient) -> None
     assert 'id="selected-complaints-panel"' in resp.text
     assert 'complaint-checkbox' in resp.text
     # Each checkbox carries the localized label for the JS to render
-    assert 'data-label="Bosh og' in resp.text  # gen_headache uz
+    assert 'data-label="Бош о' in resp.text  # gen_headache uz — Cyrillic "Бош оғриғи"
 
 
 # ---------------------------------------------------------------------------

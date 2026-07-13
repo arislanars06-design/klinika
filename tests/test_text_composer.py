@@ -15,14 +15,14 @@ def test_complaints_empty_returns_empty_string() -> None:
 
 def test_complaints_note_only() -> None:
     text = compose_complaints([], None, "quloqda og'riq bor")
-    assert "Qo'shimcha" in text
+    assert "Қўшимча" in text
     assert "quloqda og'riq bor" in text
 
 
 def test_complaints_single_code_uz() -> None:
     text = compose_complaints(["ear_pain"], None, None, lang="uz")
-    assert text.startswith("Bemor quyidagilarga shikoyat qiladi")
-    assert "quloqda og'riq" in text.lower()
+    assert text.startswith("Бемор қуйидагиларга шикоят қилади")
+    assert "қулоқда оғриқ" in text.lower()
 
 
 def test_complaints_single_code_ru() -> None:
@@ -45,9 +45,9 @@ def test_complaints_with_note_and_codes() -> None:
         "3 kundan beri",
         lang="uz",
     )
-    assert "quloqda og'riq" in text.lower()
-    assert "burun bitishi" in text.lower()
-    assert "Qo'shimcha: 3 kundan beri" in text
+    assert "қулоқда оғриқ" in text.lower()
+    assert "бурун битиши" in text.lower()
+    assert "Қўшимча: 3 kundan beri" in text or "Qo'shimcha: 3 kundan beri" in text
 
 
 def test_complaints_unknown_code_ignored() -> None:
@@ -74,9 +74,9 @@ def test_lor_rhinoscopy_basic() -> None:
     }
     text = compose_lor_status(data, lang="uz")
     assert "LOR STATUS" in text
-    assert "RINOSKOPIYA" in text
-    assert "O'zgarmagan" in text
-    assert "Erkin" in text
+    assert "РИНОСКОПИЯ" in text
+    assert "Ўзгармаган" in text
+    assert "Еркин" in text
 
 
 def test_lor_otoscopy_per_ear_rendering() -> None:
@@ -94,11 +94,11 @@ def test_lor_otoscopy_per_ear_rendering() -> None:
         }
     }
     text = compose_lor_status(data, lang="uz")
-    assert "OTOSKOPIYA" in text
+    assert "ОТОСКОПИЯ" in text
     assert "AD" in text
     assert "AS" in text
     # AS-only tympanic cavity section (perforation != none)
-    assert "yiring" in text.lower()
+    assert "йиринг" in text.lower()
 
 
 def test_lor_visible_when_hides_field() -> None:
@@ -111,8 +111,8 @@ def test_lor_visible_when_hides_field() -> None:
     }
     text = compose_lor_status(data, lang="uz")
     # "Bukrilik" should not appear because state is 'unchanged'
-    assert "bukrilik" not in text.lower()
-    assert "O'zgarmagan" in text
+    assert "букрилик" not in text.lower()
+    assert "Ўзгармаган" in text
 
 
 def test_lor_ru_language() -> None:
