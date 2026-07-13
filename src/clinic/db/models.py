@@ -169,6 +169,9 @@ class CashierRecord(Base):
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
     note: Mapped[str | None] = mapped_column(Text)
+    # Phase 4 additions — kept nullable so upgrades don't need a migration
+    # tool: old rows come back with defaults, new rows carry the real value.
+    payment_type: Mapped[str] = mapped_column(String(16), nullable=False, default="cash")
 
     patient: Mapped[Patient] = relationship(back_populates="cashier_records")
     reception: Mapped[Reception | None] = relationship(back_populates="cashier_records")
@@ -176,6 +179,10 @@ class CashierRecord(Base):
 
     __table_args__ = (
         CheckConstraint("quantity > 0", name="ck_cashier_quantity_positive"),
+        CheckConstraint(
+            "payment_type IN ('cash','transfer','terminal')",
+            name="ck_cashier_payment_type",
+        ),
         Index("idx_cashier_paid", "paid_at"),
         Index("idx_cashier_patient", "patient_id"),
     )

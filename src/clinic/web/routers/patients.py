@@ -11,9 +11,14 @@ from clinic.web.dependencies import render, require_login
 router = APIRouter(prefix="/patients")
 
 
-VALID_SEARCH_FIELDS: tuple[PatientSearchField, ...] = (
-    "any", "full_name", "phone", "address", "diagnosis",
-)
+# UI ↔ backend mapping. ``any`` collapses to the catch-all SearchField.
+_SEARCH_MODES: dict[str, PatientSearchField] = {
+    "any":        ANY_FIELD_SEARCH,
+    "full_name":  PatientSearchField(full_name=True),
+    "phone":      PatientSearchField(phone=True),
+    "diagnosis":  PatientSearchField(diagnosis=True),
+    "medication": PatientSearchField(medication=True),
+}
 
 
 @router.get("")
@@ -24,17 +29,16 @@ def list_patients(
     page: int = 1,
     _user: str = Depends(require_login),
 ):
-    if search_in not in VALID_SEARCH_FIELDS:
-        search_in = ANY_FIELD_SEARCH
+    mode = _SEARCH_MODES.get(search_in, ANY_FIELD_SEARCH)
     page_data = patient_service.paginated_search(
         text=q or None,
-        search_in=search_in,
+        search_in=mode,
         page=max(1, page),
     )
     return render(request, "patients/list.html", {
         "page": page_data,
         "q": q,
-        "search_in": search_in,
+        "search_in": search_in if search_in in _SEARCH_MODES else "any",
     })
 
 

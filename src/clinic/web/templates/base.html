@@ -1,5 +1,7 @@
 <!doctype html>
-<html lang="{{ lang }}" data-bs-theme="light">
+<html lang="{{ lang }}"
+      data-bs-theme="{% if theme == 'auto' %}light{% else %}{{ theme }}{% endif %}"
+      data-clinic-theme="{{ theme }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -44,6 +46,33 @@
             </a>
           </li>
           {% endif %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" title="{{ t('theme.title') }}">
+              {% if theme == 'dark' %}<i class="bi bi-moon-stars-fill"></i>
+              {% elif theme == 'auto' %}<i class="bi bi-circle-half"></i>
+              {% else %}<i class="bi bi-sun-fill"></i>{% endif %}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a class="dropdown-item {% if theme == 'light' %}active{% endif %}"
+                   href="/theme/light?next={{ request.url.path | urlencode }}">
+                  <i class="bi bi-sun-fill"></i> {{ t("theme.light") }}
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if theme == 'dark' %}active{% endif %}"
+                   href="/theme/dark?next={{ request.url.path | urlencode }}">
+                  <i class="bi bi-moon-stars-fill"></i> {{ t("theme.dark") }}
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if theme == 'auto' %}active{% endif %}"
+                   href="/theme/auto?next={{ request.url.path | urlencode }}">
+                  <i class="bi bi-circle-half"></i> {{ t("theme.auto") }}
+                </a>
+              </li>
+            </ul>
+          </li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button">
               <i class="bi bi-translate"></i> {{ lang.upper() }}

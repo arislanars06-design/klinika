@@ -1,8 +1,24 @@
 {
   "sections": [
     {
+      "code": "general",
+      "name": { "uz": "UMUMIY SHIKOYATLAR", "ru": "ОБЩИЕ ЖАЛОБЫ" },
+      "items": [
+        { "code": "gen_headache",         "uz": "Bosh og'rig'i",            "ru": "Головная боль" },
+        { "code": "gen_fever_subfebrile", "uz": "Isitma (subfebril)",       "ru": "Температура (субфебрильная)" },
+        { "code": "gen_fever_febrile",    "uz": "Isitma (febril)",          "ru": "Температура (фебрильная)" },
+        { "code": "gen_fever_pyretic",    "uz": "Isitma (piretik)",         "ru": "Температура (пиретическая)" },
+        { "code": "gen_weakness",         "uz": "Umumiy holsizlik",         "ru": "Общая слабость" },
+        { "code": "gen_dizziness",        "uz": "Bosh aylanishi",           "ru": "Головокружение" },
+        { "code": "gen_nausea",           "uz": "Ko'ngil aynishi",          "ru": "Тошнота" },
+        { "code": "gen_vomiting",         "uz": "Qusish",                   "ru": "Рвота" },
+        { "code": "gen_diarrhea",         "uz": "Ich ketishi",              "ru": "Диарея" },
+        { "code": "gen_joint_pain",       "uz": "Bo'g'imlarda og'riq",      "ru": "Боль в суставах" },
+        { "code": "gen_back_pain",        "uz": "Bel sohasida og'riq",      "ru": "Боль в поясничной области" }
+      ]
+    },
+    {
       "code": "ear",
-      "icon": "\ud83d\udc42",
       "name": { "uz": "QULOQ", "ru": "УШИ" },
       "items": [
         {
@@ -21,7 +37,6 @@
     },
     {
       "code": "nose",
-      "icon": "\ud83d\udc43",
       "name": { "uz": "BURUN VA YONDOSH BURUN BO'SHLIQLARI", "ru": "НОС И ОКОЛОНОСОВЫЕ ПАЗУХИ" },
       "items": [
         { "code": "nose_cosmetic",       "uz": "Kosmetik nuqson yoki hosila", "ru": "Косметический дефект, образования" },
@@ -36,7 +51,6 @@
     },
     {
       "code": "pharynx",
-      "icon": "\ud83d\ude2e",
       "name": { "uz": "HALQUM", "ru": "ГЛОТКА" },
       "items": [
         { "code": "pharynx_pain",         "uz": "Tomoq og'rig'i",              "ru": "Боль в горле" },
@@ -51,7 +65,6 @@
     },
     {
       "code": "larynx",
-      "icon": "\ud83d\udde3",
       "name": { "uz": "HIQILDOQ", "ru": "ГОРТАНЬ" },
       "items": [
         { "code": "larynx_voice_change",  "uz": "Ovoz funksiyasining o'zgarishi (xirillash, bo'g'ilish, ovoz yo'qolishi)", "ru": "Изменение голосовой функции (охриплость, осиплость, афония)" },

@@ -30,9 +30,13 @@ class PatientSearchField(NamedTuple):
     phone: bool = True
     diagnosis: bool = False
     birth_year: bool = False
+    # Phase 4: allow searching medications / recommendations text.
+    medication: bool = False
 
 
-ANY_FIELD_SEARCH = PatientSearchField(full_name=True, phone=True, diagnosis=True, birth_year=True)
+ANY_FIELD_SEARCH = PatientSearchField(
+    full_name=True, phone=True, diagnosis=True, birth_year=True, medication=True
+)
 
 
 def _clean_optional(value: str | None) -> str | None:
@@ -175,6 +179,14 @@ class PatientRepository:
                         .where(func.lower(Reception.diagnosis).like(like))
                     )
                     clauses.append(Patient.id.in_(diagnosis_subq))
+                if search_in.medication:
+                    # Sub-condition: patient has a reception whose
+                    # recommendation / prescription mentions the term.
+                    medication_subq = (
+                        select(Reception.patient_id)
+                        .where(func.lower(Reception.recommendation).like(like))
+                    )
+                    clauses.append(Patient.id.in_(medication_subq))
                 if clauses:
                     conditions.append(or_(*clauses))
 

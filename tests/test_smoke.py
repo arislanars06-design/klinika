@@ -31,9 +31,13 @@ def test_catalogs_load() -> None:
     lor = lor_status_catalog()
     discharge = discharge_types_catalog()
 
-    assert len(complaints["sections"]) == 4
+    assert len(complaints["sections"]) == 5
+    section_codes = {s["code"] for s in complaints["sections"]}
+    assert section_codes == {"general", "ear", "nose", "pharynx", "larynx"}
     ear = next(s for s in complaints["sections"] if s["code"] == "ear")
     assert len(ear["items"]) == 8
+    general = next(s for s in complaints["sections"] if s["code"] == "general")
+    assert len(general["items"]) == 11
 
     method_codes = {m["code"] for m in lor["methods"]}
     assert method_codes == {"rhinoscopy", "pharyngoscopy", "otoscopy", "laryngoscopy"}

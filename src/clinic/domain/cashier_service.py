@@ -45,12 +45,18 @@ def list_for_reception(reception_id: int) -> list[CashierRecordDTO]:
 # ============================================================================
 
 
+VALID_PAYMENT_TYPES = ("cash", "transfer", "terminal")
+
+
 def save_payment(data: CashierPaymentInput) -> list[CashierRecordDTO]:
     """Persist a receipt as one row per line-item. All-or-nothing."""
     errors = ValidationError()
 
     if not data.items:
         errors.add("items", "validation.cashier_items_required")
+
+    if data.payment_type not in VALID_PAYMENT_TYPES:
+        errors.add("payment_type", "validation.invalid_choice")
 
     normalized_items: list[tuple[int, int]] = []  # (service_id, quantity)
     for i, item in enumerate(data.items):
@@ -84,7 +90,10 @@ def save_payment(data: CashierPaymentInput) -> list[CashierRecordDTO]:
         svc_repo = ServiceRepository(session)
         cash_repo = CashierRepository(session)
 
-        records: list[CashierRecord] = []
+        # First pass: compute per-item base totals so we can distribute an
+        # override across them proportionally.
+        line_totals: list[tuple[int, int, Decimal, Decimal]] = []  # (svc_id, qty, unit_price, subtotal)
+        subtotal_sum = Decimal("0")
         for service_id, quantity in normalized_items:
             svc = svc_repo.get(service_id)
             if svc is None:
@@ -92,26 +101,45 @@ def save_payment(data: CashierPaymentInput) -> list[CashierRecordDTO]:
                 err.add(f"service.{service_id}", "validation.service_not_found")
                 raise err
             price = Decimal(svc.price)
+            subtotal = price * quantity
+            line_totals.append((service_id, quantity, price, subtotal))
+            subtotal_sum += subtotal
+
+        scale = Decimal("1")
+        if data.override_total is not None and subtotal_sum > 0:
+            override = Decimal(data.override_total)
+            if override < 0:
+                err = ValidationError()
+                err.add("override_total", "validation.quantity_positive")
+                raise err
+            scale = (override / subtotal_sum).quantize(Decimal("0.0001"))
+
+        records: list[CashierRecord] = []
+        for service_id, quantity, unit_price, subtotal in line_totals:
+            adjusted_unit = (unit_price * scale).quantize(Decimal("0.01"))
+            adjusted_total = (subtotal * scale).quantize(Decimal("0.01"))
             record = CashierRecord(
                 patient_id=data.patient_id,
                 reception_id=data.reception_id,
                 service_id=service_id,
                 quantity=quantity,
-                price_at_moment=price,
-                total=price * quantity,
+                price_at_moment=adjusted_unit,
+                total=adjusted_total,
                 paid_at=now,
                 note=note,
+                payment_type=data.payment_type,
             )
             records.append(record)
 
         cash_repo.add_many(records)
 
         logger.info(
-            "Cashier: saved {} record(s) for patient {} reception {} total {}",
+            "Cashier: saved {} record(s) for patient {} reception {} total {} ({})",
             len(records),
             data.patient_id,
             data.reception_id,
             sum(r.total for r in records),
+            data.payment_type,
         )
         return [CashierRecordDTO.from_orm(r) for r in records]
 

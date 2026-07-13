@@ -111,8 +111,13 @@ def test_reception_form_renders(logged_in: TestClient) -> None:
     assert resp.status_code == 200
     # Complaints accordion + LOR method tabs are present
     assert "complaints-accordion" in resp.text
-    assert 'name="lor_rhinoscopy"' in resp.text
+    # Structured LOR fields include the field-name prefix ``lor__``
+    assert 'lor__rhinoscopy__' in resp.text
+    # General complaints section is now the first accordion item
+    assert 'complaints-general' in resp.text
     assert 'name="doctor_id"' in resp.text
+    # NORMA button appears in the LOR STATUS editor
+    assert 'norma-btn' in resp.text
 
 
 def test_language_switch_updates_html_lang(logged_in: TestClient) -> None:
@@ -145,13 +150,15 @@ def test_full_reception_flow(logged_in: TestClient) -> None:
         "address": "Sergeli, 7-mavze",
         "phone": "+998939391914",
         "patient_id": "",
-        "complaints": ["ear_pain", "ear_hearing_loss"],
+        "complaints": ["ear_pain", "ear_hearing_loss", "gen_headache"],
         "complaints_note": "Kechqurun kuchayadi",
         "anamnesis": "Sovuq havodan keyin boshlangan.",
-        "lor_rhinoscopy": "Shilliq parda giperemiyalangan.",
-        "lor_pharyngoscopy": "",
-        "lor_otoscopy": "O'ng quloq: pardasi giperemiyalangan.",
-        "lor_laryngoscopy": "",
+        # Structured LOR STATUS — pick a couple of representative fields
+        "lor__rhinoscopy__mucosa__color":        "hyperemic",
+        "lor__rhinoscopy__mucosa__moisture":     "moist",
+        "lor__rhinoscopy__breathing__state":     "difficult",
+        "lor__rhinoscopy__breathing__side":      "right",
+        "lor__otoscopy__AD__tympanic_membrane__color": "hyperemic",
         "diagnosis": "O'tkir o'ng tomonlama otit (H66.9)",
         "recommendation": "Amoxicillin 500 mg 3 mahal 7 kun",
         "doctor_id": str(doctor.id),
@@ -168,7 +175,9 @@ def test_full_reception_flow(logged_in: TestClient) -> None:
     assert "Aliyev Anvar" in resp.text
     assert "otit" in resp.text.lower()
     assert "Karimov Ali" in resp.text
-    assert "giperemiyalangan" in resp.text
+    # LOR STATUS text should have been composed from the structured selections
+    lower = resp.text.lower()
+    assert "hyperem" in lower or "гиперем" in lower or "giperem" in lower
 
     # Edit form pre-fills
     resp = logged_in.get(f"/reception/{reception_id}/edit")

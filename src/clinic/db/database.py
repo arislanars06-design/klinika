@@ -45,6 +45,32 @@ def init_db() -> None:
     settings.ensure_dirs()
     logger.info("Initializing database at {}", settings.db_path)
     Base.metadata.create_all(engine)
+    _apply_light_migrations()
+
+
+def _apply_light_migrations() -> None:
+    """Idempotent, forward-only column additions for pre-Alembic upgrades.
+
+    ``create_all`` only creates missing tables; it never adds columns to
+    existing ones. Each block below inspects ``PRAGMA table_info`` and
+    issues an ``ALTER TABLE ADD COLUMN`` when needed, so upgrades don't
+    require the operator to delete their database.
+    """
+    from sqlalchemy import text
+
+    def _columns(conn, table: str) -> set[str]:
+        rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
+        return {row[1] for row in rows}
+
+    with engine.begin() as conn:
+        if "cashier_records" in Base.metadata.tables:
+            cols = _columns(conn, "cashier_records")
+            if "payment_type" not in cols:
+                conn.execute(text(
+                    "ALTER TABLE cashier_records "
+                    "ADD COLUMN payment_type VARCHAR(16) NOT NULL DEFAULT 'cash'"
+                ))
+                logger.info("Migration: added cashier_records.payment_type")
 
 
 @contextmanager

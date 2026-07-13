@@ -68,3 +68,14 @@ def switch_language(request: Request, code: str, next: str | None = None):
         request.session["lang"] = code
         translator.set_language(code)
     return RedirectResponse(url=_safe_next(next), status_code=303)
+
+
+VALID_THEME_CODES = ("light", "dark", "auto")
+
+
+@router.get("/theme/{code}")
+def switch_theme(request: Request, code: str, next: str | None = None):
+    """Flip the theme for the current session (cookie-backed)."""
+    if code in VALID_THEME_CODES:
+        request.session["theme"] = code
+    return RedirectResponse(url=_safe_next(next), status_code=303)
