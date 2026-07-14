@@ -1,14 +1,26 @@
 """(Re)generate ``templates/reception_template.docx``.
 
-A **compact** reception varaqasi:
+======================================================================
+ IMMUTABLE LAYOUT RULES (do not violate when editing this script)
+======================================================================
 
-  * A three-column header table:  [ logo ] [ clinic identity ] [ QR ]
-    — both images are optional (missing files → cell stays empty).
-  * Compact patient / complaints / anamnesis / LOR / diagnosis blocks
-    with the section title inline (no big grey bars).
-  * A **boxed** recommendation ("TAVSIYA") — a bordered table cell
-    that stands out on the page, per the user's request.
-  * Signature footer.
+The operator explicitly asked for these four properties to be preserved
+across every future edit — including the "Reset to default" flow in
+Settings → Шаблон.  Any change that breaks one of them must be reverted.
+
+  1. **Date appears exactly once**, under the title.  No №<reception-id>
+     next to it.  No second date in the footer.
+  2. **No visible content tables**.  Bemor / imzo bloklari — inline
+     paragraflar.  Faqat ikki jadval qoladi:
+       - borderless letterhead (image container, no grid),
+       - the framed TAVSIYA box (rule 4).
+  3. **No date next to the doctor signature line**.  Doctor + phone +
+     signature line are inline paragraphs; the reception date only
+     appears at the top.
+  4. **Only TAVSIYA is framed**.  Every other section is plain inline
+     "TITLE: value" prose.
+
+======================================================================
 
 The template is a docxtpl document with Jinja placeholders; the clinic
 identity fields come from ``ClinicInfo`` (Settings → Клиника).
@@ -271,7 +283,7 @@ def build_default_template(dst: Path | None = None) -> Path:
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
     subtitle.paragraph_format.space_before = Pt(0)
     subtitle.paragraph_format.space_after = Pt(4)
-    srun = subtitle.add_run("Sana / Дата: {{ reception.date }}    №{{ reception.id }}")
+    srun = subtitle.add_run("Sana / Дата: {{ reception.date }}")
     srun.font.size = Pt(9)
     srun.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
 
