@@ -245,8 +245,6 @@ def _auto_save_docx(reception_id: int, lang: str) -> tuple[str, Path | None]:
 
     try:
         clinic_info = clinic_info_service.load()
-        if not clinic_info.save_folder:
-            return "disabled", None
         rec = reception_service.get(reception_id)
         if rec is None:
             return "disabled", None
@@ -254,13 +252,23 @@ def _auto_save_docx(reception_id: int, lang: str) -> tuple[str, Path | None]:
         if patient is None:
             return "disabled", None
         doctor = doctor_service.get(rec.doctor_id)
+
+        # Per-doctor folder wins over the clinic-wide one; either being set
+        # is enough to enable auto-save. If NEITHER is configured, we skip.
+        target_folder = (
+            (doctor.save_folder if doctor and doctor.save_folder else None)
+            or clinic_info.save_folder
+            or None
+        )
+        if not target_folder:
+            return "disabled", None
+
         # Filename intentionally simple: "F.I.O. YYYY.docx".
-        # Successive saves for the same patient will overwrite the file,
-        # which matches the operator's request — the DB keeps history, the
-        # docx is just the latest snapshot for that patient.
+        # Successive saves for the same patient overwrite the file — DB
+        # keeps full history, docx is just the latest snapshot.
         safe_name = _safe_filename_part(patient.full_name)
         filename = f"{safe_name} {patient.birth_year}.docx"
-        output_path = Path(clinic_info.save_folder).expanduser() / filename
+        output_path = Path(target_folder).expanduser() / filename
         clinic_dict = {
             "name_uz": clinic_info.name_uz,
             "name_ru": clinic_info.name_ru,

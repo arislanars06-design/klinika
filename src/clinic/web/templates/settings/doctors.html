@@ -3,6 +3,8 @@
 
 {% block settings_body %}
 <div class="row g-3">
+
+  <!-- ============ ADD NEW DOCTOR ============ -->
   <div class="col-lg-4">
     <div class="card shadow-sm">
       <div class="card-header"><i class="bi bi-plus-lg"></i> {{ t("settings.add_doctor") }}</div>
@@ -16,39 +18,79 @@
             <label class="form-label">{{ t("reception.phone") }}</label>
             <input type="tel" name="phone" class="form-control" placeholder="+998 ...">
           </div>
+          <div class="mb-3">
+            <label class="form-label">
+              <i class="bi bi-folder2-open"></i>
+              {{ t("settings.doctor_save_folder") }}
+            </label>
+            <input type="text" name="save_folder" class="form-control"
+                   placeholder="C:\Users\Hp\Documents\Klinika\Doctor_X">
+            <div class="form-text small">{{ t("settings.doctor_save_folder_hint") }}</div>
+          </div>
         </div>
         <div class="card-footer d-flex justify-content-end">
-          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> {{ t("common.add") }}</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> {{ t("common.add") }}
+          </button>
         </div>
       </form>
     </div>
   </div>
+
+  <!-- ============ DOCTOR LIST ============ -->
   <div class="col-lg-8">
     <div class="card shadow-sm">
-      <div class="card-header">{{ t("settings.doctors_list") }} — {{ doctors | length }}</div>
+      <div class="card-header">
+        {{ t("settings.doctors_list") }}
+        <span class="badge text-bg-secondary">{{ doctors | length }}</span>
+      </div>
       <div class="table-responsive">
         <table class="table mb-0 align-middle">
           <thead class="table-light">
             <tr>
-              <th>#</th>
+              <th style="width: 3rem;">#</th>
               <th>{{ t("reception.full_name") }}</th>
               <th>{{ t("reception.phone") }}</th>
-              <th>{{ t("settings.status") }}</th>
-              <th class="text-end">{{ t("common.actions") }}</th>
+              <th>
+                <i class="bi bi-folder2-open" title="{{ t('settings.doctor_save_folder') }}"></i>
+                {{ t("settings.doctor_save_folder_short") }}
+              </th>
+              <th style="width: 6rem;">{{ t("settings.status") }}</th>
+              <th class="text-end" style="width: 8rem;">{{ t("common.actions") }}</th>
             </tr>
           </thead>
           <tbody>
             {% for d in doctors %}
             <tr class="{% if not d.is_active %}text-muted{% endif %}">
-              <td class="small">{{ d.id }}</td>
-              <td>
-                <form method="post" action="/settings/doctors/{{ d.id }}/edit" class="d-flex gap-2">
-                  <input type="text" name="full_name" class="form-control form-control-sm" value="{{ d.full_name }}">
-                  <input type="tel" name="phone" class="form-control form-control-sm" value="{{ d.phone or '' }}" placeholder="{{ t('reception.phone') }}">
-                  <button class="btn btn-sm btn-outline-primary" title="{{ t('common.save') }}"><i class="bi bi-check-lg"></i></button>
+              <td colspan="4">
+                <form method="post" action="/settings/doctors/{{ d.id }}/edit"
+                      class="row g-1 align-items-center">
+                  <div class="col-auto small text-muted" style="min-width: 2.5rem;">
+                    #{{ d.id }}
+                  </div>
+                  <div class="col-md-3">
+                    <input type="text" name="full_name" class="form-control form-control-sm"
+                           value="{{ d.full_name }}"
+                           placeholder="{{ t('reception.full_name') }}">
+                  </div>
+                  <div class="col-md-2">
+                    <input type="tel" name="phone" class="form-control form-control-sm"
+                           value="{{ d.phone or '' }}"
+                           placeholder="{{ t('reception.phone') }}">
+                  </div>
+                  <div class="col">
+                    <input type="text" name="save_folder" class="form-control form-control-sm"
+                           value="{{ d.save_folder or '' }}"
+                           placeholder="{{ t('settings.doctor_save_folder_placeholder') }}"
+                           title="{{ t('settings.doctor_save_folder_hint') }}">
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-sm btn-outline-primary" title="{{ t('common.save') }}">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </div>
                 </form>
               </td>
-              <td class="small">{{ d.phone or "—" }}</td>
               <td>
                 {% if d.is_active %}
                   <span class="badge text-bg-success">{{ t("settings.active") }}</span>
@@ -58,7 +100,8 @@
               </td>
               <td class="text-end">
                 <form method="post" action="/settings/doctors/{{ d.id }}/toggle" class="d-inline">
-                  <button class="btn btn-sm {% if d.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                  <button class="btn btn-sm {% if d.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                          title="{% if d.is_active %}{{ t('settings.deactivate') }}{% else %}{{ t('settings.activate') }}{% endif %}">
                     {% if d.is_active %}<i class="bi bi-archive"></i>{% else %}<i class="bi bi-arrow-counterclockwise"></i>{% endif %}
                   </button>
                 </form>
@@ -71,10 +114,18 @@
               </td>
             </tr>
             {% else %}
-            <tr><td colspan="5" class="text-center text-muted py-4">{{ t("settings.no_doctors") }}</td></tr>
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                {{ t("settings.no_doctors") }}
+              </td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>
+      </div>
+      <div class="card-footer small text-muted">
+        <i class="bi bi-info-circle"></i>
+        {{ t("settings.doctor_save_folder_footnote") }}
       </div>
     </div>
   </div>

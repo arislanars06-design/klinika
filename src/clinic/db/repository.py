@@ -276,8 +276,18 @@ class DoctorRepository:
         stmt = select(Doctor).order_by(Doctor.is_active.desc(), Doctor.full_name)
         return list(self._session.execute(stmt).scalars())
 
-    def create(self, *, full_name: str, phone: str | None = None) -> Doctor:
-        doctor = Doctor(full_name=full_name.strip(), phone=(phone or None))
+    def create(
+        self,
+        *,
+        full_name: str,
+        phone: str | None = None,
+        save_folder: str | None = None,
+    ) -> Doctor:
+        doctor = Doctor(
+            full_name=full_name.strip(),
+            phone=(phone or None),
+            save_folder=(save_folder or None),
+        )
         self._session.add(doctor)
         self._session.flush()
         return doctor
@@ -289,7 +299,15 @@ class DoctorRepository:
         full_name: str | None = None,
         phone: str | None = None,
         is_active: bool | None = None,
+        save_folder: str | None = None,
+        save_folder_set: bool = False,
     ) -> Doctor | None:
+        """Update any subset of doctor fields.
+
+        ``save_folder`` uses a separate ``save_folder_set`` flag so the
+        caller can distinguish "leave alone" (``save_folder_set=False``)
+        from "clear it" (``save_folder_set=True, save_folder=None``).
+        """
         doctor = self.get(doctor_id)
         if doctor is None:
             return None
@@ -299,6 +317,9 @@ class DoctorRepository:
             doctor.phone = phone.strip() or None
         if is_active is not None:
             doctor.is_active = is_active
+        if save_folder_set:
+            cleaned = (save_folder or "").strip()
+            doctor.save_folder = cleaned or None
         return doctor
 
     def set_active(self, doctor_id: int, is_active: bool) -> Doctor | None:

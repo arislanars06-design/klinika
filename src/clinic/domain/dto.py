@@ -48,6 +48,8 @@ class DoctorDTO:
     full_name: str
     phone: str | None
     is_active: bool
+    # Optional: overrides ClinicInfo.save_folder for this doctor's receptions.
+    save_folder: str | None = None
 
     @classmethod
     def from_orm(cls, d: Doctor) -> DoctorDTO:
@@ -56,6 +58,7 @@ class DoctorDTO:
             full_name=d.full_name,
             phone=d.phone,
             is_active=d.is_active,
+            save_folder=getattr(d, "save_folder", None) or None,
         )
 
 
