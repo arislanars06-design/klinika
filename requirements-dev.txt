@@ -6,3 +6,9 @@ ruff>=0.1.0,<1.0
 mypy>=1.7.0,<2.0
 pre-commit>=3.5.0,<4.0
 pyinstaller>=6.3.0,<7.0
+
+# Used only by scripts/build_template_assets.py to (re)generate the
+# default logo.png / qr.png shipped in templates/assets/.  Not needed
+# at runtime — the checked-in PNGs are consumed directly.
+Pillow>=10.0,<12
+segno>=1.6,<2
