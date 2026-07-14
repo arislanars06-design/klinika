@@ -232,6 +232,39 @@ class LorCatalogCustom(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
+class CatalogOverride(Base):
+    """User edits applied on top of the built-in JSON catalogs.
+
+    Built-in items themselves are read-only (they ship as ``*.json`` files),
+    but the operator may want to rename an item ("Bosh og'rig'i" →
+    "Kuchli bosh og'rig'i") or hide one they never use. This table records
+    those edits per (kind, code) so :mod:`clinic.domain.catalog_loader` can
+    apply them at merge time.
+
+    ``kind`` = ``"complaint"`` or ``"lor"``.
+    ``code`` = the item code from the JSON (never a custom row's code).
+    ``hidden`` = if True, the item is dropped entirely from the merged view.
+    ``name_uz`` / ``name_ru`` = if non-empty, replace the built-in label.
+    ``has_discharge_type`` = complaint-only override (nullable = keep original).
+    """
+
+    __tablename__ = "catalog_overrides"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    code: Mapped[str] = mapped_column(String(64), nullable=False)
+    name_uz: Mapped[str | None] = mapped_column(String(500))
+    name_ru: Mapped[str | None] = mapped_column(String(500))
+    hidden: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    has_discharge_type: Mapped[bool | None] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = _created_at()
+
+    __table_args__ = (
+        CheckConstraint("kind IN ('complaint','lor')", name="ck_catalog_overrides_kind"),
+        Index("ix_catalog_overrides_lookup", "kind", "code", unique=True),
+    )
+
+
 # ----- web users (Phase 3) ---------------------------------------------------
 
 
@@ -265,6 +298,7 @@ class WebUser(Base):
 __all__ = [
     "Base",
     "CashierRecord",
+    "CatalogOverride",
     "ComplaintCatalogCustom",
     "Doctor",
     "LorCatalogCustom",

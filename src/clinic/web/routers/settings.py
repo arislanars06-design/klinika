@@ -277,12 +277,101 @@ def catalogs_page(request: Request, _: str = Depends(require_admin)):
         "complaint_sections": custom_catalog_service.VALID_COMPLAINT_SECTIONS,
         "lor_methods": custom_catalog_service.VALID_LOR_METHODS,
         "lor_field_types": custom_catalog_service.VALID_LOR_FIELD_TYPES,
-        # Built-in JSON — shown as read-only reference so the admin knows
-        # which items already exist.
+        # Built-in JSON — shown as editable via the overrides system so admins
+        # can rename or hide standard items too.
         "builtin_complaints": catalog_loader._complaints_raw().get("sections", []),
         "builtin_lor": catalog_loader._lor_status_raw().get("methods", []),
+        "complaint_overrides": custom_catalog_service.list_complaint_overrides(),
+        "lor_overrides": custom_catalog_service.list_lor_overrides(),
         "options_to_lines": custom_catalog_service.options_to_lines,
     })
+
+
+# ----- Built-in complaint overrides ----------------------------------------
+
+
+@router.post("/catalogs/complaints/builtin/{code}/edit")
+async def catalogs_builtin_complaint_edit(
+    code: str, request: Request, _: str = Depends(require_admin)
+):
+    form = await request.form()
+    try:
+        custom_catalog_service.set_complaint_override(
+            code,
+            name_uz=form.get("name_uz"),
+            name_ru=form.get("name_ru"),
+            has_discharge_type=bool(form.get("has_discharge_type")),
+            hidden=False,  # editing implies the item is visible
+        )
+        _flash(request, "success", "settings.catalog_complaint_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.catalog_complaint_error")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/complaints/builtin/{code}/hide")
+def catalogs_builtin_complaint_hide(
+    code: str, request: Request, _: str = Depends(require_admin)
+):
+    custom_catalog_service.set_complaint_override(code, hidden=True)
+    _flash(request, "success", "settings.catalog_hidden")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/complaints/builtin/{code}/reset")
+def catalogs_builtin_complaint_reset(
+    code: str, request: Request, _: str = Depends(require_admin)
+):
+    ok = custom_catalog_service.reset_complaint_override(code)
+    _flash(
+        request,
+        "success" if ok else "warning",
+        "settings.catalog_reset" if ok else "settings.catalog_reset_nochange",
+    )
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+# ----- Built-in LOR overrides ----------------------------------------------
+
+
+@router.post("/catalogs/lor/builtin/{code}/edit")
+async def catalogs_builtin_lor_edit(
+    code: str, request: Request, _: str = Depends(require_admin)
+):
+    form = await request.form()
+    try:
+        custom_catalog_service.set_lor_override(
+            code,
+            name_uz=form.get("name_uz"),
+            name_ru=form.get("name_ru"),
+            hidden=False,
+        )
+        _flash(request, "success", "settings.catalog_lor_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.catalog_lor_error")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/lor/builtin/{code}/hide")
+def catalogs_builtin_lor_hide(
+    code: str, request: Request, _: str = Depends(require_admin)
+):
+    custom_catalog_service.set_lor_override(code, hidden=True)
+    _flash(request, "success", "settings.catalog_hidden")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/lor/builtin/{code}/reset")
+def catalogs_builtin_lor_reset(
+    code: str, request: Request, _: str = Depends(require_admin)
+):
+    ok = custom_catalog_service.reset_lor_override(code)
+    _flash(
+        request,
+        "success" if ok else "warning",
+        "settings.catalog_reset" if ok else "settings.catalog_reset_nochange",
+    )
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
 
 
 # ----- Complaints CRUD ------------------------------------------------------

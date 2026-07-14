@@ -254,10 +254,12 @@ def _auto_save_docx(reception_id: int, lang: str) -> tuple[str, Path | None]:
         if patient is None:
             return "disabled", None
         doctor = doctor_service.get(rec.doctor_id)
-        # Timestamp on the filename so successive saves don't clobber history.
-        stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+        # Filename intentionally simple: "F.I.O. YYYY.docx".
+        # Successive saves for the same patient will overwrite the file,
+        # which matches the operator's request — the DB keeps history, the
+        # docx is just the latest snapshot for that patient.
         safe_name = _safe_filename_part(patient.full_name)
-        filename = f"{safe_name} {patient.birth_year} {stamp}.docx"
+        filename = f"{safe_name} {patient.birth_year}.docx"
         output_path = Path(clinic_info.save_folder).expanduser() / filename
         clinic_dict = {
             "name_uz": clinic_info.name_uz,

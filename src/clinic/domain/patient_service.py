@@ -57,7 +57,9 @@ def paginated_search(
     view emphasises recent activity.
     """
     page = max(1, page)
-    page_size = max(1, min(200, page_size))
+    # Cap at 5000 so /patients/print can return the full filtered set without
+    # a paginator; the regular UI stays well below this via PAGE_SIZE_DEFAULT.
+    page_size = max(1, min(5000, page_size))
     offset = (page - 1) * page_size
 
     with session_scope() as session:

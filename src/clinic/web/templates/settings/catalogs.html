@@ -144,36 +144,92 @@
           </div>
         </div>
 
-        <!-- Built-in reference (read-only) -->
-        <details class="mt-3">
-          <summary class="text-muted small">
-            <i class="bi bi-book"></i> {{ t("settings.catalog_builtin_reference") }}
-          </summary>
-          <div class="card mt-2 shadow-sm">
-            <div class="table-responsive">
-              <table class="table table-sm mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>{{ t("settings.catalog_section") }}</th>
-                    <th>{{ t("settings.name_uz") }}</th>
-                    <th>{{ t("settings.name_ru") }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for section in builtin_complaints %}
-                    {% for item in section["items"] %}
-                    <tr>
-                      <td class="text-muted small">{{ section["name"][lang] }}</td>
-                      <td>{{ item[lang] }}</td>
-                      <td class="text-muted">{% if lang == "ru" %}{{ item["uz"] }}{% else %}{{ item["ru"] }}{% endif %}</td>
-                    </tr>
-                    {% endfor %}
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
+        <!-- Built-in items (editable via overrides) -->
+        <div class="card mt-3 shadow-sm">
+          <div class="card-header">
+            <i class="bi bi-book"></i> {{ t("settings.catalog_builtin_editable") }}
+            <span class="text-muted small ms-2">{{ t("settings.catalog_builtin_hint") }}</span>
           </div>
-        </details>
+          <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 16%">{{ t("settings.catalog_section") }}</th>
+                  <th style="width: 33%">{{ t("settings.name_uz") }}</th>
+                  <th style="width: 33%">{{ t("settings.name_ru") }}</th>
+                  <th style="width: 6%" class="text-center">{{ t("settings.catalog_has_discharge_short") }}</th>
+                  <th class="text-end">{{ t("common.actions") }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for section in builtin_complaints %}
+                  {% for item in section["items"] %}
+                  {% set ov = complaint_overrides.get(item["code"]) %}
+                  {% set is_hidden = ov and ov.hidden %}
+                  {% set is_edited = ov and not ov.hidden %}
+                  <tr class="{% if is_hidden %}text-muted opacity-50{% endif %}">
+                    <td colspan="4">
+                      <form method="post" action="/settings/catalogs/complaints/builtin/{{ item['code'] }}/edit"
+                            class="row g-1 align-items-center">
+                        <div class="col-sm-2 text-muted small">
+                          {{ section["name"][lang] }}
+                          {% if is_hidden %}
+                            <span class="badge text-bg-secondary">{{ t("settings.catalog_hidden") }}</span>
+                          {% elif is_edited %}
+                            <span class="badge text-bg-info">{{ t("settings.catalog_edited") }}</span>
+                          {% endif %}
+                        </div>
+                        <div class="col-sm-4">
+                          <input type="text" name="name_uz" class="form-control form-control-sm"
+                                 value="{{ (ov.name_uz if ov and ov.name_uz else item['uz']) }}" maxlength="500">
+                        </div>
+                        <div class="col-sm-4">
+                          <input type="text" name="name_ru" class="form-control form-control-sm"
+                                 value="{{ (ov.name_ru if ov and ov.name_ru else item['ru']) }}" maxlength="500">
+                        </div>
+                        <div class="col-sm-1 text-center">
+                          {% set effective_dt = (ov.has_discharge_type if ov and ov.has_discharge_type is not none else item.get('has_discharge_type', False)) %}
+                          <input class="form-check-input" type="checkbox" name="has_discharge_type"
+                                 title="{{ t('settings.catalog_has_discharge') }}"
+                                 {% if effective_dt %}checked{% endif %}>
+                        </div>
+                        <div class="col-sm-1 d-flex justify-content-end">
+                          <button class="btn btn-sm btn-outline-primary" title="{{ t('common.save') }}">
+                            <i class="bi bi-check-lg"></i>
+                          </button>
+                        </div>
+                      </form>
+                    </td>
+                    <td class="text-end">
+                      {% if is_hidden %}
+                        <form method="post" action="/settings/catalogs/complaints/builtin/{{ item['code'] }}/reset" class="d-inline">
+                          <button class="btn btn-sm btn-outline-success" title="{{ t('settings.catalog_restore') }}">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                          </button>
+                        </form>
+                      {% else %}
+                        <form method="post" action="/settings/catalogs/complaints/builtin/{{ item['code'] }}/hide" class="d-inline"
+                              onsubmit="return confirm('{{ t('settings.catalog_hide_confirm') }}');">
+                          <button class="btn btn-sm btn-outline-warning" title="{{ t('settings.catalog_hide') }}">
+                            <i class="bi bi-eye-slash"></i>
+                          </button>
+                        </form>
+                        {% if is_edited %}
+                        <form method="post" action="/settings/catalogs/complaints/builtin/{{ item['code'] }}/reset" class="d-inline">
+                          <button class="btn btn-sm btn-outline-secondary" title="{{ t('settings.catalog_reset_original') }}">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                          </button>
+                        </form>
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -228,7 +284,7 @@
         </div>
       </div>
 
-      <!-- Existing custom LOR items -->
+      <!-- Existing custom LOR items + built-in editable list -->
       <div class="col-lg-8">
         <div class="card shadow-sm">
           <div class="card-header">
@@ -315,6 +371,91 @@
                     {{ t("settings.catalog_empty") }}
                   </td>
                 </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Built-in LOR STATUS fields (editable via overrides) -->
+        <div class="card mt-3 shadow-sm">
+          <div class="card-header">
+            <i class="bi bi-book"></i> {{ t("settings.catalog_builtin_editable") }}
+            <span class="text-muted small ms-2">{{ t("settings.catalog_builtin_hint") }}</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 25%">{{ t("settings.catalog_method") }} / {{ t("settings.catalog_section") }}</th>
+                  <th style="width: 32%">{{ t("settings.catalog_label_uz") }}</th>
+                  <th style="width: 32%">{{ t("settings.catalog_label_ru") }}</th>
+                  <th class="text-end">{{ t("common.actions") }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for method in builtin_lor %}
+                  {% for section in method.get("sections", []) %}
+                    {% for field in section.get("fields", []) %}
+                    {% set default_label_uz = (field.get("label") or {}).get("uz") or ("lor.field." ~ field["code"]) %}
+                    {% set default_label_ru = (field.get("label") or {}).get("ru") or default_label_uz %}
+                    {% set ov = lor_overrides.get(field["code"]) %}
+                    {% set is_hidden = ov and ov.hidden %}
+                    {% set is_edited = ov and not ov.hidden %}
+                    <tr class="{% if is_hidden %}text-muted opacity-50{% endif %}">
+                      <td colspan="3">
+                        <form method="post" action="/settings/catalogs/lor/builtin/{{ field['code'] }}/edit"
+                              class="row g-1 align-items-center">
+                          <div class="col-sm-3 text-muted small">
+                            {{ t("settings.catalog_method_" ~ method["code"], default=method["code"]) }}
+                            <span class="badge text-bg-light">{{ field.get("type", "?") }}</span>
+                            {% if is_hidden %}
+                              <span class="badge text-bg-secondary">{{ t("settings.catalog_hidden") }}</span>
+                            {% elif is_edited %}
+                              <span class="badge text-bg-info">{{ t("settings.catalog_edited") }}</span>
+                            {% endif %}
+                          </div>
+                          <div class="col-sm-4">
+                            <input type="text" name="name_uz" class="form-control form-control-sm"
+                                   value="{{ (ov.name_uz if ov and ov.name_uz else default_label_uz) }}" maxlength="500">
+                          </div>
+                          <div class="col-sm-4">
+                            <input type="text" name="name_ru" class="form-control form-control-sm"
+                                   value="{{ (ov.name_ru if ov and ov.name_ru else default_label_ru) }}" maxlength="500">
+                          </div>
+                          <div class="col-sm-1 d-flex justify-content-end">
+                            <button class="btn btn-sm btn-outline-primary" title="{{ t('common.save') }}">
+                              <i class="bi bi-check-lg"></i>
+                            </button>
+                          </div>
+                        </form>
+                      </td>
+                      <td class="text-end">
+                        {% if is_hidden %}
+                          <form method="post" action="/settings/catalogs/lor/builtin/{{ field['code'] }}/reset" class="d-inline">
+                            <button class="btn btn-sm btn-outline-success" title="{{ t('settings.catalog_restore') }}">
+                              <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                          </form>
+                        {% else %}
+                          <form method="post" action="/settings/catalogs/lor/builtin/{{ field['code'] }}/hide" class="d-inline"
+                                onsubmit="return confirm('{{ t('settings.catalog_hide_confirm') }}');">
+                            <button class="btn btn-sm btn-outline-warning" title="{{ t('settings.catalog_hide') }}">
+                              <i class="bi bi-eye-slash"></i>
+                            </button>
+                          </form>
+                          {% if is_edited %}
+                          <form method="post" action="/settings/catalogs/lor/builtin/{{ field['code'] }}/reset" class="d-inline">
+                            <button class="btn btn-sm btn-outline-secondary" title="{{ t('settings.catalog_reset_original') }}">
+                              <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                          </form>
+                          {% endif %}
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  {% endfor %}
                 {% endfor %}
               </tbody>
             </table>
