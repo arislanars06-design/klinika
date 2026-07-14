@@ -280,12 +280,29 @@ class DayPoint:
 
 
 @dataclass
+class PatientInPeriod:
+    """A patient who had ≥ 1 reception in the selected period."""
+
+    id: int
+    full_name: str
+    birth_year: int
+    phone: str | None
+    visits: int             # visits inside the period
+    last_visit: datetime
+    is_new: bool            # first-ever reception fell inside the period
+    last_diagnosis: str = ""
+
+
+@dataclass
 class PatientStats:
     total_patients: int
     new_patients: int
     repeat_receptions: int
     top_diagnoses: list[DiagnosisCount]
     by_day: list[DayPoint]  # reception count per day
+    # Phase 4: list of patients matching the selected period (for the
+    # filtered table shown below the KPI cards).
+    patients: list[PatientInPeriod] = field(default_factory=list)
 
 
 @dataclass
@@ -301,6 +318,15 @@ class ServiceRevenue:
 
 
 @dataclass
+class PaymentTypeRevenue:
+    """Total revenue for one payment channel (cash / transfer / terminal)."""
+
+    payment_type: str  # cash | transfer | terminal
+    total: Decimal
+    count: int  # number of line-items with this payment type
+
+
+@dataclass
 class CashierStats:
     total_revenue: Decimal
     payment_count: int
@@ -308,6 +334,8 @@ class CashierStats:
     average_receipt: Decimal
     by_service: list[ServiceRevenue]
     by_day: list[DayPoint]  # revenue per day
+    # Phase 4: total-by-payment-channel breakdown.
+    by_payment_type: dict[str, "PaymentTypeRevenue"] = field(default_factory=dict)
 
 
 __all__ = [
@@ -321,9 +349,11 @@ __all__ = [
     "PatientDTO",
     "PatientDetail",
     "PatientHistoryPage",
+    "PatientInPeriod",
     "PatientInput",
     "PatientStats",
     "PatientSummaryDTO",
+    "PaymentTypeRevenue",
     "ReceptionDTO",
     "ReceptionInput",
     "ServiceDTO",

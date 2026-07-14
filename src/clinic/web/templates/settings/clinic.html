@@ -46,7 +46,10 @@
         </select>
       </div>
       <div class="col-md-8">
-        <label class="form-label">{{ t("settings.save_folder") }}</label>
+        <label class="form-label">
+          <i class="bi bi-folder2-open"></i>
+          {{ t("settings.save_folder") }}
+        </label>
         <input type="text" name="save_folder" class="form-control" value="{{ info.save_folder }}"
                placeholder="C:\Users\Hp\Documents\Klinika">
         <div class="form-text small">{{ t("settings.save_folder_hint") }}</div>

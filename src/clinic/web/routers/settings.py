@@ -12,6 +12,7 @@ from fastapi.responses import RedirectResponse
 
 from clinic.domain import (
     clinic_info_service,
+    custom_catalog_service,
     doctor_service,
     service_service,
     user_service,
@@ -258,6 +259,166 @@ def users_toggle(user_id: int, request: Request, _: str = Depends(require_admin)
     user_service.set_active(user_id, not current.is_active)
     _flash(request, "success", "settings.user_toggled")
     return RedirectResponse(url="/settings/users", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Catalogs (complaints + LOR STATUS) — user additions
+# ---------------------------------------------------------------------------
+
+
+@router.get("/catalogs")
+def catalogs_page(request: Request, _: str = Depends(require_admin)):
+    from clinic.domain import catalog_loader
+
+    return render(request, "settings/catalogs.html", {
+        "tab": "catalogs",
+        "complaints_custom": custom_catalog_service.list_complaints(active_only=False),
+        "lor_custom": custom_catalog_service.list_lor(active_only=False),
+        "complaint_sections": custom_catalog_service.VALID_COMPLAINT_SECTIONS,
+        "lor_methods": custom_catalog_service.VALID_LOR_METHODS,
+        "lor_field_types": custom_catalog_service.VALID_LOR_FIELD_TYPES,
+        # Built-in JSON — shown as read-only reference so the admin knows
+        # which items already exist.
+        "builtin_complaints": catalog_loader._complaints_raw().get("sections", []),
+        "builtin_lor": catalog_loader._lor_status_raw().get("methods", []),
+        "options_to_lines": custom_catalog_service.options_to_lines,
+    })
+
+
+# ----- Complaints CRUD ------------------------------------------------------
+
+
+@router.post("/catalogs/complaints/new")
+async def catalogs_complaints_create(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        custom_catalog_service.create_complaint(
+            section=(form.get("section") or "").strip(),
+            name_uz=(form.get("name_uz") or "").strip(),
+            name_ru=(form.get("name_ru") or "").strip(),
+            has_discharge_type=bool(form.get("has_discharge_type")),
+        )
+        _flash(request, "success", "settings.catalog_complaint_added")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.catalog_complaint_error")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/complaints/{item_id}/edit")
+async def catalogs_complaints_update(
+    item_id: int, request: Request, _: str = Depends(require_admin)
+):
+    form = await request.form()
+    try:
+        updated = custom_catalog_service.update_complaint(
+            item_id,
+            section=(form.get("section") or "").strip() or None,
+            name_uz=(form.get("name_uz") or "").strip() or None,
+            name_ru=(form.get("name_ru") or "").strip() or None,
+            has_discharge_type=bool(form.get("has_discharge_type")),
+        )
+        if updated is None:
+            _flash(request, "warning", "common.not_found")
+        else:
+            _flash(request, "success", "settings.catalog_complaint_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.catalog_complaint_error")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/complaints/{item_id}/toggle")
+def catalogs_complaints_toggle(
+    item_id: int, request: Request, _: str = Depends(require_admin)
+):
+    current = custom_catalog_service.get_complaint(item_id)
+    if current is None:
+        _flash(request, "warning", "common.not_found")
+        return RedirectResponse(url="/settings/catalogs", status_code=303)
+    custom_catalog_service.update_complaint(item_id, is_active=not current.is_active)
+    _flash(request, "success", "settings.catalog_toggled")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/complaints/{item_id}/delete")
+def catalogs_complaints_delete(
+    item_id: int, request: Request, _: str = Depends(require_admin)
+):
+    ok = custom_catalog_service.delete_complaint(item_id)
+    _flash(
+        request,
+        "success" if ok else "warning",
+        "info.deleted" if ok else "common.not_found",
+    )
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+# ----- LOR STATUS CRUD ------------------------------------------------------
+
+
+@router.post("/catalogs/lor/new")
+async def catalogs_lor_create(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        custom_catalog_service.create_lor(
+            method=(form.get("method") or "").strip(),
+            field_type=(form.get("field_type") or "text").strip(),
+            label_uz=(form.get("label_uz") or "").strip(),
+            label_ru=(form.get("label_ru") or "").strip(),
+            options_raw=(form.get("options_raw") or ""),
+        )
+        _flash(request, "success", "settings.catalog_lor_added")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.catalog_lor_error")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/lor/{item_id}/edit")
+async def catalogs_lor_update(
+    item_id: int, request: Request, _: str = Depends(require_admin)
+):
+    form = await request.form()
+    try:
+        updated = custom_catalog_service.update_lor(
+            item_id,
+            method=(form.get("method") or "").strip() or None,
+            field_type=(form.get("field_type") or "").strip() or None,
+            label_uz=(form.get("label_uz") or "").strip() or None,
+            label_ru=(form.get("label_ru") or "").strip() or None,
+            options_raw=form.get("options_raw"),
+        )
+        if updated is None:
+            _flash(request, "warning", "common.not_found")
+        else:
+            _flash(request, "success", "settings.catalog_lor_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.catalog_lor_error")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/lor/{item_id}/toggle")
+def catalogs_lor_toggle(
+    item_id: int, request: Request, _: str = Depends(require_admin)
+):
+    current = custom_catalog_service.get_lor(item_id)
+    if current is None:
+        _flash(request, "warning", "common.not_found")
+        return RedirectResponse(url="/settings/catalogs", status_code=303)
+    custom_catalog_service.update_lor(item_id, is_active=not current.is_active)
+    _flash(request, "success", "settings.catalog_toggled")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/lor/{item_id}/delete")
+def catalogs_lor_delete(
+    item_id: int, request: Request, _: str = Depends(require_admin)
+):
+    ok = custom_catalog_service.delete_lor(item_id)
+    _flash(
+        request,
+        "success" if ok else "warning",
+        "info.deleted" if ok else "common.not_found",
+    )
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
 
 
 # ---------------------------------------------------------------------------

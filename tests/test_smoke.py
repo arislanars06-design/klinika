@@ -21,23 +21,23 @@ def test_catalogs_load() -> None:
         complaints_catalog,
         discharge_types_catalog,
         lor_status_catalog,
+        reload_all,
     )
 
-    complaints_catalog.cache_clear()
-    lor_status_catalog.cache_clear()
-    discharge_types_catalog.cache_clear()
+    reload_all()
 
     complaints = complaints_catalog()
     lor = lor_status_catalog()
     discharge = discharge_types_catalog()
 
-    assert len(complaints["sections"]) == 5
+    # Built-in sections must all be present (custom DB rows may add extras).
+    builtin_codes = {"general", "ear", "nose", "pharynx", "larynx"}
     section_codes = {s["code"] for s in complaints["sections"]}
-    assert section_codes == {"general", "ear", "nose", "pharynx", "larynx"}
+    assert builtin_codes.issubset(section_codes)
     ear = next(s for s in complaints["sections"] if s["code"] == "ear")
-    assert len(ear["items"]) == 8
+    assert sum(1 for it in ear["items"] if not it.get("_custom_id")) == 8
     general = next(s for s in complaints["sections"] if s["code"] == "general")
-    assert len(general["items"]) == 11
+    assert sum(1 for it in general["items"] if not it.get("_custom_id")) == 11
 
     method_codes = {m["code"] for m in lor["methods"]}
     assert method_codes == {"rhinoscopy", "pharyngoscopy", "otoscopy", "laryngoscopy"}

@@ -153,6 +153,10 @@ def _collect_lor_status(form_data, catalog: dict) -> dict:
                     elif ftype == "checkbox":
                         if form_data.get(name):
                             section_bucket[field["code"]] = True
+                    elif ftype == "text":
+                        val = (form_data.get(name) or "").strip()
+                        if val:
+                            section_bucket[field["code"]] = val
                 if section_bucket:
                     method_bucket[section_code] = section_bucket
             if method_bucket:
@@ -228,23 +232,33 @@ def _parse_form(form_data, lor_catalog: dict) -> tuple[ReceptionInput, dict[str,
 # ---------------------------------------------------------------------------
 
 
-def _auto_save_docx(reception_id: int, lang: str) -> None:
-    """Generate and save the reception .docx if save_folder is configured."""
+def _auto_save_docx(reception_id: int, lang: str) -> tuple[str, Path | None]:
+    """Generate and save the reception .docx if ``save_folder`` is configured.
+
+    Returns a ``(status, path)`` tuple:
+
+    - ``("disabled", None)``  — no save_folder set, nothing to do.
+    - ``("saved", path)``     — file written successfully.
+    - ``("failed", None)``    — folder set but write threw an exception.
+    """
     from loguru import logger
 
     try:
         clinic_info = clinic_info_service.load()
         if not clinic_info.save_folder:
-            return
+            return "disabled", None
         rec = reception_service.get(reception_id)
         if rec is None:
-            return
+            return "disabled", None
         patient = patient_service.get(rec.patient_id)
         if patient is None:
-            return
+            return "disabled", None
         doctor = doctor_service.get(rec.doctor_id)
-        filename = f"{patient.full_name} {patient.birth_year}.docx"
-        output_path = Path(clinic_info.save_folder) / filename
+        # Timestamp on the filename so successive saves don't clobber history.
+        stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+        safe_name = _safe_filename_part(patient.full_name)
+        filename = f"{safe_name} {patient.birth_year} {stamp}.docx"
+        output_path = Path(clinic_info.save_folder).expanduser() / filename
         clinic_dict = {
             "name_uz": clinic_info.name_uz,
             "name_ru": clinic_info.name_ru,
@@ -261,8 +275,34 @@ def _auto_save_docx(reception_id: int, lang: str) -> None:
             clinic=clinic_dict,
             lang=lang,
         )
+        return "saved", output_path
     except Exception:
         logger.exception("Auto-save docx failed for reception {}", reception_id)
+        return "failed", None
+
+
+def _safe_filename_part(name: str) -> str:
+    """Strip characters that most filesystems reject from a base filename."""
+    bad = set('<>:"/\\|?*')
+    cleaned = "".join(ch for ch in name if ch not in bad).strip()
+    # Windows disallows a trailing period on filenames.
+    return (cleaned or "reception").rstrip(". ")
+
+
+def _flash_auto_save(request: Request, lang: str, status: str, path: Path | None) -> None:
+    """Add a flash message describing the outcome of the auto-save."""
+    from clinic.i18n.translator import translator
+
+    if status == "saved" and path is not None:
+        request.session.setdefault("flash", []).append({
+            "level": "info",
+            "text": translator.t("reception.auto_saved_to", path=str(path)),
+        })
+    elif status == "failed":
+        request.session.setdefault("flash", []).append({
+            "level": "warning",
+            "text": translator.t("reception.auto_save_failed"),
+        })
 
 
 @router.get("/new")
@@ -302,11 +342,12 @@ async def create_reception(request: Request, _user: str = Depends(require_login)
             status_code=400,
         )
     lang = resolve_language(request)
-    _auto_save_docx(rec.id, lang)
     request.session.setdefault("flash", []).append({
         "level": "success",
         "text": "Қабул сақланди." if lang == "uz" else "Приём сохранён.",
     })
+    status, path = _auto_save_docx(rec.id, lang)
+    _flash_auto_save(request, lang, status, path)
     return RedirectResponse(url=f"/reception/{rec.id}", status_code=303)
 
 
@@ -381,9 +422,10 @@ async def update_reception(
             status_code=400,
         )
     lang = resolve_language(request)
-    _auto_save_docx(reception_id, lang)
     request.session.setdefault("flash", []).append({
         "level": "success",
         "text": "Қабул янгиланди." if lang == "uz" else "Приём обновлён.",
     })
+    status, path = _auto_save_docx(reception_id, lang)
+    _flash_auto_save(request, lang, status, path)
     return RedirectResponse(url=f"/reception/{reception_id}", status_code=303)

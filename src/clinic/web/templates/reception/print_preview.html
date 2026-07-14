@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}{{ t("print.preview_title") }} — {{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 no-print">
+  <h3 class="mb-0">
+    <i class="bi bi-file-earmark-word text-primary"></i>
+    {{ t("print.preview_title") }}
+  </h3>
+  <div class="btn-group">
+    <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-primary">
+      <i class="bi bi-file-earmark-word"></i> {{ t("print.download_docx") }}
+    </a>
+    <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+      <i class="bi bi-printer"></i> {{ t("print.print_now") }}
+    </button>
+    <a href="/reception/{{ reception.id }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
+    </a>
+  </div>
+</div>
+
+<div class="alert alert-info small no-print">
+  <i class="bi bi-info-circle"></i>
+  {{ t("print.preview_hint") }}
+</div>
+
+<!-- A4-sized preview sheet that mimics the docx layout. -->
+<div class="print-sheet">
+  {% set clinic = doc_ctx.clinic %}
+  {% set patient_ctx = doc_ctx.patient %}
+  {% set reception_ctx = doc_ctx.reception %}
+  {% set doctor_ctx = doc_ctx.doctor %}
+
+  <!-- Clinic header -->
+  {% if clinic.name %}
+  <div class="clinic-header">
+    <div class="clinic-name">{{ clinic.name }}</div>
+    {% set subparts = [] %}
+    {% if clinic.address %}{% set _ = subparts.append(clinic.address) %}{% endif %}
+    {% if clinic.phone %}{% set _ = subparts.append(clinic.phone) %}{% endif %}
+    {% if subparts %}
+    <div class="clinic-sub">{{ subparts | join(" · ") }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Title -->
+  <h1 class="doc-title">
+    {% if lang == 'ru' %}ЛИСТ ПРИЁМА{% else %}QABUL VARAQASI{% endif %}
+  </h1>
+
+  <!-- Patient block -->
+  <div class="kv">
+    <div><b>{% if lang == 'ru' %}ПАЦИЕНТ{% else %}BEMOR{% endif %}:</b>
+         <span class="kv-strong">{{ patient_ctx.full_name }}</span></div>
+    <div><b>{% if lang == 'ru' %}Год рождения{% else %}Tug'ilgan yili{% endif %}:</b>
+         {{ patient_ctx.birth_year }}
+         ({{ patient_ctx.age }} {% if lang == 'ru' %}лет{% else %}yosh{% endif %})</div>
+    <div><b>{% if lang == 'ru' %}Адрес{% else %}Manzil{% endif %}:</b>
+         {{ patient_ctx.address or "—" }}</div>
+    <div><b>{% if lang == 'ru' %}Телефон{% else %}Telefon{% endif %}:</b>
+         {{ patient_ctx.phone or "—" }}</div>
+    <div><b>{% if lang == 'ru' %}Дата приёма{% else %}Qabul sanasi{% endif %}:</b>
+         {{ reception_ctx.date }}</div>
+  </div>
+
+  <!-- Complaints -->
+  <h2 class="section-heading">{% if lang == 'ru' %}ЖАЛОБЫ{% else %}SHIKOYATLAR{% endif %}</h2>
+  <p class="section-body">{{ reception_ctx.complaints_text or "—" }}</p>
+
+  <!-- Anamnesis -->
+  {% if reception_ctx.anamnesis %}
+  <h2 class="section-heading">{% if lang == 'ru' %}АНАМНЕЗ{% else %}ANAMNEZ{% endif %}</h2>
+  <p class="section-body">{{ reception_ctx.anamnesis }}</p>
+  {% endif %}
+
+  <!-- LOR STATUS -->
+  {% if reception_ctx.lor_status_text %}
+  <h2 class="section-heading">{% if lang == 'ru' %}ЛОР СТАТУС{% else %}LOR STATUS{% endif %}</h2>
+  <p class="section-body lor-block">{{ reception_ctx.lor_status_text }}</p>
+  {% endif %}
+
+  <!-- Diagnosis -->
+  <h2 class="section-heading">{% if lang == 'ru' %}ДИАГНОЗ{% else %}TASHXIS{% endif %}</h2>
+  <p class="section-body diagnosis-body">{{ reception_ctx.diagnosis or "—" }}</p>
+
+  <!-- Recommendation -->
+  {% if reception_ctx.recommendation %}
+  <h2 class="section-heading">{% if lang == 'ru' %}РЕКОМЕНДАЦИИ{% else %}TAVSIYA{% endif %}</h2>
+  <p class="section-body">{{ reception_ctx.recommendation }}</p>
+  {% endif %}
+
+  <!-- Signature -->
+  <div class="signature-line">
+    <div>
+      <b>{% if lang == 'ru' %}Врач{% else %}Shifokor{% endif %}:</b>
+      {{ doctor_ctx.full_name or "—" }}
+    </div>
+    <div>
+      <b>{% if lang == 'ru' %}Подпись{% else %}Imzo{% endif %}:</b>
+      ______________________
+    </div>
+  </div>
+  <div class="signature-date">
+    <b>{% if lang == 'ru' %}Дата{% else %}Sana{% endif %}:</b>
+    {{ doc_ctx.today }}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  /* --- Preview sheet — mirrors A4 portrait proportions --- */
+  .print-sheet {
+    max-width: 800px;
+    margin: 0 auto 2rem;
+    padding: 2.5cm 2cm;
+    background: #fff;
+    color: #111;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+    font-family: "Times New Roman", "Liberation Serif", serif;
+    line-height: 1.5;
+  }
+  [data-bs-theme="dark"] .print-sheet {
+    background: #fff;
+    color: #111;
+  }
+  .clinic-header {
+    text-align: center;
+    margin-bottom: 1.25rem;
+  }
+  .clinic-name {
+    font-weight: bold;
+    font-size: 1.4rem;
+  }
+  .clinic-sub {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 2px;
+  }
+  .doc-title {
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin: 1rem 0 1.5rem;
+  }
+  .print-sheet .kv > div {
+    padding: 2px 0;
+  }
+  .kv-strong {
+    font-weight: bold;
+  }
+  .print-sheet .section-heading {
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin: 1rem 0 0.35rem;
+    color: #212121;
+    border-bottom: 1px solid #d0d0d0;
+    padding-bottom: 2px;
+  }
+  .print-sheet .section-body {
+    margin: 0 0 0.75rem;
+    white-space: pre-wrap;
+  }
+  .print-sheet .diagnosis-body {
+    font-weight: bold;
+    font-size: 1.05rem;
+  }
+  .print-sheet .lor-block {
+    white-space: pre-wrap;
+    font-size: 0.95rem;
+  }
+  .signature-line {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2.5rem;
+    font-size: 0.95rem;
+  }
+  .signature-date {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 0.5rem;
+  }
+
+  /* --- Printed page (Ctrl+P) --- */
+  @media print {
+    /* Hide global chrome */
+    .no-print, nav, footer, .alert { display: none !important; }
+    body { background: #fff !important; }
+    main.container-fluid { max-width: 100% !important; padding: 0 !important; }
+    .print-sheet {
+      box-shadow: none;
+      border: none;
+      margin: 0;
+      max-width: 100%;
+      padding: 1cm 1.5cm;
+    }
+    @page {
+      size: A4 portrait;
+      margin: 1.8cm 2cm;
+    }
+  }
+</style>
+{% endblock %}
