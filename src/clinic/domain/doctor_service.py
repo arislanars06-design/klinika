@@ -25,8 +25,17 @@ def get(doctor_id: int) -> DoctorDTO | None:
         return DoctorDTO.from_orm(row) if row else None
 
 
-def create(*, full_name: str, phone: str | None = None) -> DoctorDTO:
-    """Validate and persist a new doctor."""
+def create(
+    *,
+    full_name: str,
+    phone: str | None = None,
+    save_folder: str | None = None,
+) -> DoctorDTO:
+    """Validate and persist a new doctor.
+
+    ``save_folder`` is an optional per-doctor override for the clinic-wide
+    Word auto-save folder. Empty / whitespace is stored as ``None``.
+    """
     errors = ValidationError()
     try:
         name = validate_full_name(full_name)
@@ -43,10 +52,19 @@ def create(*, full_name: str, phone: str | None = None) -> DoctorDTO:
     if errors:
         raise errors
 
+    folder = (save_folder or "").strip() or None
+
     with session_scope() as session:
         repo = DoctorRepository(session)
-        created = repo.create(full_name=name, phone=cleaned_phone)
+        created = repo.create(
+            full_name=name, phone=cleaned_phone, save_folder=folder
+        )
         return DoctorDTO.from_orm(created)
+
+
+# Sentinel that signals "the caller is not touching save_folder" — distinct
+# from ``None`` which means "clear it".
+_UNSET = object()
 
 
 def update(
@@ -55,8 +73,13 @@ def update(
     full_name: str | None = None,
     phone: str | None = None,
     is_active: bool | None = None,
+    save_folder=_UNSET,
 ) -> DoctorDTO | None:
-    """Update any subset of doctor fields. ``phone`` is validated when supplied."""
+    """Update any subset of doctor fields.
+
+    ``phone`` is validated when supplied. ``save_folder`` uses a sentinel
+    default so callers can distinguish "leave unchanged" from "clear".
+    """
     errors = ValidationError()
     normalized_name: str | None = None
     normalized_phone: str | None = None
@@ -83,6 +106,8 @@ def update(
             full_name=normalized_name,
             phone=normalized_phone if phone is not None else None,
             is_active=is_active,
+            save_folder=None if save_folder is _UNSET else save_folder,
+            save_folder_set=save_folder is not _UNSET,
         )
         return DoctorDTO.from_orm(row) if row else None
 

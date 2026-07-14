@@ -72,6 +72,14 @@ def _apply_light_migrations() -> None:
                 ))
                 logger.info("Migration: added cashier_records.payment_type")
 
+        if "doctors" in Base.metadata.tables:
+            cols = _columns(conn, "doctors")
+            if "save_folder" not in cols:
+                conn.execute(text(
+                    "ALTER TABLE doctors ADD COLUMN save_folder VARCHAR(500)"
+                ))
+                logger.info("Migration: added doctors.save_folder")
+
 
 @contextmanager
 def session_scope() -> Iterator[Session]:

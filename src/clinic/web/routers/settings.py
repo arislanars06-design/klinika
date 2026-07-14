@@ -15,6 +15,7 @@ from clinic.domain import (
     custom_catalog_service,
     doctor_service,
     service_service,
+    template_service,
     user_service,
 )
 from clinic.domain.clinic_info_service import ClinicInfo
@@ -85,6 +86,7 @@ async def doctors_create(request: Request, _: str = Depends(require_admin)):
         doctor_service.create(
             full_name=(form.get("full_name") or "").strip(),
             phone=(form.get("phone") or "").strip() or None,
+            save_folder=(form.get("save_folder") or "").strip() or None,
         )
         _flash(request, "success", "settings.doctor_added")
     except ValidationError as ve:
@@ -96,10 +98,13 @@ async def doctors_create(request: Request, _: str = Depends(require_admin)):
 async def doctors_update(doctor_id: int, request: Request, _: str = Depends(require_admin)):
     form = await request.form()
     try:
+        # ``save_folder`` field is always present in the edit form, so we
+        # always update it — empty string clears the per-doctor override.
         doctor_service.update(
             doctor_id,
             full_name=(form.get("full_name") or "").strip(),
             phone=(form.get("phone") or "").strip() or None,
+            save_folder=(form.get("save_folder") or "").strip() or None,
         )
         _flash(request, "success", "settings.doctor_updated")
     except ValidationError as ve:
@@ -527,6 +532,84 @@ def catalogs_lor_delete(
         "info.deleted" if ok else "common.not_found",
     )
     return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Word template
+# ---------------------------------------------------------------------------
+
+
+@router.get("/template")
+def template_page(request: Request, _: str = Depends(require_admin)):
+    return render(request, "settings/template.html", {
+        "tab": "template",
+        "template": template_service.status(),
+        "max_size_kb": template_service.MAX_TEMPLATE_BYTES // 1024,
+    })
+
+
+@router.get("/template/download")
+def template_download(_: str = Depends(require_admin)):
+    """Send the currently-installed template as a .docx download."""
+    from fastapi.responses import FileResponse
+
+    st = template_service.status()
+    if not st.exists:
+        raise HTTPException(status_code=404, detail="template_not_found")
+    return FileResponse(
+        path=str(st.path),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename="reception_template.docx",
+    )
+
+
+@router.post("/template/upload")
+async def template_upload(request: Request, _: str = Depends(require_admin)):
+    from fastapi import UploadFile
+
+    form = await request.form()
+    upload = form.get("file")
+    if not isinstance(upload, UploadFile) or not upload.filename:
+        _flash(request, "warning", "settings.template_invalid")
+        return RedirectResponse(url="/settings/template", status_code=303)
+
+    try:
+        payload = await upload.read()
+    finally:
+        try:
+            await upload.close()
+        except Exception:
+            pass
+
+    try:
+        template_service.save_uploaded(payload)
+        _flash(request, "success", "settings.template_uploaded")
+    except template_service.TemplateError as te:
+        key = {
+            "too_large": "settings.template_too_large",
+            "invalid":   "settings.template_invalid",
+            "empty":     "settings.template_invalid",
+        }.get(str(te), "settings.template_invalid")
+        _flash(request, "warning", key)
+    return RedirectResponse(url="/settings/template", status_code=303)
+
+
+@router.post("/template/reset")
+def template_reset(request: Request, _: str = Depends(require_admin)):
+    template_service.reset_to_default()
+    _flash(request, "success", "settings.template_reset_ok")
+    return RedirectResponse(url="/settings/template", status_code=303)
+
+
+@router.post("/template/delete")
+def template_delete(request: Request, _: str = Depends(require_admin)):
+    ok = template_service.delete()
+    _flash(
+        request,
+        "success" if ok else "warning",
+        "settings.template_deleted" if ok else "common.not_found",
+    )
+    return RedirectResponse(url="/settings/template", status_code=303)
 
 
 # ---------------------------------------------------------------------------

@@ -82,12 +82,18 @@ class Patient(Base):
 
 
 class Doctor(Base):
+    # NOTE: ``save_folder`` was added post-Alembic-baseline. See the migration
+    # in ``clinic.db.database._apply_light_migrations`` — it ALTERs existing
+    # tables so upgrades don't require the operator to delete their DB.
     __tablename__ = "doctors"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(32))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Optional per-doctor folder for reception .docx auto-save. When set,
+    # overrides ``ClinicInfo.save_folder`` for receptions by this doctor.
+    save_folder: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = _created_at()
 
     receptions: Mapped[list[Reception]] = relationship(back_populates="doctor")

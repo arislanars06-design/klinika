@@ -1,0 +1,156 @@
+{% extends "settings/_layout.html" %}
+{% block title %}{{ t("settings.template_word") }}{% endblock %}
+
+{% block settings_body %}
+<div class="row g-3">
+
+  <!-- ============ CURRENT TEMPLATE STATUS ============ -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">
+        <i class="bi bi-file-earmark-word text-primary"></i>
+        {{ t("settings.template_word") }}
+      </div>
+      <div class="card-body">
+        {% if template.exists %}
+          <div class="alert alert-success py-2 mb-3">
+            <i class="bi bi-check-circle-fill"></i>
+            {{ t("settings.template_status_exists") }}
+          </div>
+          <table class="table table-sm mb-3">
+            <tbody>
+              <tr>
+                <th style="width: 40%;">{{ t("settings.template_size") }}</th>
+                <td>{{ template.size_kb }} KB</td>
+              </tr>
+              <tr>
+                <th>{{ t("settings.template_modified") }}</th>
+                <td>
+                  {% if template.modified %}
+                    {{ template.modified.strftime('%d.%m.%Y %H:%M') }}
+                  {% else %}—{% endif %}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="btn-group w-100">
+            <a href="/settings/template/download" class="btn btn-outline-primary">
+              <i class="bi bi-download"></i> {{ t("settings.template_download") }}
+            </a>
+            <form method="post" action="/settings/template/reset" class="d-inline flex-grow-1"
+                  onsubmit="return confirm('{{ t('settings.template_reset_confirm') }}');">
+              <button class="btn btn-outline-warning w-100">
+                <i class="bi bi-arrow-counterclockwise"></i> {{ t("settings.template_reset") }}
+              </button>
+            </form>
+            <form method="post" action="/settings/template/delete" class="d-inline flex-grow-1"
+                  onsubmit="return confirm('{{ t('settings.template_delete_confirm') }}');">
+              <button class="btn btn-outline-danger w-100">
+                <i class="bi bi-trash"></i> {{ t("settings.template_delete") }}
+              </button>
+            </form>
+          </div>
+        {% else %}
+          <div class="alert alert-warning py-2 mb-3">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            {{ t("settings.template_status_missing") }}
+          </div>
+          <p class="text-muted small">
+            {{ t("settings.template_upload_hint") }}
+          </p>
+          <form method="post" action="/settings/template/reset">
+            <button class="btn btn-primary w-100">
+              <i class="bi bi-magic"></i> {{ t("settings.template_reset") }}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ UPLOAD ============ -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">
+        <i class="bi bi-upload"></i> {{ t("settings.template_upload") }}
+      </div>
+      <form method="post" action="/settings/template/upload" enctype="multipart/form-data">
+        <div class="card-body">
+          <div class="mb-3">
+            <input type="file" name="file" accept=".docx"
+                   class="form-control" required>
+            <div class="form-text small">
+              {{ t("settings.template_upload_hint") }}
+              <br>
+              <span class="text-muted">Max: {{ max_size_kb }} KB</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-upload"></i> {{ t("settings.template_upload") }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ PLACEHOLDER REFERENCE ============ -->
+  <div class="col-12">
+    <details class="mt-2">
+      <summary class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-braces"></i> {{ t("settings.template_placeholders") }}
+      </summary>
+      <div class="card mt-2 shadow-sm">
+        <div class="card-body">
+          <p class="small text-muted mb-2">
+            Word ичида қуйидаги placeholder'ларни ишлатишингиз мумкин.
+            Ҳужжат яратилганда улар автоматик тўлдирилади.
+          </p>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <h6 class="mb-1">Клиника</h6>
+              <ul class="small mb-0">
+                <li><code>&#123;&#123; clinic.name &#125;&#125;</code> — клиника номи</li>
+                <li><code>&#123;&#123; clinic.address &#125;&#125;</code> — манзил</li>
+                <li><code>&#123;&#123; clinic.phone &#125;&#125;</code> — телефон</li>
+                <li><code>&#123;&#123; clinic.logo &#125;&#125;</code> — логотип (25 мм)</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6 class="mb-1">Бемор</h6>
+              <ul class="small mb-0">
+                <li><code>&#123;&#123; patient.full_name &#125;&#125;</code></li>
+                <li><code>&#123;&#123; patient.birth_year &#125;&#125;</code></li>
+                <li><code>&#123;&#123; patient.age &#125;&#125;</code></li>
+                <li><code>&#123;&#123; patient.address &#125;&#125;</code></li>
+                <li><code>&#123;&#123; patient.phone &#125;&#125;</code></li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6 class="mb-1">Қабул</h6>
+              <ul class="small mb-0">
+                <li><code>&#123;&#123; reception.date &#125;&#125;</code> — сана + вақт</li>
+                <li><code>&#123;&#123; reception.complaints_text &#125;&#125;</code></li>
+                <li><code>&#123;&#123; reception.anamnesis &#125;&#125;</code></li>
+                <li><code>&#123;&#123; reception.lor_status_text &#125;&#125;</code></li>
+                <li><code>&#123;&#123; reception.diagnosis &#125;&#125;</code></li>
+                <li><code>&#123;&#123; reception.recommendation &#125;&#125;</code></li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6 class="mb-1">Шифокор ва бошқа</h6>
+              <ul class="small mb-0">
+                <li><code>&#123;&#123; doctor.full_name &#125;&#125;</code></li>
+                <li><code>&#123;&#123; doctor.phone &#125;&#125;</code></li>
+                <li><code>&#123;&#123; today &#125;&#125;</code> — ҳужжат яратилган сана</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+</div>
+{% endblock %}
