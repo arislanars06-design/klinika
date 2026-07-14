@@ -100,18 +100,10 @@ def cashier_landing(request: Request, q: str | None = None, _user: str = Depends
     period = stats_service.build_period(stats_service.PeriodPreset.TODAY)
     stats = stats_service.cashier_stats(period)
 
-    # Per-payment-type breakdown for today.
-    with session_scope() as session:
-        rows = (
-            session.query(CashierRecord.payment_type, func.coalesce(func.sum(CashierRecord.total), 0))
-            .filter(CashierRecord.paid_at >= period.start)
-            .filter(CashierRecord.paid_at <= period.end)
-            .group_by(CashierRecord.payment_type)
-            .all()
-        )
-    by_type = {pt: Decimal(0) for pt in ("cash", "transfer", "terminal")}
-    for pt, total in rows:
-        by_type[pt or "cash"] = Decimal(total or 0)
+    # Per-payment-type breakdown for today — pulled straight from the DTO.
+    by_type: dict[str, Decimal] = {
+        pt: row.total for pt, row in stats.by_payment_type.items()
+    }
 
     # Today's payers list — one entry per receipt (grouped by paid_at bucket).
     today_history = [

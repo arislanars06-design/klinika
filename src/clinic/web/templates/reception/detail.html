@@ -8,8 +8,11 @@
     {{ t("reception.detail_title") }} №{{ reception.id }}
   </h3>
   <div class="btn-group">
-    <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-primary">
-      <i class="bi bi-printer"></i> {{ t("reception.print") }}
+    <a href="/print/reception/{{ reception.id }}/preview" class="btn btn-primary">
+      <i class="bi bi-printer"></i> {{ t("print.preview") }}
+    </a>
+    <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-outline-primary" title="{{ t('print.download_docx') }}">
+      <i class="bi bi-file-earmark-word"></i>
     </a>
     <a href="/reception/{{ reception.id }}/edit" class="btn btn-outline-secondary">
       <i class="bi bi-pencil"></i> {{ t("common.edit") }}

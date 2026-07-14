@@ -9,8 +9,11 @@
   </h3>
   <div class="btn-group">
     {% if reception %}
-    <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-outline-primary" target="_blank">
-      <i class="bi bi-printer"></i> {{ t("reception.print") }}
+    <a href="/print/reception/{{ reception.id }}/preview" class="btn btn-outline-primary" target="_blank">
+      <i class="bi bi-printer"></i> {{ t("print.preview") }}
+    </a>
+    <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-outline-primary" title="{{ t('print.download_docx') }}">
+      <i class="bi bi-file-earmark-word"></i>
     </a>
     {% endif %}
     <a href="/patients" class="btn btn-outline-secondary">
@@ -186,27 +189,33 @@
           {% endif %}
 
           {% for section in m["sections"] %}
-          <div class="lor-section" data-section="{{ section['code'] }}">
+          <div class="lor-section {% if section.get('custom') %}lor-section-custom{% endif %}" data-section="{{ section['code'] }}">
             <div class="lor-section-header">
-              <div class="lor-section-title">{{ section["name"][lang] }}</div>
+              <div class="lor-section-title">
+                {% if section.get('custom') %}<i class="bi bi-stars text-warning"></i> {% endif %}
+                {{ section["name"][lang] }}
+              </div>
+              {% if not section.get('custom') %}
               <button type="button" class="btn btn-sm btn-outline-success norma-btn"
                       data-section="{{ section['code'] }}"
                       data-prefix="{{ prefix }}">
                 <i class="bi bi-check-circle"></i> {{ t("lor.norma") }}
               </button>
+              {% endif %}
             </div>
 
             <div class="lor-section-body">
             {% for field in section["fields"] %}
             {% set fname = "lor__" ~ prefix ~ "__" ~ section["code"] ~ "__" ~ field["code"] %}
             {% set current = (form.lor_status or {}).get(prefix, {}).get(section["code"], {}).get(field["code"]) %}
+            {% set field_label = (field.get("label") or {}).get(lang) or (field.get("label") or {}).get("uz") or t("lor.field." ~ field["code"], default=field["code"]) %}
 
             <div class="lor-field"
                  data-field="{{ field['code'] }}"
                  {% if field.get("visible_when") %}data-visible-when='{{ field["visible_when"] | tojson }}'{% endif %}>
 
               {% if field["type"] == "radio" %}
-              <div class="field-label">{{ t("lor.field." ~ field["code"], default=field["code"]) }}</div>
+              <div class="field-label">{{ field_label }}</div>
               {% for opt in field["options"] %}
               <div class="form-check">
                 <input class="form-check-input lor-input" type="radio"
@@ -222,7 +231,7 @@
               {% endfor %}
 
               {% elif field["type"] == "checkbox_multi" %}
-              <div class="field-label">{{ t("lor.field." ~ field["code"], default=field["code"]) }}</div>
+              <div class="field-label">{{ field_label }}</div>
               {% for opt in field["options"] %}
               <div class="form-check">
                 <input class="form-check-input lor-input" type="checkbox"
@@ -275,6 +284,12 @@
                 <label class="form-check-label" for="{{ fname }}__{{ d['code'] }}">{{ d[lang] }}</label>
               </div>
               {% endfor %}
+
+              {% elif field["type"] == "text" %}
+              <label class="form-label" for="{{ fname }}">{{ field_label }}</label>
+              <input type="text" class="form-control form-control-sm lor-input"
+                     id="{{ fname }}" name="{{ fname }}"
+                     value="{{ current or '' }}">
               {% endif %}
             </div>
             {% endfor %}
@@ -338,8 +353,8 @@
     </a>
     <div class="btn-group">
       {% if reception %}
-      <a href="/print/reception/{{ reception.id }}.docx" class="btn btn-outline-primary" target="_blank">
-        <i class="bi bi-printer"></i> {{ t("reception.print") }}
+      <a href="/print/reception/{{ reception.id }}/preview" class="btn btn-outline-primary" target="_blank">
+        <i class="bi bi-printer"></i> {{ t("print.preview") }}
       </a>
       {% endif %}
       <button type="submit" class="btn btn-primary btn-lg">

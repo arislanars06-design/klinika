@@ -49,7 +49,7 @@ def build_reception_document(
     template_path: Path | None = None,
 ) -> DocumentType:
     """Return a ``docx.Document`` populated with reception data."""
-    context = _build_context(
+    context = build_reception_context(
         reception=reception,
         patient=patient,
         doctor=doctor,
@@ -60,6 +60,28 @@ def build_reception_document(
     if template is not None:
         return _render_with_template(template, context)
     return _render_default(context, lang=lang)
+
+
+def build_reception_context(
+    *,
+    reception: ReceptionDTO,
+    patient: PatientDTO,
+    doctor: DoctorDTO | None,
+    clinic: dict[str, str],
+    lang: str = "uz",
+) -> dict[str, Any]:
+    """Public wrapper — returns the same context dict used by the docx renderer.
+
+    Exposed so the web HTML preview can render an identical layout without
+    duplicating the field-picking logic.
+    """
+    return _build_context(
+        reception=reception,
+        patient=patient,
+        doctor=doctor,
+        clinic=clinic,
+        lang=lang,
+    )
 
 
 def save_reception_document(
@@ -329,6 +351,7 @@ def _add_paragraph(doc: DocumentType, text: str) -> None:
 
 __all__ = [
     "TEMPLATE_FILENAME",
+    "build_reception_context",
     "build_reception_document",
     "save_reception_document",
 ]

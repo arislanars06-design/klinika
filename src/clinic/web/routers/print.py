@@ -20,13 +20,16 @@ from clinic.domain import (
 )
 from clinic.domain.dto import CashierRecordDTO
 from clinic.domain.stats_service import PeriodPreset
-from clinic.printing.docx_builder import build_reception_document
+from clinic.printing.docx_builder import (
+    build_reception_context,
+    build_reception_document,
+)
 from clinic.printing.receipt_builder import build_receipt_document
 from clinic.printing.stats_export import (
     build_cashier_stats_document,
     build_patient_stats_document,
 )
-from clinic.web.dependencies import require_login, resolve_language
+from clinic.web.dependencies import render, require_login, resolve_language
 
 router = APIRouter(prefix="/print")
 
@@ -142,6 +145,40 @@ def print_reception(request: Request, reception_id: int, _user: str = Depends(re
     )
     filename = f"{patient.full_name} {patient.birth_year}.docx"
     return _stream_doc(doc, filename)
+
+
+@router.get("/reception/{reception_id}/preview")
+def preview_reception(
+    request: Request, reception_id: int, _user: str = Depends(require_login)
+):
+    """HTML page that visualises the Word document before downloading.
+
+    The layout mirrors ``docx_builder._render_default`` so the operator can
+    confirm the content, then click "Download .docx" to get the actual file
+    (or use the browser's built-in Print → PDF).
+    """
+    rec = reception_service.get(reception_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="reception_not_found")
+    patient = patient_service.get(rec.patient_id)
+    if patient is None:
+        raise HTTPException(status_code=404, detail="patient_not_found")
+    doctor = doctor_service.get(rec.doctor_id)
+
+    lang = resolve_language(request)
+    context = build_reception_context(
+        reception=rec,
+        patient=patient,
+        doctor=doctor,
+        clinic=_clinic_dict(),
+        lang=lang,
+    )
+    return render(request, "reception/print_preview.html", {
+        "reception": rec,
+        "patient": patient,
+        "doctor": doctor,
+        "doc_ctx": context,
+    })
 
 
 # ---------------------------------------------------------------------------

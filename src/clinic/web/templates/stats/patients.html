@@ -45,7 +45,7 @@
   </div>
 </div>
 
-<div class="row g-3">
+<div class="row g-3 mb-4">
   <div class="col-md-7">
     <div class="card shadow-sm">
       <div class="card-header"><i class="bi bi-bar-chart"></i> {{ t("stats.receptions_by_day") }}</div>
@@ -80,6 +80,83 @@
         </table>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Filtered patient list (matches the selected period) -->
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>
+      <i class="bi bi-people-fill"></i>
+      {{ t("stats.filtered_patients") }}
+      <span class="text-muted small">
+        {{ period.start.date().strftime('%d.%m.%Y') }} — {{ period.end.date().strftime('%d.%m.%Y') }}
+      </span>
+    </span>
+    <span class="badge text-bg-secondary">{{ stats.patients | length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>{{ t("reception.full_name") }}</th>
+          <th>{{ t("reception.birth_year") }}</th>
+          <th>{{ t("reception.phone") }}</th>
+          <th>{{ t("reception.diagnosis") }}</th>
+          <th class="text-center">{{ t("stats.count") }}</th>
+          <th>{{ t("patients.last_reception") }}</th>
+          <th></th>
+          <th class="text-end">{{ t("common.actions") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in stats.patients %}
+        <tr>
+          <td class="text-muted small">{{ loop.index }}</td>
+          <td>
+            <a href="/patients/{{ p.id }}" class="text-decoration-none fw-medium">
+              {{ p.full_name }}
+            </a>
+          </td>
+          <td>{{ p.birth_year }}</td>
+          <td class="small">{{ p.phone or "—" }}</td>
+          <td class="small">{{ p.last_diagnosis or "—" }}</td>
+          <td class="text-center">{{ p.visits }}</td>
+          <td class="small text-muted">{{ p.last_visit.strftime('%d.%m.%Y %H:%M') }}</td>
+          <td>
+            {% if p.is_new %}
+            <span class="badge text-bg-success">
+              <i class="bi bi-star-fill"></i> {{ t("patients.stat_new") }}
+            </span>
+            {% else %}
+            <span class="badge text-bg-secondary">
+              <i class="bi bi-arrow-repeat"></i> {{ t("patients.stat_repeat") }}
+            </span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="/patients/{{ p.id }}" class="btn btn-outline-secondary"
+                 title="{{ t('common.view') }}">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="/reception/new?patient_id={{ p.id }}" class="btn btn-outline-primary"
+                 title="{{ t('patients.new_reception') }}">
+                <i class="bi bi-clipboard2-plus"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-4">
+            {{ t("stats.no_patients") }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 

@@ -17,6 +17,7 @@ from clinic.domain.dto import (
     CashierStats,
     DayPoint,
     DiagnosisCount,
+    PatientInPeriod,
     PatientStats,
     ServiceRevenue,
 )
@@ -100,6 +101,23 @@ def patient_stats(period: Period) -> PatientStats:
         repeat = max(0, total_visits - new_patients)
         top = rec_repo.top_diagnoses(start=period.start, end=period.end, limit=10)
         by_day = rec_repo.receptions_by_day(start=period.start, end=period.end)
+        rows = rec_repo.patients_with_visits_in_period(
+            start=period.start, end=period.end
+        )
+
+    patients = [
+        PatientInPeriod(
+            id=p.id,
+            full_name=p.full_name,
+            birth_year=p.birth_year,
+            phone=p.phone,
+            visits=visits,
+            last_visit=last,
+            is_new=first >= period.start,
+            last_diagnosis=diag,
+        )
+        for p, visits, last, first, diag in rows
+    ]
 
     return PatientStats(
         total_patients=distinct_patients,
@@ -107,6 +125,7 @@ def patient_stats(period: Period) -> PatientStats:
         repeat_receptions=repeat,
         top_diagnoses=[DiagnosisCount(d, c) for d, c in top],
         by_day=[DayPoint(date=d, value=float(c)) for d, c in by_day],
+        patients=patients,
     )
 
 
@@ -123,10 +142,26 @@ def cashier_stats(period: Period) -> CashierStats:
         receipts = cash_repo.distinct_receipts_in_period(start=period.start, end=period.end)
         by_service = cash_repo.revenue_by_service(start=period.start, end=period.end)
         by_day = cash_repo.revenue_by_day(start=period.start, end=period.end)
+        by_pt_rows = cash_repo.revenue_by_payment_type(
+            start=period.start, end=period.end
+        )
 
     average = Decimal("0")
     if receipts > 0:
         average = (revenue / Decimal(receipts)).quantize(Decimal("0.01"))
+
+    # Always emit an entry for every known payment channel — the template
+    # can then render three columns without conditional checks.
+    from clinic.domain.dto import PaymentTypeRevenue
+
+    by_payment_type: dict[str, PaymentTypeRevenue] = {
+        pt: PaymentTypeRevenue(pt, Decimal("0"), 0)
+        for pt in ("cash", "transfer", "terminal")
+    }
+    for code, total, count in by_pt_rows:
+        by_payment_type[code] = PaymentTypeRevenue(
+            code, total.quantize(Decimal("0.01")), count
+        )
 
     return CashierStats(
         total_revenue=Decimal(revenue).quantize(Decimal("0.01")),
@@ -138,6 +173,7 @@ def cashier_stats(period: Period) -> CashierStats:
             for sid, uz, ru, units, rev in by_service
         ],
         by_day=[DayPoint(date=d, value=float(v)) for d, v in by_day],
+        by_payment_type=by_payment_type,
     )
 
 

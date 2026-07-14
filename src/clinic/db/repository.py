@@ -528,6 +528,76 @@ class ReceptionRepository:
         )
         return [(row[0], int(row[1])) for row in self._session.execute(stmt).all()]
 
+    def patients_with_visits_in_period(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+    ) -> list[tuple[Patient, int, datetime, datetime, str]]:
+        """Return one row per patient who had ≥ 1 reception in the period.
+
+        Each tuple is ``(Patient, visits_in_period, last_visit, first_ever_visit, last_diagnosis)``
+        sorted by ``last_visit`` DESC. ``first_ever_visit < start`` means the
+        patient is a *repeat*; otherwise they are *new* in this window.
+        """
+        # Subquery: per-patient stats within [start, end].
+        window = (
+            select(
+                Reception.patient_id.label("pid"),
+                func.count(Reception.id).label("visits"),
+                func.max(Reception.reception_date).label("last_visit"),
+            )
+            .where(and_(Reception.reception_date >= start, Reception.reception_date <= end))
+            .group_by(Reception.patient_id)
+            .subquery()
+        )
+        # Subquery: patient's very first reception ever (used to flag new/repeat).
+        first_ever = (
+            select(
+                Reception.patient_id.label("pid"),
+                func.min(Reception.reception_date).label("first_visit"),
+            )
+            .group_by(Reception.patient_id)
+            .subquery()
+        )
+        stmt = (
+            select(
+                Patient,
+                window.c.visits,
+                window.c.last_visit,
+                first_ever.c.first_visit,
+            )
+            .join(window, window.c.pid == Patient.id)
+            .join(first_ever, first_ever.c.pid == Patient.id)
+            .order_by(window.c.last_visit.desc())
+        )
+        rows = self._session.execute(stmt).all()
+
+        # For each patient fetch the diagnosis of their latest visit in the window.
+        pids = [r[0].id for r in rows]
+        diagnoses: dict[int, str] = {}
+        if pids:
+            latest_diag_stmt = (
+                select(Reception.patient_id, Reception.diagnosis, Reception.reception_date)
+                .where(and_(
+                    Reception.patient_id.in_(pids),
+                    Reception.reception_date >= start,
+                    Reception.reception_date <= end,
+                ))
+                .order_by(Reception.patient_id, Reception.reception_date.desc())
+            )
+            seen: set[int] = set()
+            for pid, diag, _ in self._session.execute(latest_diag_stmt).all():
+                if pid in seen:
+                    continue
+                seen.add(pid)
+                diagnoses[pid] = diag or ""
+
+        return [
+            (p, int(visits or 0), last, first, diagnoses.get(p.id, ""))
+            for p, visits, last, first in rows
+        ]
+
 
 # ============================================================================
 # Cashier records
@@ -655,6 +725,34 @@ class CashierRepository:
         for date_str, total in self._session.execute(stmt).all():
             rev = Decimal(total) if not isinstance(total, Decimal) else total
             result.append((date_str, rev))
+        return result
+
+    def revenue_by_payment_type(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+    ) -> list[tuple[str, Decimal, int]]:
+        """Return ``[(payment_type, total_revenue, line_count), ...]``.
+
+        Old rows may have ``NULL`` payment_type; those are treated as ``cash``
+        so aggregates always add up to the grand total.
+        """
+        pt = func.coalesce(CashierRecord.payment_type, "cash")
+        stmt = (
+            select(
+                pt.label("pt"),
+                func.coalesce(func.sum(CashierRecord.total), 0),
+                func.count(CashierRecord.id),
+            )
+            .where(and_(CashierRecord.paid_at >= start, CashierRecord.paid_at <= end))
+            .group_by(pt)
+        )
+        result: list[tuple[str, Decimal, int]] = []
+        for row in self._session.execute(stmt).all():
+            code = row[0] or "cash"
+            total = Decimal(row[1]) if not isinstance(row[1], Decimal) else row[1]
+            result.append((code, total, int(row[2])))
         return result
 
 
