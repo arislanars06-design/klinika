@@ -29,6 +29,10 @@ dependencies = [
     "jinja2>=3.1.0,<4.0",
     "python-multipart>=0.0.9,<1.0",
     "itsdangerous>=2.1.0,<3.0",
+    # Renders the reception docx to HTML for the browser preview so the
+    # operator sees the actual template output (their letterhead + real
+    # patient data) rather than a generic programmatic layout.
+    "mammoth>=1.7.0,<2.0",
 ]
 
 [project.optional-dependencies]
