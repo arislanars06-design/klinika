@@ -641,7 +641,14 @@ class LorStatusBlock(QWidget):
         self.changed.emit()
 
     def _refresh_preview(self) -> None:
-        text = compose_lor_status(self.get_values(), lang=translator.language)
+        # This is the live-preview area inside the LOR STATUS block; the
+        # surrounding label ("Preview") is generic, so we keep the inline
+        # ``LOR STATUS:`` intro here.  Word / web renderers now strip it
+        # because they add their own section heading — that's controlled
+        # by ``include_heading``.
+        text = compose_lor_status(
+            self.get_values(), lang=translator.language, include_heading=True,
+        )
         self.preview_edit.setPlainText(text)
 
     # ---------- retranslation ----------

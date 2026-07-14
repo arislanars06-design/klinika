@@ -72,11 +72,19 @@ def test_lor_rhinoscopy_basic() -> None:
             "breathing": {"state": "free"},
         }
     }
+    # Default (renderer path) — no leading "LOR STATUS:" intro; callers
+    # add their own section heading.
     text = compose_lor_status(data, lang="uz")
-    assert "LOR STATUS" in text
+    assert "LOR STATUS" not in text  # intro no longer duplicated
     assert "РИНОСКОПИЯ" in text
     assert "Ўзгармаган" in text
     assert "Еркин" in text
+
+    # Opt-in path — the desktop live-preview widget still needs the intro
+    # because the surrounding label is generic.
+    with_heading = compose_lor_status(data, lang="uz", include_heading=True)
+    assert with_heading.startswith("LOR STATUS")
+    assert "РИНОСКОПИЯ" in with_heading
 
 
 def test_lor_otoscopy_per_ear_rendering() -> None:
@@ -119,7 +127,12 @@ def test_lor_ru_language() -> None:
     data = {
         "rhinoscopy": {"breathing": {"state": "free"}},
     }
+    # Renderer path — no intro.
     text = compose_lor_status(data, lang="ru")
-    assert "ЛОР СТАТУС" in text
+    assert "ЛОР СТАТУС" not in text
     assert "РИНОСКОПИЯ" in text
     assert "Свободное" in text
+
+    # Preview path — intro is re-added in Russian too.
+    with_heading = compose_lor_status(data, lang="ru", include_heading=True)
+    assert with_heading.startswith("ЛОР СТАТУС")
