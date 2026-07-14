@@ -13,6 +13,9 @@ Shifokorlar va klinika administratorlari uchun mo'ljallangan, ikkita tilda ishla
 > ```bash
 > python -m clinic.web.main  # → http://127.0.0.1:8000
 > ```
+>
+> 📱 **Klinika ichidagi telefon / boshqa kompyuterlardan kirish** uchun
+> `start-network.bat` (Windows) ishlating — batafsil: [`docs/network_access.md`](docs/network_access.md).
 
 ## ⚡ Asosiy imkoniyatlar
 
