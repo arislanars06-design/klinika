@@ -113,6 +113,21 @@ def cashier_landing(request: Request, q: str | None = None, _user: str = Depends
     for pt, total in rows:
         by_type[pt or "cash"] = Decimal(total or 0)
 
+    # All-time totals — no date filter, one row per payment_type + grand total.
+    with session_scope() as session:
+        all_rows_ptype = (
+            session.query(
+                CashierRecord.payment_type,
+                func.coalesce(func.sum(CashierRecord.total), 0),
+            )
+            .group_by(CashierRecord.payment_type)
+            .all()
+        )
+    all_time_by_type = {pt: Decimal(0) for pt in ("cash", "transfer", "terminal")}
+    for pt, total in all_rows_ptype:
+        all_time_by_type[pt or "cash"] = Decimal(total or 0)
+    all_time_total = sum(all_time_by_type.values(), Decimal(0))
+
     # Today's payers list — one entry per receipt (grouped by paid_at bucket).
     today_history = [
         r for r in cashier_service.list_for_period(period.start, period.end)
@@ -204,6 +219,8 @@ def cashier_landing(request: Request, q: str | None = None, _user: str = Depends
         "today_receipts": today_receipts,
         "patient_names": patient_names,
         "all_cashier_patients": all_cashier_patients,
+        "all_time_total": all_time_total,
+        "all_time_by_type": all_time_by_type,
     })
 
 

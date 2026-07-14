@@ -1,0 +1,127 @@
+{% extends "settings/_layout.html" %}
+{% block title %}{{ t("settings.tab_lor_status") }}{% endblock %}
+
+{% block settings_body %}
+{% set method_labels = {
+  "rhinoscopy": t("settings.method_rhinoscopy"),
+  "pharyngoscopy": t("settings.method_pharyngoscopy"),
+  "laryngoscopy": t("settings.method_laryngoscopy"),
+  "otoscopy": t("settings.method_otoscopy"),
+} %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-plus-lg"></i> {{ t("settings.add_lor_item") }}</div>
+      <form method="post" action="/settings/lor_status/new">
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.method") }} *</label>
+            <select name="method" class="form-select" required>
+              {% for m in methods %}
+              <option value="{{ m }}">{{ method_labels.get(m, m) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.section") }} *</label>
+            <input type="text" name="section" class="form-control" placeholder="{{ t('settings.lor_section_hint') }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.field_type") }} *</label>
+            <select name="field_type" class="form-select" required>
+              {% for ft in field_types %}
+              <option value="{{ ft }}">{{ t("settings.ft_" ~ ft) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.label_uz") }} *</label>
+            <input type="text" name="label_uz" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.label_ru") }} *</label>
+            <input type="text" name="label_ru" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.options_raw") }}</label>
+            <input type="text" name="options_raw" class="form-control" placeholder="{{ t('settings.options_raw_hint') }}">
+            <div class="form-text small">{{ t("settings.options_raw_hint2") }}</div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> {{ t("common.add") }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header">{{ t("settings.lor_list") }} — {{ items | length }}</div>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>{{ t("settings.method") }}</th>
+              <th>{{ t("settings.section") }}</th>
+              <th>{{ t("settings.field_type") }}</th>
+              <th>{{ t("settings.label_uz") }}</th>
+              <th>{{ t("settings.status") }}</th>
+              <th class="text-end">{{ t("common.actions") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in items %}
+            <tr class="{% if not it.is_active %}text-muted{% endif %}">
+              <td class="small">{{ it.id }}</td>
+              <td colspan="4">
+                <form method="post" action="/settings/lor_status/{{ it.id }}/edit" class="d-flex gap-2 flex-wrap">
+                  <select name="method" class="form-select form-select-sm" style="max-width: 140px;">
+                    {% for m in methods %}
+                    <option value="{{ m }}" {% if it.method == m %}selected{% endif %}>{{ method_labels.get(m, m) }}</option>
+                    {% endfor %}
+                  </select>
+                  <input type="text" name="section" class="form-control form-control-sm" value="{{ it.section }}" style="max-width: 140px;">
+                  <select name="field_type" class="form-select form-select-sm" style="max-width: 130px;">
+                    {% for ft in field_types %}
+                    <option value="{{ ft }}" {% if it.field_type == ft %}selected{% endif %}>{{ t("settings.ft_" ~ ft) }}</option>
+                    {% endfor %}
+                  </select>
+                  <input type="text" name="label_uz" class="form-control form-control-sm" value="{{ it.label_uz }}" style="min-width: 120px;">
+                  <input type="text" name="label_ru" class="form-control form-control-sm" value="{{ it.label_ru }}" style="min-width: 120px;">
+                  <input type="text" name="options_raw" class="form-control form-control-sm" value="{{ it.options_text }}"
+                         placeholder="{{ t('settings.options_raw_hint') }}" style="min-width: 160px;">
+                  <button class="btn btn-sm btn-outline-primary"><i class="bi bi-check-lg"></i></button>
+                </form>
+              </td>
+              <td>
+                {% if it.is_active %}
+                  <span class="badge text-bg-success">{{ t("settings.active") }}</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ t("common.archived") }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <form method="post" action="/settings/lor_status/{{ it.id }}/toggle" class="d-inline">
+                  <button class="btn btn-sm {% if it.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                    {% if it.is_active %}<i class="bi bi-archive"></i>{% else %}<i class="bi bi-arrow-counterclockwise"></i>{% endif %}
+                  </button>
+                </form>
+                <form method="post" action="/settings/lor_status/{{ it.id }}/delete" class="d-inline"
+                      onsubmit="return confirm('{{ t('patients.confirm_delete') }}');">
+                  <button class="btn btn-sm btn-outline-danger" title="{{ t('common.delete') }}">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4">{{ t("settings.no_lor_items") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

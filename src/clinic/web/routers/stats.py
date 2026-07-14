@@ -39,8 +39,44 @@ def patient_stats(
     end: str | None = None,
     _user: str = Depends(require_login),
 ):
+    from sqlalchemy import func
+
+    from clinic.db.database import session_scope
+    from clinic.db.models import Patient, Reception
+
     period, resolved = _resolve_period(preset, start, end)
     stats = stats_service.patient_stats(period)
+
+    # Per-patient rollup for the window — one row per patient who had at
+    # least one reception in the period, with reception count + last visit.
+    with session_scope() as session:
+        rows = (
+            session.query(
+                Patient.id,
+                Patient.full_name,
+                Patient.birth_year,
+                Patient.phone,
+                func.count(Reception.id).label("reception_count"),
+                func.max(Reception.reception_date).label("last_reception_at"),
+            )
+            .join(Reception, Reception.patient_id == Patient.id)
+            .filter(Reception.reception_date >= period.start)
+            .filter(Reception.reception_date <= period.end)
+            .group_by(Patient.id)
+            .order_by(func.max(Reception.reception_date).desc())
+            .all()
+        )
+    period_patients = [
+        {
+            "id": r.id,
+            "full_name": r.full_name,
+            "birth_year": r.birth_year,
+            "phone": r.phone,
+            "reception_count": int(r.reception_count or 0),
+            "last_reception_at": r.last_reception_at,
+        }
+        for r in rows
+    ]
 
     return render(request, "stats/patients.html", {
         "stats": stats,
@@ -50,6 +86,7 @@ def patient_stats(
         "values_by_day": [pt.value for pt in stats.by_day],
         "start_input": period.start.date().isoformat(),
         "end_input": period.end.date().isoformat(),
+        "period_patients": period_patients,
     })
 
 

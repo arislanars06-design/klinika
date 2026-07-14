@@ -228,14 +228,25 @@ def _parse_form(form_data, lor_catalog: dict) -> tuple[ReceptionInput, dict[str,
 # ---------------------------------------------------------------------------
 
 
-def _auto_save_docx(reception_id: int, lang: str) -> None:
-    """Generate and save the reception .docx if save_folder is configured."""
+def _auto_save_docx(request: Request, reception_id: int, lang: str) -> None:
+    """Generate and save the reception .docx if ``save_folder`` is configured.
+
+    Emits a Cyrillic Uzbek / Russian flash message on both success and failure
+    so the operator can see where the file landed (or why nothing was saved).
+    """
     from loguru import logger
 
+    clinic_info = clinic_info_service.load()
+    folder_raw = (clinic_info.save_folder or "").strip()
+    if not folder_raw:
+        # Nothing configured — skip silently.
+        return
+
     try:
-        clinic_info = clinic_info_service.load()
-        if not clinic_info.save_folder:
-            return
+        folder = Path(folder_raw).expanduser()
+        # Create the folder on the fly so a missing target doesn't break autosave.
+        folder.mkdir(parents=True, exist_ok=True)
+
         rec = reception_service.get(reception_id)
         if rec is None:
             return
@@ -244,7 +255,7 @@ def _auto_save_docx(reception_id: int, lang: str) -> None:
             return
         doctor = doctor_service.get(rec.doctor_id)
         filename = f"{patient.full_name} {patient.birth_year}.docx"
-        output_path = Path(clinic_info.save_folder) / filename
+        output_path = folder / filename
         clinic_dict = {
             "name_uz": clinic_info.name_uz,
             "name_ru": clinic_info.name_ru,
@@ -261,8 +272,22 @@ def _auto_save_docx(reception_id: int, lang: str) -> None:
             clinic=clinic_dict,
             lang=lang,
         )
-    except Exception:
+        request.session.setdefault("flash", []).append({
+            "level": "success",
+            "text": (
+                f"Ҳужжат сақланди: {output_path}" if lang == "uz"
+                else f"Документ сохранён: {output_path}"
+            ),
+        })
+    except Exception as exc:
         logger.exception("Auto-save docx failed for reception {}", reception_id)
+        request.session.setdefault("flash", []).append({
+            "level": "warning",
+            "text": (
+                f"Ҳужжатни сақлаб бўлмади: {exc}" if lang == "uz"
+                else f"Не удалось сохранить документ: {exc}"
+            ),
+        })
 
 
 @router.get("/new")
@@ -302,7 +327,7 @@ async def create_reception(request: Request, _user: str = Depends(require_login)
             status_code=400,
         )
     lang = resolve_language(request)
-    _auto_save_docx(rec.id, lang)
+    _auto_save_docx(request, rec.id, lang)
     request.session.setdefault("flash", []).append({
         "level": "success",
         "text": "Қабул сақланди." if lang == "uz" else "Приём сохранён.",
@@ -381,7 +406,7 @@ async def update_reception(
             status_code=400,
         )
     lang = resolve_language(request)
-    _auto_save_docx(reception_id, lang)
+    _auto_save_docx(request, reception_id, lang)
     request.session.setdefault("flash", []).append({
         "level": "success",
         "text": "Қабул янгиланди." if lang == "uz" else "Приём обновлён.",

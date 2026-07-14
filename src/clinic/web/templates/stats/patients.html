@@ -83,6 +83,60 @@
   </div>
 </div>
 
+<!-- Patient list for the selected period -->
+<div class="card shadow-sm mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="bi bi-people-fill"></i> {{ t("stats.period_patients") }}</span>
+    <span class="badge text-bg-secondary">{{ period_patients | length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>{{ t("reception.full_name") }}</th>
+          <th>{{ t("reception.birth_year") }}</th>
+          <th>{{ t("reception.phone") }}</th>
+          <th class="text-end">{{ t("stats.reception_count") }}</th>
+          <th>{{ t("stats.last_reception") }}</th>
+          <th class="text-end">{{ t("common.actions") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in period_patients %}
+        <tr>
+          <td class="text-muted small">{{ loop.index }}</td>
+          <td class="fw-medium">
+            <a href="/patients/{{ p.id }}" class="text-decoration-none">{{ p.full_name }}</a>
+          </td>
+          <td>{{ p.birth_year }}</td>
+          <td class="small">{{ p.phone or "—" }}</td>
+          <td class="text-end fw-semibold">{{ p.reception_count }}</td>
+          <td class="small text-muted">
+            {{ p.last_reception_at.strftime('%d.%m.%Y %H:%M') if p.last_reception_at else "—" }}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="/patients/{{ p.id }}" class="btn btn-outline-secondary" title="{{ t('common.view') }}">
+                <i class="bi bi-eye"></i>
+              </a>
+              <form method="post" action="/patients/{{ p.id }}/delete" class="d-inline"
+                    onsubmit="return confirm('{{ t('patients.confirm_delete') }}');">
+                <button class="btn btn-outline-danger" title="{{ t('common.delete') }}">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">{{ t("stats.no_data") }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <script id="chart-data" type="application/json">
 {"labels": {{ labels_by_day | tojson }}, "values": {{ values_by_day | tojson }}}
 </script>
