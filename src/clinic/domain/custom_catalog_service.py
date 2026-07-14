@@ -16,7 +16,11 @@ import re
 from dataclasses import dataclass
 
 from clinic.db.database import session_scope
-from clinic.db.models import ComplaintCatalogCustom, LorCatalogCustom
+from clinic.db.models import (
+    CatalogOverride,
+    ComplaintCatalogCustom,
+    LorCatalogCustom,
+)
 from clinic.infrastructure.validators import ValidationError
 
 # ---------------------------------------------------------------------------
@@ -44,6 +48,31 @@ class ComplaintCustomDTO:
             name_ru=row.name_ru,
             has_discharge_type=bool(row.has_discharge_type),
             is_active=bool(row.is_active),
+        )
+
+
+@dataclass
+class CatalogOverrideDTO:
+    """One override row (edit or hide of a built-in item)."""
+
+    id: int
+    kind: str          # 'complaint' | 'lor'
+    code: str          # built-in item code being overridden
+    name_uz: str | None
+    name_ru: str | None
+    hidden: bool
+    has_discharge_type: bool | None
+
+    @classmethod
+    def from_orm(cls, row: CatalogOverride) -> "CatalogOverrideDTO":
+        return cls(
+            id=row.id,
+            kind=row.kind,
+            code=row.code,
+            name_uz=row.name_uz,
+            name_ru=row.name_ru,
+            hidden=bool(row.hidden),
+            has_discharge_type=row.has_discharge_type,
         )
 
 
@@ -449,22 +478,169 @@ def options_to_lines(options: list[dict] | None) -> str:
     return _options_to_lines(options)
 
 
+# ---------------------------------------------------------------------------
+# Overrides for built-in catalog items
+# ---------------------------------------------------------------------------
+
+
+VALID_OVERRIDE_KINDS = ("complaint", "lor")
+
+
+def list_complaint_overrides() -> dict[str, CatalogOverrideDTO]:
+    """Return a ``{code: override}`` map for quick lookup by code."""
+    return _list_overrides("complaint")
+
+
+def list_lor_overrides() -> dict[str, CatalogOverrideDTO]:
+    return _list_overrides("lor")
+
+
+def _list_overrides(kind: str) -> dict[str, CatalogOverrideDTO]:
+    from sqlalchemy import select
+
+    with session_scope() as session:
+        rows = session.execute(
+            select(CatalogOverride).where(CatalogOverride.kind == kind)
+        ).scalars().all()
+        return {r.code: CatalogOverrideDTO.from_orm(r) for r in rows}
+
+
+def set_complaint_override(
+    code: str,
+    *,
+    name_uz: str | None = None,
+    name_ru: str | None = None,
+    has_discharge_type: bool | None = None,
+    hidden: bool | None = None,
+) -> CatalogOverrideDTO:
+    """Create-or-update the override row for a built-in complaint code."""
+    return _upsert_override(
+        "complaint",
+        code,
+        name_uz=name_uz,
+        name_ru=name_ru,
+        has_discharge_type=has_discharge_type,
+        hidden=hidden,
+    )
+
+
+def set_lor_override(
+    code: str,
+    *,
+    name_uz: str | None = None,
+    name_ru: str | None = None,
+    hidden: bool | None = None,
+) -> CatalogOverrideDTO:
+    """Create-or-update the override row for a built-in LOR field code."""
+    return _upsert_override(
+        "lor",
+        code,
+        name_uz=name_uz,
+        name_ru=name_ru,
+        has_discharge_type=None,
+        hidden=hidden,
+    )
+
+
+def _upsert_override(
+    kind: str,
+    code: str,
+    *,
+    name_uz: str | None,
+    name_ru: str | None,
+    has_discharge_type: bool | None,
+    hidden: bool | None,
+) -> CatalogOverrideDTO:
+    from sqlalchemy import select
+
+    code = (code or "").strip()
+    if not code:
+        err = ValidationError()
+        err.add("code", "validation.required")
+        raise err
+
+    def _clean(v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    with session_scope() as session:
+        row = session.execute(
+            select(CatalogOverride).where(
+                CatalogOverride.kind == kind,
+                CatalogOverride.code == code,
+            )
+        ).scalar_one_or_none()
+
+        if row is None:
+            row = CatalogOverride(kind=kind, code=code)
+            session.add(row)
+
+        # Only update fields that were explicitly passed.
+        if name_uz is not None:
+            row.name_uz = _clean(name_uz)
+        if name_ru is not None:
+            row.name_ru = _clean(name_ru)
+        if has_discharge_type is not None:
+            row.has_discharge_type = bool(has_discharge_type)
+        if hidden is not None:
+            row.hidden = bool(hidden)
+
+        session.flush()
+        _bump_catalog_version()
+        return CatalogOverrideDTO.from_orm(row)
+
+
+def reset_complaint_override(code: str) -> bool:
+    return _delete_override("complaint", code)
+
+
+def reset_lor_override(code: str) -> bool:
+    return _delete_override("lor", code)
+
+
+def _delete_override(kind: str, code: str) -> bool:
+    from sqlalchemy import select
+
+    with session_scope() as session:
+        row = session.execute(
+            select(CatalogOverride).where(
+                CatalogOverride.kind == kind,
+                CatalogOverride.code == code,
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            return False
+        session.delete(row)
+        _bump_catalog_version()
+        return True
+
+
 __all__ = [
     "CUSTOM_LOR_SECTION",
+    "CatalogOverrideDTO",
     "ComplaintCustomDTO",
     "LorCustomDTO",
     "VALID_COMPLAINT_SECTIONS",
     "VALID_LOR_FIELD_TYPES",
     "VALID_LOR_METHODS",
+    "VALID_OVERRIDE_KINDS",
     "create_complaint",
     "create_lor",
     "delete_complaint",
     "delete_lor",
     "get_complaint",
     "get_lor",
+    "list_complaint_overrides",
     "list_complaints",
     "list_lor",
+    "list_lor_overrides",
     "options_to_lines",
+    "reset_complaint_override",
+    "reset_lor_override",
+    "set_complaint_override",
+    "set_lor_override",
     "update_complaint",
     "update_lor",
 ]

@@ -101,11 +101,34 @@ def lor_status_catalog() -> dict[str, Any]:
 
 @lru_cache(maxsize=4)
 def _merge_complaints(_version: int) -> dict[str, Any]:
-    """Merge JSON complaints with rows from the custom table."""
+    """Merge JSON complaints with rows from the custom + override tables."""
     merged = copy.deepcopy(_complaints_raw())
     sections = merged.setdefault("sections", [])
     section_map = {sec["code"]: sec for sec in sections}
 
+    # ---- Apply built-in overrides (rename / hide) --------------------------
+    overrides = _fetch_overrides("complaint")
+    for section in sections:
+        filtered: list[dict] = []
+        for item in section.get("items", []):
+            ov = overrides.get(item.get("code"))
+            if ov is None:
+                filtered.append(item)
+                continue
+            if ov.get("hidden"):
+                continue  # user hid this built-in
+            # Apply rename / discharge override in place.
+            if ov.get("name_uz"):
+                item["uz"] = ov["name_uz"]
+            if ov.get("name_ru"):
+                item["ru"] = ov["name_ru"]
+            if ov.get("has_discharge_type") is not None:
+                item["has_discharge_type"] = bool(ov["has_discharge_type"])
+            item["_overridden"] = True
+            filtered.append(item)
+        section["items"] = filtered
+
+    # ---- Append user-added items ------------------------------------------
     for row in _fetch_custom_complaints():
         section = section_map.get(row["section"])
         if section is None:
@@ -130,10 +153,33 @@ def _merge_complaints(_version: int) -> dict[str, Any]:
 
 @lru_cache(maxsize=4)
 def _merge_lor(_version: int) -> dict[str, Any]:
-    """Merge JSON LOR STATUS with rows from the custom table."""
+    """Merge JSON LOR STATUS with rows from the custom + override tables."""
     merged = copy.deepcopy(_lor_status_raw())
     methods = merged.setdefault("methods", [])
     method_map = {m["code"]: m for m in methods}
+
+    # ---- Apply built-in overrides (rename / hide) to every field ----------
+    overrides = _fetch_overrides("lor")
+    for method in methods:
+        for section in method.get("sections", []):
+            filtered_fields: list[dict] = []
+            for field in section.get("fields", []):
+                ov = overrides.get(field.get("code"))
+                if ov is None:
+                    filtered_fields.append(field)
+                    continue
+                if ov.get("hidden"):
+                    continue
+                if ov.get("name_uz") or ov.get("name_ru"):
+                    label = dict(field.get("label") or {})
+                    if ov.get("name_uz"):
+                        label["uz"] = ov["name_uz"]
+                    if ov.get("name_ru"):
+                        label["ru"] = ov["name_ru"]
+                    field["label"] = label
+                field["_overridden"] = True
+                filtered_fields.append(field)
+            section["fields"] = filtered_fields
 
     # Group customs by method.
     grouped: dict[str, list[dict]] = {}
@@ -216,6 +262,34 @@ def _fetch_custom_complaints() -> list[dict[str, Any]]:
         # Table may not exist yet (fresh install) — behave as if empty.
         logger.debug("Custom complaints table unavailable")
         return []
+
+
+def _fetch_overrides(kind: str) -> dict[str, dict[str, Any]]:
+    """Return ``{code: override_dict}`` for the given kind, or {} on error."""
+    try:
+        from sqlalchemy import select
+
+        from clinic.db.database import session_scope
+        from clinic.db.models import CatalogOverride
+    except Exception:
+        return {}
+    try:
+        with session_scope() as session:
+            rows = session.execute(
+                select(CatalogOverride).where(CatalogOverride.kind == kind)
+            ).scalars().all()
+            return {
+                r.code: {
+                    "name_uz": r.name_uz,
+                    "name_ru": r.name_ru,
+                    "hidden": bool(r.hidden),
+                    "has_discharge_type": r.has_discharge_type,
+                }
+                for r in rows
+            }
+    except Exception:
+        logger.debug("Catalog overrides table unavailable")
+        return {}
 
 
 def _fetch_custom_lor() -> list[dict[str, Any]]:

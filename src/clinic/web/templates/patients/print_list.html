@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}{{ t("print.list_title") }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 no-print">
+  <h3 class="mb-0">
+    <i class="bi bi-people text-success"></i> {{ t("print.list_title") }}
+    <span class="badge text-bg-secondary">{{ total }}</span>
+  </h3>
+  <div class="btn-group">
+    <button type="button" class="btn btn-primary" onclick="window.print()">
+      <i class="bi bi-printer"></i> {{ t("print.print_now") }}
+    </button>
+    <a href="/patients?q={{ q }}&date_from={{ date_from }}&date_to={{ date_to }}"
+       class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> {{ t("common.back") }}
+    </a>
+  </div>
+</div>
+
+<!-- A4-styled print sheet -->
+<div class="print-sheet">
+  <div class="print-header">
+    <div class="print-title">{{ t("print.list_title") }}</div>
+    <div class="print-meta">
+      <div><b>{{ t("print.filters") }}:</b> {{ filter_summary or t("print.no_filter") }}</div>
+      <div><b>{{ t("print.printed_on") }}:</b> <span id="today-stamp"></span></div>
+      <div><b>{{ t("patients.total", n=total) }}</b></div>
+    </div>
+  </div>
+
+  <table class="print-table">
+    <thead>
+      <tr>
+        <th style="width: 3rem;">#</th>
+        <th>{{ t("reception.full_name") }}</th>
+        <th style="width: 6rem;">{{ t("reception.birth_year") }}</th>
+        <th style="width: 10rem;">{{ t("reception.phone") }}</th>
+        <th style="width: 8rem;">{{ t("patients.last_reception") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ row.patient.full_name }}</td>
+        <td>{{ row.patient.birth_year }} <span class="text-muted">({{ row.age }})</span></td>
+        <td>{{ row.patient.phone or "—" }}</td>
+        <td>{{ row.last_reception_date.strftime('%d.%m.%Y') if row.last_reception_date else "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center; padding: 2rem;">{{ t("patients.empty") }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Fill in today's date in the operator's locale.
+  (function() {
+    const el = document.getElementById("today-stamp");
+    if (el) {
+      const d = new Date();
+      const pad = (n) => n.toString().padStart(2, "0");
+      el.textContent = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+  })();
+</script>
+<style>
+  .print-sheet {
+    max-width: 800px;
+    margin: 0 auto 2rem;
+    padding: 2cm 1.5cm;
+    background: #fff;
+    color: #111;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+    font-family: "Times New Roman", "Liberation Serif", serif;
+  }
+  [data-bs-theme="dark"] .print-sheet {
+    background: #fff;
+    color: #111;
+  }
+  .print-header {
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .print-title {
+    font-size: 1.4rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .print-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .print-table th,
+  .print-table td {
+    border: 1px solid #999;
+    padding: 4px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .print-table th {
+    background: #f0f0f0;
+    font-weight: bold;
+  }
+  .print-table tbody tr:nth-child(even) td {
+    background: #fafafa;
+  }
+  @media print {
+    .no-print, nav, footer { display: none !important; }
+    body { background: #fff !important; }
+    main.container-fluid { max-width: 100% !important; padding: 0 !important; }
+    .print-sheet {
+      box-shadow: none;
+      border: none;
+      margin: 0;
+      max-width: 100%;
+      padding: 0.8cm;
+    }
+    @page {
+      size: A4 portrait;
+      margin: 1.5cm 1.2cm;
+    }
+    .print-table thead { display: table-header-group; }
+    .print-table tbody tr { page-break-inside: avoid; }
+  }
+</style>
+{% endblock %}

@@ -123,6 +123,63 @@ def delete_patient(
     return RedirectResponse(url=referer, status_code=303)
 
 
+@router.get("/print")
+def print_patients(
+    request: Request,
+    q: str | None = None,
+    search_in: str = "any",
+    date_from: str | None = None,
+    date_to: str | None = None,
+    _user: str = Depends(require_login),
+):
+    """Print-friendly patient list matching the current filter.
+
+    Uses the same search/date-range as ``/patients`` but returns *all*
+    matching rows (no pagination) so the operator can print a full report
+    of the current selection.
+    """
+    from datetime import date, datetime, time
+
+    mode = _SEARCH_MODES.get(search_in, ANY_FIELD_SEARCH)
+
+    df: datetime | None = None
+    dt: datetime | None = None
+    try:
+        if date_from:
+            df = datetime.combine(date.fromisoformat(date_from), time.min)
+        if date_to:
+            dt = datetime.combine(date.fromisoformat(date_to), time.max)
+    except ValueError:
+        df = dt = None
+
+    # Big page size so the print always shows every match (up to 2000).
+    page_data = patient_service.paginated_search(
+        text=q or None,
+        search_in=mode,
+        date_from=df,
+        date_to=dt,
+        page=1,
+        page_size=2000,
+    )
+
+    filter_parts: list[str] = []
+    if q:
+        filter_parts.append(f"«{q}»")
+    if date_from:
+        filter_parts.append(f"≥ {date_from}")
+    if date_to:
+        filter_parts.append(f"≤ {date_to}")
+
+    return render(request, "patients/print_list.html", {
+        "rows": page_data.items,
+        "total": page_data.total,
+        "q": q or "",
+        "date_from": date_from or "",
+        "date_to": date_to or "",
+        "filter_summary": " · ".join(filter_parts),
+    })
+
+
 @router.get("/autocomplete", response_class=None)
 def autocomplete_patients(request: Request, q: str = "", _user: str = Depends(require_login)):
     """Return ``<option>`` tags for a ``<datalist>``. HTMX-friendly."""

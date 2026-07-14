@@ -199,6 +199,96 @@ def cashier_landing(request: Request, q: str | None = None, _user: str = Depends
     })
 
 
+@router.get("/print")
+def cashier_print(
+    request: Request,
+    preset: str = "today",
+    start: str | None = None,
+    end: str | None = None,
+    _user: str = Depends(require_login),
+):
+    """Print-friendly cashier ledger for the selected period.
+
+    Defaults to *today*; use ``preset=week|month|year`` or an explicit
+    ``start=YYYY-MM-DD&end=YYYY-MM-DD`` for other ranges.
+    """
+    from datetime import date
+
+    from sqlalchemy import func
+
+    from clinic.db.database import session_scope
+    from clinic.db.models import CashierRecord, Patient
+    from clinic.domain import stats_service
+
+    # Resolve the period.
+    period = None
+    period_label = "today"
+    if start or end:
+        try:
+            s = date.fromisoformat(start) if start else date.today()
+            e = date.fromisoformat(end) if end else date.today()
+            period = stats_service.build_custom(s, e)
+            period_label = f"{s.isoformat()} — {e.isoformat()}"
+        except ValueError:
+            period = None
+    if period is None:
+        preset_map = {
+            "today": stats_service.PeriodPreset.TODAY,
+            "week":  stats_service.PeriodPreset.WEEK,
+            "month": stats_service.PeriodPreset.MONTH,
+            "year":  stats_service.PeriodPreset.YEAR,
+        }
+        pp = preset_map.get(preset, stats_service.PeriodPreset.TODAY)
+        period = stats_service.build_period(pp)
+        period_label = preset
+
+    stats = stats_service.cashier_stats(period)
+
+    # Per-patient aggregate for the selected period.
+    with session_scope() as session:
+        rows = (
+            session.query(
+                Patient.id,
+                Patient.full_name,
+                Patient.birth_year,
+                Patient.phone,
+                func.coalesce(func.sum(CashierRecord.total), 0).label("total"),
+                func.count(CashierRecord.id).label("lines"),
+                func.max(CashierRecord.paid_at).label("last_paid_at"),
+            )
+            .join(CashierRecord, CashierRecord.patient_id == Patient.id)
+            .filter(CashierRecord.paid_at >= period.start)
+            .filter(CashierRecord.paid_at <= period.end)
+            .group_by(Patient.id)
+            .order_by(func.max(CashierRecord.paid_at).desc())
+            .limit(5000)
+            .all()
+        )
+
+    ledger = [
+        {
+            "id": r.id,
+            "full_name": r.full_name,
+            "birth_year": r.birth_year,
+            "phone": r.phone,
+            "total": Decimal(r.total or 0),
+            "lines": int(r.lines or 0),
+            "last_paid_at": r.last_paid_at,
+        }
+        for r in rows
+    ]
+
+    return render(request, "cashier/print_list.html", {
+        "stats": stats,
+        "ledger": ledger,
+        "period_label": period_label,
+        "period": period,
+        "preset": preset,
+        "start": start or "",
+        "end": end or "",
+    })
+
+
 # ---------------------------------------------------------------------------
 # Per-patient cashier page
 # ---------------------------------------------------------------------------
