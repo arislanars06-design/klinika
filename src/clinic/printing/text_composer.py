@@ -277,13 +277,25 @@ def _render_method(catalog: dict, method: dict, method_value, lang: str) -> str:
     return f"{method_label}: " + " ".join(section_lines)
 
 
-def compose_lor_status(lor_status: dict | None, *, lang: str = "uz") -> str:
-    """Turn the LOR STATUS dictionary into a multi-paragraph string."""
+def compose_lor_status(
+    lor_status: dict | None,
+    *,
+    lang: str = "uz",
+    include_heading: bool = False,
+) -> str:
+    """Turn the LOR STATUS dictionary into a multi-paragraph string.
+
+    The output no longer starts with a ``LOR STATUS:`` line by default —
+    every caller (Word template, web detail page, print preview) already
+    renders it under its own section heading, so the leading label was a
+    duplication.  Callers that still want the heading in-line (e.g. the
+    desktop live-preview widget, where the surrounding label is generic)
+    pass ``include_heading=True``.
+    """
     if not lor_status:
         return ""
 
     catalog = lor_status_catalog()
-    intro = LOR_INTRO.get(lang, LOR_INTRO["uz"])
     blocks: list[str] = []
 
     # 1) Structured methods defined by the desktop catalog.
@@ -310,7 +322,11 @@ def compose_lor_status(lor_status: dict | None, *, lang: str = "uz") -> str:
 
     if not blocks:
         return ""
-    return f"{intro}:\n\n" + "\n\n".join(blocks)
+    body = "\n\n".join(blocks)
+    if include_heading:
+        intro = LOR_INTRO.get(lang, LOR_INTRO["uz"])
+        return f"{intro}:\n\n{body}"
+    return body
 
 
 __all__ = ["compose_complaints", "compose_lor_status"]

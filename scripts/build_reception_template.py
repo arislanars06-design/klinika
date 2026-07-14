@@ -131,43 +131,6 @@ def _inline_section(doc, title: str, placeholder: str, *, bold_body: bool = Fals
     run_b.bold = bold_body
 
 
-def _compact_patient_table(doc) -> None:
-    """4-row two-column patient block; slimmer than the previous version."""
-    tbl = doc.add_table(rows=2, cols=4)
-    tbl.autofit = False
-    widths = (Cm(3.0), Cm(6.5), Cm(3.0), Cm(4.5))
-    for row in tbl.rows:
-        for cell, width in zip(row.cells, widths, strict=True):
-            cell.width = width
-            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-            _set_cell_border(cell, size=4, color="B0B0B0")
-
-    def _lbl(cell, text: str) -> None:
-        _shade_cell(cell, "F0F4F8")
-        p = cell.paragraphs[0]
-        p.paragraph_format.space_after = Pt(0)
-        r = p.add_run(text)
-        r.bold = True
-        r.font.size = Pt(9)
-        r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
-
-    def _val(cell, text: str) -> None:
-        p = cell.paragraphs[0]
-        p.paragraph_format.space_after = Pt(0)
-        r = p.add_run(text)
-        r.font.size = Pt(10)
-
-    _lbl(tbl.rows[0].cells[0], "F.I.SH.")
-    _val(tbl.rows[0].cells[1], "{{ patient.full_name }}")
-    _lbl(tbl.rows[0].cells[2], "Tug'ilgan y.")
-    _val(tbl.rows[0].cells[3], "{{ patient.birth_year }} ({{ patient.age }} y)")
-
-    _lbl(tbl.rows[1].cells[0], "Manzil")
-    _val(tbl.rows[1].cells[1], "{{ patient.address }}")
-    _lbl(tbl.rows[1].cells[2], "Telefon")
-    _val(tbl.rows[1].cells[3], "{{ patient.phone }}")
-
-
 def _boxed_recommendation(doc) -> None:
     """The one section that gets a visible framed box, per the user request.
 
@@ -312,17 +275,29 @@ def build_default_template(dst: Path | None = None) -> Path:
     srun.font.size = Pt(9)
     srun.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
 
-    # --- Compact patient block --------------------------------------------
-    _compact_patient_table(doc)
+    # --- Patient info as inline text (no grid table) ----------------------
+    #
+    # The operator asked for the visible K/V table to go away.  We keep the
+    # same information but render each field as a plain "Label: value"
+    # paragraph, which prints tighter and is friendlier for handwritten
+    # notes in the margin.
+    _inline_section(doc, "F.I.SH. / Ф.И.О.",                  "{{ patient.full_name }}")
+    _inline_section(doc, "Tug'ilgan yili / Год рождения",
+                    "{{ patient.birth_year }} ({{ patient.age }} yosh / лет)")
+    _inline_section(doc, "Manzil / Адрес",                    "{{ patient.address }}")
+    _inline_section(doc, "Telefon / Телефон",                 "{{ patient.phone }}")
 
-    # --- Inline sections (compact, no big grey bars) ----------------------
+    # Small visual break between demographics and the medical narrative.
+    doc.add_paragraph()
+
+    # --- Inline sections (compact, no big grey heading bars) ----------------
     _inline_section(doc, "SHIKOYATLAR / ЖАЛОБЫ",     "{{ reception.complaints_text }}")
     _inline_section(doc, "ANAMNEZ / АНАМНЕЗ",        "{{ reception.anamnesis }}")
     _inline_section(doc, "LOR STATUS / ЛОР СТАТУС",  "{{ reception.lor_status_text }}")
     _inline_section(doc, "TASHXIS / ДИАГНОЗ",        "{{ reception.diagnosis }}",
                     bold_body=True, body_size=11)
 
-    # Small breather before the framed box
+    # Small breather before the framed box.
     spacer = doc.add_paragraph()
     spacer.paragraph_format.space_before = Pt(0)
     spacer.paragraph_format.space_after = Pt(2)
@@ -330,40 +305,33 @@ def build_default_template(dst: Path | None = None) -> Path:
     # --- The one framed section — TAVSIYA ---------------------------------
     _boxed_recommendation(doc)
 
-    # --- Signature footer --------------------------------------------------
+    # --- Signature footer (inline paragraphs, no table) -------------------
+    #
+    # The reception date is already printed once under the title — repeating
+    # it in the footer only clutters the page, so the second date line is
+    # gone.  Doctor name + phone + signature slot are laid out as ordinary
+    # paragraphs (no table borders).
     doc.add_paragraph()
-    sig = doc.add_table(rows=1, cols=2)
-    sig.autofit = True
-    lc, rc = sig.rows[0].cells
-    lc.width = Cm(11.0)
-    rc.width = Cm(6.0)
 
-    lp = lc.paragraphs[0]
-    lp.paragraph_format.space_after = Pt(0)
-    r1 = lp.add_run("Shifokor / Врач: ")
-    r1.bold = True
-    r1.font.size = Pt(10)
-    r2 = lp.add_run("{{ doctor.full_name }}")
-    r2.font.size = Pt(10)
+    doc_p = doc.add_paragraph()
+    doc_p.paragraph_format.space_before = Pt(6)
+    doc_p.paragraph_format.space_after = Pt(0)
+    r_lbl = doc_p.add_run("Shifokor / Врач: ")
+    r_lbl.bold = True
+    r_lbl.font.size = Pt(10)
+    r_val = doc_p.add_run("{{ doctor.full_name }}")
+    r_val.font.size = Pt(10)
 
-    lp2 = lc.add_paragraph()
-    lp2.paragraph_format.space_after = Pt(0)
-    r3 = lp2.add_run("Tel: {{ doctor.phone }}")
-    r3.font.size = Pt(9)
-    r3.font.color.rgb = RGBColor(0x60, 0x60, 0x60)
+    tel_p = doc.add_paragraph()
+    tel_p.paragraph_format.space_after = Pt(4)
+    r_tel = tel_p.add_run("Tel: {{ doctor.phone }}")
+    r_tel.font.size = Pt(9)
+    r_tel.font.color.rgb = RGBColor(0x60, 0x60, 0x60)
 
-    rp = rc.paragraphs[0]
-    rp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    rp.paragraph_format.space_after = Pt(0)
-    r4 = rp.add_run("Imzo: ______________________")
-    r4.font.size = Pt(10)
-
-    rp2 = rc.add_paragraph()
-    rp2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    rp2.paragraph_format.space_after = Pt(0)
-    r5 = rp2.add_run("Sana / Дата: {{ today }}")
-    r5.font.size = Pt(9)
-    r5.font.color.rgb = RGBColor(0x60, 0x60, 0x60)
+    imzo_p = doc.add_paragraph()
+    imzo_p.paragraph_format.space_after = Pt(0)
+    r_imzo = imzo_p.add_run("Imzo / Подпись: ______________________")
+    r_imzo.font.size = Pt(10)
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(dst))
