@@ -277,8 +277,8 @@ def catalogs_page(request: Request, _: str = Depends(require_admin)):
         "complaint_sections": custom_catalog_service.VALID_COMPLAINT_SECTIONS,
         "lor_methods": custom_catalog_service.VALID_LOR_METHODS,
         "lor_field_types": custom_catalog_service.VALID_LOR_FIELD_TYPES,
-        # Built-in JSON — shown as editable via the overrides system so admins
-        # can rename or hide standard items too.
+        # Built-in JSON exposed to the template so it can render each level
+        # (method → section → field → option) with an inline edit form.
         "builtin_complaints": catalog_loader._complaints_raw().get("sections", []),
         "builtin_lor": catalog_loader._lor_status_raw().get("methods", []),
         "complaint_overrides": custom_catalog_service.list_complaint_overrides(),
@@ -287,11 +287,73 @@ def catalogs_page(request: Request, _: str = Depends(require_admin)):
     })
 
 
-# ----- Built-in complaint overrides ----------------------------------------
+# ----- Built-in overrides (unified endpoints) ------------------------------
+#
+# The code path can be any compound key (section.ear, option.rhinoscopy.
+# external_nose.state.unchanged, ...) so we accept it in the form body
+# rather than as a URL path parameter.
+
+
+@router.post("/catalogs/builtin/edit")
+async def catalogs_builtin_edit(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    kind = (form.get("kind") or "").strip()
+    code = (form.get("code") or "").strip()
+    # ``has_discharge_type`` is complaint-only; presence of the input in the
+    # form indicates the user was on a row that supports it.
+    has_dt: bool | None = None
+    if "has_discharge_type_present" in form:
+        has_dt = bool(form.get("has_discharge_type"))
+    try:
+        custom_catalog_service.set_override(
+            kind,
+            code,
+            name_uz=form.get("name_uz"),
+            name_ru=form.get("name_ru"),
+            has_discharge_type=has_dt,
+            hidden=False,  # saving implies visible; use the hide action to hide
+        )
+        _flash(request, "success", "settings.catalog_saved")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.catalog_error")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/builtin/hide")
+async def catalogs_builtin_hide(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    kind = (form.get("kind") or "").strip()
+    code = (form.get("code") or "").strip()
+    try:
+        custom_catalog_service.set_override(kind, code, hidden=True)
+        _flash(request, "success", "settings.catalog_hidden")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.catalog_error")
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+@router.post("/catalogs/builtin/reset")
+async def catalogs_builtin_reset(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    kind = (form.get("kind") or "").strip()
+    code = (form.get("code") or "").strip()
+    if kind not in custom_catalog_service.VALID_OVERRIDE_KINDS or not code:
+        _flash(request, "warning", "common.not_found")
+        return RedirectResponse(url="/settings/catalogs", status_code=303)
+    ok = custom_catalog_service.reset_override(kind, code)
+    _flash(
+        request,
+        "success" if ok else "warning",
+        "settings.catalog_reset" if ok else "settings.catalog_reset_nochange",
+    )
+    return RedirectResponse(url="/settings/catalogs", status_code=303)
+
+
+# ---- Legacy path-based endpoints (kept as thin shims for backwards compat)
 
 
 @router.post("/catalogs/complaints/builtin/{code}/edit")
-async def catalogs_builtin_complaint_edit(
+async def _legacy_builtin_complaint_edit(
     code: str, request: Request, _: str = Depends(require_admin)
 ):
     form = await request.form()
@@ -301,16 +363,16 @@ async def catalogs_builtin_complaint_edit(
             name_uz=form.get("name_uz"),
             name_ru=form.get("name_ru"),
             has_discharge_type=bool(form.get("has_discharge_type")),
-            hidden=False,  # editing implies the item is visible
+            hidden=False,
         )
-        _flash(request, "success", "settings.catalog_complaint_updated")
+        _flash(request, "success", "settings.catalog_saved")
     except ValidationError as ve:
-        _flash_validation(request, ve, prefix="settings.catalog_complaint_error")
+        _flash_validation(request, ve, prefix="settings.catalog_error")
     return RedirectResponse(url="/settings/catalogs", status_code=303)
 
 
 @router.post("/catalogs/complaints/builtin/{code}/hide")
-def catalogs_builtin_complaint_hide(
+def _legacy_builtin_complaint_hide(
     code: str, request: Request, _: str = Depends(require_admin)
 ):
     custom_catalog_service.set_complaint_override(code, hidden=True)
@@ -319,53 +381,10 @@ def catalogs_builtin_complaint_hide(
 
 
 @router.post("/catalogs/complaints/builtin/{code}/reset")
-def catalogs_builtin_complaint_reset(
+def _legacy_builtin_complaint_reset(
     code: str, request: Request, _: str = Depends(require_admin)
 ):
     ok = custom_catalog_service.reset_complaint_override(code)
-    _flash(
-        request,
-        "success" if ok else "warning",
-        "settings.catalog_reset" if ok else "settings.catalog_reset_nochange",
-    )
-    return RedirectResponse(url="/settings/catalogs", status_code=303)
-
-
-# ----- Built-in LOR overrides ----------------------------------------------
-
-
-@router.post("/catalogs/lor/builtin/{code}/edit")
-async def catalogs_builtin_lor_edit(
-    code: str, request: Request, _: str = Depends(require_admin)
-):
-    form = await request.form()
-    try:
-        custom_catalog_service.set_lor_override(
-            code,
-            name_uz=form.get("name_uz"),
-            name_ru=form.get("name_ru"),
-            hidden=False,
-        )
-        _flash(request, "success", "settings.catalog_lor_updated")
-    except ValidationError as ve:
-        _flash_validation(request, ve, prefix="settings.catalog_lor_error")
-    return RedirectResponse(url="/settings/catalogs", status_code=303)
-
-
-@router.post("/catalogs/lor/builtin/{code}/hide")
-def catalogs_builtin_lor_hide(
-    code: str, request: Request, _: str = Depends(require_admin)
-):
-    custom_catalog_service.set_lor_override(code, hidden=True)
-    _flash(request, "success", "settings.catalog_hidden")
-    return RedirectResponse(url="/settings/catalogs", status_code=303)
-
-
-@router.post("/catalogs/lor/builtin/{code}/reset")
-def catalogs_builtin_lor_reset(
-    code: str, request: Request, _: str = Depends(require_admin)
-):
-    ok = custom_catalog_service.reset_lor_override(code)
     _flash(
         request,
         "success" if ok else "warning",
