@@ -101,45 +101,62 @@ def lor_status_catalog() -> dict[str, Any]:
 
 @lru_cache(maxsize=4)
 def _merge_complaints(_version: int) -> dict[str, Any]:
-    """Merge JSON complaints with rows from the custom + override tables."""
+    """Merge JSON complaints with overrides + user-added rows.
+
+    Overrides can act on two levels:
+
+    - ``section.<section_code>`` \u2014 rename or hide a whole section.
+    - ``<item_code>`` \u2014 rename or hide a single item. Item codes are
+      globally unique in ``complaints.json`` so no method prefix is needed.
+    """
     merged = copy.deepcopy(_complaints_raw())
     sections = merged.setdefault("sections", [])
-    section_map = {sec["code"]: sec for sec in sections}
-
-    # ---- Apply built-in overrides (rename / hide) --------------------------
     overrides = _fetch_overrides("complaint")
+
+    # ---- Apply overrides: section-level, then item-level -------------------
+    kept_sections: list[dict] = []
     for section in sections:
-        filtered: list[dict] = []
-        for item in section.get("items", []):
-            ov = overrides.get(item.get("code"))
-            if ov is None:
-                filtered.append(item)
+        s_ov = overrides.get(f"section.{section['code']}")
+        if s_ov:
+            if s_ov.get("hidden"):
                 continue
-            if ov.get("hidden"):
-                continue  # user hid this built-in
-            # Apply rename / discharge override in place.
-            if ov.get("name_uz"):
-                item["uz"] = ov["name_uz"]
-            if ov.get("name_ru"):
-                item["ru"] = ov["name_ru"]
-            if ov.get("has_discharge_type") is not None:
-                item["has_discharge_type"] = bool(ov["has_discharge_type"])
-            item["_overridden"] = True
-            filtered.append(item)
-        section["items"] = filtered
+            if s_ov.get("name_uz"):
+                section.setdefault("name", {})["uz"] = s_ov["name_uz"]
+            if s_ov.get("name_ru"):
+                section.setdefault("name", {})["ru"] = s_ov["name_ru"]
+            section["_overridden"] = True
+
+        kept_items: list[dict] = []
+        for item in section.get("items", []):
+            i_ov = overrides.get(item.get("code"))
+            if i_ov is not None:
+                if i_ov.get("hidden"):
+                    continue
+                if i_ov.get("name_uz"):
+                    item["uz"] = i_ov["name_uz"]
+                if i_ov.get("name_ru"):
+                    item["ru"] = i_ov["name_ru"]
+                if i_ov.get("has_discharge_type") is not None:
+                    item["has_discharge_type"] = bool(i_ov["has_discharge_type"])
+                item["_overridden"] = True
+            kept_items.append(item)
+        section["items"] = kept_items
+        kept_sections.append(section)
+
+    merged["sections"] = kept_sections
+    section_map = {sec["code"]: sec for sec in kept_sections}
 
     # ---- Append user-added items ------------------------------------------
     for row in _fetch_custom_complaints():
         section = section_map.get(row["section"])
         if section is None:
-            # Unknown section → create a "Custom" bucket to keep the item visible.
             section = {
                 "code": row["section"],
                 "name": {"uz": row["section"].upper(), "ru": row["section"].upper()},
                 "items": [],
                 "custom": True,
             }
-            sections.append(section)
+            kept_sections.append(section)
             section_map[row["section"]] = section
         section.setdefault("items", []).append({
             "code": row["code"],
@@ -153,33 +170,90 @@ def _merge_complaints(_version: int) -> dict[str, Any]:
 
 @lru_cache(maxsize=4)
 def _merge_lor(_version: int) -> dict[str, Any]:
-    """Merge JSON LOR STATUS with rows from the custom + override tables."""
+    """Merge JSON LOR STATUS with overrides and user-added rows.
+
+    Overrides apply at four levels, all keyed off a compound ``code``:
+
+    - ``method.<method>`` \u2014 rename a method (\"РИНОСКОПИЯ\" → ...)
+    - ``section.<method>.<section>`` \u2014 rename / hide a section
+    - ``field.<method>.<section>.<field>`` \u2014 rename the label of a field
+      that ships with an explicit ``label`` (rare — mostly used for
+      stand-alone checkbox items like ``prostheses``)
+    - ``option.<method>.<section>.<field>.<option>`` \u2014 rename / hide an
+      individual option inside a radio / checkbox_multi field
+    """
     merged = copy.deepcopy(_lor_status_raw())
     methods = merged.setdefault("methods", [])
     method_map = {m["code"]: m for m in methods}
-
-    # ---- Apply built-in overrides (rename / hide) to every field ----------
     overrides = _fetch_overrides("lor")
+
+    kept_methods: list[dict] = []
     for method in methods:
+        m_ov = overrides.get(f"method.{method['code']}")
+        if m_ov:
+            if m_ov.get("hidden"):
+                continue
+            if m_ov.get("name_uz"):
+                method.setdefault("name", {})["uz"] = m_ov["name_uz"]
+            if m_ov.get("name_ru"):
+                method.setdefault("name", {})["ru"] = m_ov["name_ru"]
+            method["_overridden"] = True
+
+        kept_sections: list[dict] = []
         for section in method.get("sections", []):
-            filtered_fields: list[dict] = []
+            s_key = f"section.{method['code']}.{section['code']}"
+            s_ov = overrides.get(s_key)
+            if s_ov:
+                if s_ov.get("hidden"):
+                    continue
+                if s_ov.get("name_uz"):
+                    section.setdefault("name", {})["uz"] = s_ov["name_uz"]
+                if s_ov.get("name_ru"):
+                    section.setdefault("name", {})["ru"] = s_ov["name_ru"]
+                section["_overridden"] = True
+
+            kept_fields: list[dict] = []
             for field in section.get("fields", []):
-                ov = overrides.get(field.get("code"))
-                if ov is None:
-                    filtered_fields.append(field)
-                    continue
-                if ov.get("hidden"):
-                    continue
-                if ov.get("name_uz") or ov.get("name_ru"):
-                    label = dict(field.get("label") or {})
-                    if ov.get("name_uz"):
-                        label["uz"] = ov["name_uz"]
-                    if ov.get("name_ru"):
-                        label["ru"] = ov["name_ru"]
-                    field["label"] = label
-                field["_overridden"] = True
-                filtered_fields.append(field)
-            section["fields"] = filtered_fields
+                # (a) Optional label override — only for fields with explicit label.
+                if field.get("label") is not None:
+                    f_key = f"field.{method['code']}.{section['code']}.{field['code']}"
+                    f_ov = overrides.get(f_key)
+                    if f_ov:
+                        if f_ov.get("hidden"):
+                            continue
+                        if f_ov.get("name_uz"):
+                            field["label"]["uz"] = f_ov["name_uz"]
+                        if f_ov.get("name_ru"):
+                            field["label"]["ru"] = f_ov["name_ru"]
+                        field["_overridden"] = True
+
+                # (b) Option-level rename / hide (radio + checkbox_multi).
+                if "options" in field and field["options"]:
+                    kept_options: list[dict] = []
+                    for opt in field["options"]:
+                        o_key = (
+                            f"option.{method['code']}.{section['code']}."
+                            f"{field['code']}.{opt['code']}"
+                        )
+                        o_ov = overrides.get(o_key)
+                        if o_ov:
+                            if o_ov.get("hidden"):
+                                continue
+                            if o_ov.get("name_uz"):
+                                opt["uz"] = o_ov["name_uz"]
+                            if o_ov.get("name_ru"):
+                                opt["ru"] = o_ov["name_ru"]
+                            opt["_overridden"] = True
+                        kept_options.append(opt)
+                    field["options"] = kept_options
+
+                kept_fields.append(field)
+            section["fields"] = kept_fields
+            kept_sections.append(section)
+        method["sections"] = kept_sections
+        kept_methods.append(method)
+    merged["methods"] = kept_methods
+    method_map = {m["code"]: m for m in kept_methods}
 
     # Group customs by method.
     grouped: dict[str, list[dict]] = {}

@@ -1,13 +1,35 @@
-"""CRUD for user-added complaint and LOR STATUS catalog items.
+"""CRUD for user-added and overridden catalog items.
 
-Built-in catalogs live in ``catalogs/*.json`` and cannot be edited via the
-UI. Custom rows live in the SQL tables ``complaint_catalog_custom`` and
-``lor_catalog_custom`` and can be freely added, edited, and deleted from
-the Settings screen.
+Three storage tiers:
 
-The merged view (built-in + custom) is exposed through
-:mod:`clinic.domain.catalog_loader` so consumers (reception form, text
-composer, ...) don't need to know where an item came from.
+1. Built-in JSON (``catalogs/*.json``) — shipped read-only reference data.
+2. ``catalog_overrides`` table — user edits (rename / hide) applied on top
+   of built-in items. Keyed by a compound ``code`` like ``section.ear`` or
+   ``option.rhinoscopy.external_nose.state.unchanged``.
+3. ``complaint_catalog_custom`` / ``lor_catalog_custom`` — user-added rows.
+
+The merged view (built-in + overrides + customs) is exposed through
+:mod:`clinic.domain.catalog_loader` so the reception form and text composer
+don't need to know where an item came from.
+
+Override code paths
+-------------------
+
+For **complaints** (``kind='complaint'``):
+
+- ``section.<section_code>`` \u2014 rename or hide a whole section
+  (e.g. ``section.ear``)
+- ``<item_code>`` \u2014 rename or hide an individual item (backwards-compat
+  with the initial implementation; item codes are globally unique)
+
+For **LOR STATUS** (``kind='lor'``):
+
+- ``method.<method_code>`` \u2014 rename a method (e.g. ``method.rhinoscopy``)
+- ``section.<method>.<section>`` \u2014 rename or hide a section
+- ``field.<method>.<section>.<field>`` \u2014 rename the label of a field that
+  ships with an explicit ``label`` (rare)
+- ``option.<method>.<section>.<field>.<option>`` \u2014 rename or hide a
+  single option inside a radio / checkbox_multi field
 """
 
 from __future__ import annotations
@@ -53,11 +75,11 @@ class ComplaintCustomDTO:
 
 @dataclass
 class CatalogOverrideDTO:
-    """One override row (edit or hide of a built-in item)."""
+    """One override row (edit or hide of a built-in element)."""
 
     id: int
-    kind: str          # 'complaint' | 'lor'
-    code: str          # built-in item code being overridden
+    kind: str
+    code: str
     name_uz: str | None
     name_ru: str | None
     hidden: bool
@@ -110,10 +132,8 @@ class LorCustomDTO:
 VALID_COMPLAINT_SECTIONS = ("general", "ear", "nose", "pharynx", "larynx")
 VALID_LOR_METHODS = ("rhinoscopy", "pharyngoscopy", "otoscopy", "laryngoscopy")
 VALID_LOR_FIELD_TYPES = ("text", "checkbox", "radio", "checkbox_multi")
+VALID_OVERRIDE_KINDS = ("complaint", "lor")
 
-# All custom LOR items live under a synthetic per-method "custom" section so
-# the reception form can render them at the end of the built-in sections
-# without needing to know each one individually.
 CUSTOM_LOR_SECTION = "custom"
 
 
@@ -123,11 +143,13 @@ CUSTOM_LOR_SECTION = "custom"
 
 
 _CODE_ALLOWED = re.compile(r"[^a-z0-9_]+")
+# Overrides use compound codes like "section.ear" or
+# "option.rhinoscopy.external_nose.state.unchanged" so the pattern is
+# permissive enough to cover them.
+_OVERRIDE_CODE_OK = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 
 def _slug_from_label(prefix: str, label: str) -> str:
-    """Build a stable snake_case code from a human label."""
-    # Best-effort: strip non-alphanumeric, transliterate cyrillic → latin.
     from clinic.infrastructure.translit import cyrillic_to_latin
 
     latin = cyrillic_to_latin(label) if label else ""
@@ -175,12 +197,7 @@ def _validate_bilingual(name_uz: str, name_ru: str) -> tuple[str, str]:
     return uz, ru
 
 
-def _parse_options(raw: str, lang_pair: bool = True) -> list[dict]:
-    """Turn a textarea into an options list.
-
-    Format: one option per line, e.g. ``uz_label | ru_label``.
-    Empty lines are skipped. A single-word line duplicates uz→ru.
-    """
+def _parse_options(raw: str) -> list[dict]:
     if not raw or not raw.strip():
         return []
     options: list[dict] = []
@@ -192,24 +209,18 @@ def _parse_options(raw: str, lang_pair: bool = True) -> list[dict]:
             uz, ru = [p.strip() for p in line.split("|", 1)]
         else:
             uz = ru = line
-        options.append({
-            "code": f"opt{i}",
-            "uz": uz or ru,
-            "ru": ru or uz,
-        })
+        options.append({"code": f"opt{i}", "uz": uz or ru, "ru": ru or uz})
     return options
 
 
 def _options_to_lines(options: list[dict] | None) -> str:
     if not options:
         return ""
-    return "\n".join(
-        f"{o.get('uz', '')} | {o.get('ru', '')}" for o in options
-    )
+    return "\n".join(f"{o.get('uz', '')} | {o.get('ru', '')}" for o in options)
 
 
 # ---------------------------------------------------------------------------
-# Complaints CRUD
+# Complaints CRUD (user-added)
 # ---------------------------------------------------------------------------
 
 
@@ -276,7 +287,6 @@ def update_complaint(
         if row is None:
             return None
 
-        # Validate any supplied fields.
         errors = ValidationError()
         if name_uz is not None and not name_uz.strip():
             errors.add("name_uz", "validation.required")
@@ -313,7 +323,7 @@ def delete_complaint(item_id: int) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# LOR STATUS CRUD
+# LOR STATUS CRUD (user-added)
 # ---------------------------------------------------------------------------
 
 
@@ -419,7 +429,6 @@ def update_lor(
         if is_active is not None:
             row.is_active = bool(is_active)
 
-        # Reconcile options with the (possibly new) field type.
         final_type = row.field_type
         if options_raw is not None:
             if final_type in ("radio", "checkbox_multi"):
@@ -432,7 +441,6 @@ def update_lor(
             else:
                 row.options_json = None
         elif final_type not in ("radio", "checkbox_multi"):
-            # Field type switched away from options-having; wipe stale options.
             row.options_json = None
 
         _bump_catalog_version()
@@ -455,39 +463,24 @@ def delete_lor(item_id: int) -> bool:
 
 
 def _bump_catalog_version() -> None:
-    """Notify catalog_loader that the DB-backed customs changed.
-
-    Kept as a separate function to avoid a circular import at module load.
-    """
     try:
         from clinic.domain import catalog_loader
 
         catalog_loader.bump_custom_version()
     except Exception:
-        # Best-effort — a stale cache is not a fatal issue.
         pass
 
 
-# ---------------------------------------------------------------------------
-# Utility for templates
-# ---------------------------------------------------------------------------
-
-
 def options_to_lines(options: list[dict] | None) -> str:
-    """Public wrapper — used by the settings template's edit form."""
     return _options_to_lines(options)
 
 
 # ---------------------------------------------------------------------------
-# Overrides for built-in catalog items
+# Overrides (built-in items)
 # ---------------------------------------------------------------------------
 
 
-VALID_OVERRIDE_KINDS = ("complaint", "lor")
-
-
 def list_complaint_overrides() -> dict[str, CatalogOverrideDTO]:
-    """Return a ``{code: override}`` map for quick lookup by code."""
     return _list_overrides("complaint")
 
 
@@ -505,6 +498,85 @@ def _list_overrides(kind: str) -> dict[str, CatalogOverrideDTO]:
         return {r.code: CatalogOverrideDTO.from_orm(r) for r in rows}
 
 
+def set_override(
+    kind: str,
+    code: str,
+    *,
+    name_uz: str | None = None,
+    name_ru: str | None = None,
+    has_discharge_type: bool | None = None,
+    hidden: bool | None = None,
+) -> CatalogOverrideDTO:
+    """Create-or-update the override row for a built-in item.
+
+    Only fields explicitly passed are written; ``None`` means "leave alone".
+    Blank / whitespace-only ``name_uz`` or ``name_ru`` clears that column
+    so the built-in default is restored for that language.
+    """
+    errors = ValidationError()
+    if kind not in VALID_OVERRIDE_KINDS:
+        errors.add("kind", "validation.invalid_choice")
+    code = (code or "").strip()
+    if not code:
+        errors.add("code", "validation.required")
+    elif not _OVERRIDE_CODE_OK.match(code):
+        errors.add("code", "validation.invalid_choice")
+    if errors:
+        raise errors
+
+    from sqlalchemy import select
+
+    def _clean(v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    with session_scope() as session:
+        row = session.execute(
+            select(CatalogOverride).where(
+                CatalogOverride.kind == kind, CatalogOverride.code == code
+            )
+        ).scalar_one_or_none()
+
+        if row is None:
+            row = CatalogOverride(kind=kind, code=code)
+            session.add(row)
+
+        if name_uz is not None:
+            row.name_uz = _clean(name_uz)
+        if name_ru is not None:
+            row.name_ru = _clean(name_ru)
+        if has_discharge_type is not None:
+            row.has_discharge_type = bool(has_discharge_type)
+        if hidden is not None:
+            row.hidden = bool(hidden)
+
+        session.flush()
+        _bump_catalog_version()
+        return CatalogOverrideDTO.from_orm(row)
+
+
+def reset_override(kind: str, code: str) -> bool:
+    """Remove the override row for ``(kind, code)`` \u2014 built-in default restored."""
+    from sqlalchemy import select
+
+    with session_scope() as session:
+        row = session.execute(
+            select(CatalogOverride).where(
+                CatalogOverride.kind == kind, CatalogOverride.code == code
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            return False
+        session.delete(row)
+        _bump_catalog_version()
+        return True
+
+
+# ---- Convenience wrappers (kept for backwards compatibility) --------------
+
+
 def set_complaint_override(
     code: str,
     *,
@@ -513,8 +585,7 @@ def set_complaint_override(
     has_discharge_type: bool | None = None,
     hidden: bool | None = None,
 ) -> CatalogOverrideDTO:
-    """Create-or-update the override row for a built-in complaint code."""
-    return _upsert_override(
+    return set_override(
         "complaint",
         code,
         name_uz=name_uz,
@@ -531,90 +602,17 @@ def set_lor_override(
     name_ru: str | None = None,
     hidden: bool | None = None,
 ) -> CatalogOverrideDTO:
-    """Create-or-update the override row for a built-in LOR field code."""
-    return _upsert_override(
-        "lor",
-        code,
-        name_uz=name_uz,
-        name_ru=name_ru,
-        has_discharge_type=None,
-        hidden=hidden,
+    return set_override(
+        "lor", code, name_uz=name_uz, name_ru=name_ru, hidden=hidden
     )
 
 
-def _upsert_override(
-    kind: str,
-    code: str,
-    *,
-    name_uz: str | None,
-    name_ru: str | None,
-    has_discharge_type: bool | None,
-    hidden: bool | None,
-) -> CatalogOverrideDTO:
-    from sqlalchemy import select
-
-    code = (code or "").strip()
-    if not code:
-        err = ValidationError()
-        err.add("code", "validation.required")
-        raise err
-
-    def _clean(v: str | None) -> str | None:
-        if v is None:
-            return None
-        v = v.strip()
-        return v or None
-
-    with session_scope() as session:
-        row = session.execute(
-            select(CatalogOverride).where(
-                CatalogOverride.kind == kind,
-                CatalogOverride.code == code,
-            )
-        ).scalar_one_or_none()
-
-        if row is None:
-            row = CatalogOverride(kind=kind, code=code)
-            session.add(row)
-
-        # Only update fields that were explicitly passed.
-        if name_uz is not None:
-            row.name_uz = _clean(name_uz)
-        if name_ru is not None:
-            row.name_ru = _clean(name_ru)
-        if has_discharge_type is not None:
-            row.has_discharge_type = bool(has_discharge_type)
-        if hidden is not None:
-            row.hidden = bool(hidden)
-
-        session.flush()
-        _bump_catalog_version()
-        return CatalogOverrideDTO.from_orm(row)
-
-
 def reset_complaint_override(code: str) -> bool:
-    return _delete_override("complaint", code)
+    return reset_override("complaint", code)
 
 
 def reset_lor_override(code: str) -> bool:
-    return _delete_override("lor", code)
-
-
-def _delete_override(kind: str, code: str) -> bool:
-    from sqlalchemy import select
-
-    with session_scope() as session:
-        row = session.execute(
-            select(CatalogOverride).where(
-                CatalogOverride.kind == kind,
-                CatalogOverride.code == code,
-            )
-        ).scalar_one_or_none()
-        if row is None:
-            return False
-        session.delete(row)
-        _bump_catalog_version()
-        return True
+    return reset_override("lor", code)
 
 
 __all__ = [
@@ -639,8 +637,10 @@ __all__ = [
     "options_to_lines",
     "reset_complaint_override",
     "reset_lor_override",
+    "reset_override",
     "set_complaint_override",
     "set_lor_override",
+    "set_override",
     "update_complaint",
     "update_lor",
 ]
