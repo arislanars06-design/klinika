@@ -146,6 +146,13 @@
     margin: 0.15em 0;
     line-height: 1.35;
   }
+  /* Letterhead lines (added server-side to every <p> before the reception
+     title) — centred, with a bit more room for logos. Word letterheads
+     are almost always centred, but mammoth doesn't preserve alignment. */
+  .template-sheet p.letterhead-line {
+    text-align: center;
+    margin: 0.2em 0;
+  }
   .template-sheet h1,
   .template-sheet h2,
   .template-sheet h3 {
@@ -164,9 +171,24 @@
   }
   .template-sheet strong { font-weight: bold; }
   .template-sheet em { font-style: italic; }
+  /* Cap images so a raw Word logo (native ~500 px) can't blow up the
+     preview column.  Inline caps are also emitted server-side; this rule
+     is the safety net for any image tag we didn't match. */
   .template-sheet img {
-    max-width: 100%;
+    max-width: 180px;
+    max-height: 180px;
+    width: auto;
     height: auto;
+    vertical-align: middle;
+    display: inline-block;
+  }
+  /* A paragraph that contains ONLY an image should behave as a centred
+     figure line — otherwise the image sits flush-left, which looks
+     jarring after the surrounding centred letterhead text. */
+  .template-sheet p:has(> img:only-child),
+  .template-sheet p.letterhead-line:has(img) {
+    text-align: center;
+    margin: 0.35em 0;
   }
   [data-bs-theme="dark"] .print-sheet {
     background: #fff;

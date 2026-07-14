@@ -239,7 +239,99 @@ def _render_template_as_html(
     result = mammoth.convert_to_html(buf)
     # We deliberately ignore result.messages here — mammoth emits warnings
     # for unmapped styles that don't affect readability of the preview.
-    return result.value
+    return _polish_template_html(result.value)
+
+
+# Titles that mark the boundary between the letterhead block and the body
+# of the reception document.  Everything before the first occurrence of
+# any of these strings is considered "letterhead" and centred; everything
+# from that paragraph on keeps its natural left alignment.  Matching is
+# case-insensitive and substring-based so localised titles ("QABUL
+# VARAQASI", "ЛИСТ ПРИЁМА", etc.) are all recognised.
+_LETTERHEAD_STOP_MARKERS = (
+    "qabul varaqasi",
+    "лист приёма",
+    "лист приема",
+    "bemor ma'lumotlari",
+    "bemor haqida ma'lumot",
+    "сведения о пациенте",
+)
+
+
+def _polish_template_html(html: str) -> str:
+    """Tidy up mammoth-produced HTML so the letterhead reads cleanly.
+
+    Word documents put logos, QR codes, and stamps at their native pixel
+    dimensions — often much larger than a browser preview column, which
+    makes the resulting HTML look chaotic (letters wrap to a new line
+    beside a giant image, address text shoved off-screen, etc.).
+
+    This helper:
+
+      1. Caps every ``<img>`` at 180x180 CSS pixels via an inline style,
+         while preserving aspect ratio.
+      2. Marks every ``<p>`` that appears before the reception title (e.g.
+         ``QABUL VARAQASI``) with ``class="letterhead-line"`` so the
+         template's CSS can centre them.  Word letterheads are almost
+         always centred; mammoth doesn't preserve paragraph alignment.
+
+    The transformation is intentionally minimal — anything unrelated to
+    those two problems is left exactly as mammoth produced it, so the
+    preview still reflects the operator's real template.
+    """
+    import re
+
+    if not html:
+        return html
+
+    # ---- 1. Cap image sizes ------------------------------------------------
+    _img_style = (
+        "max-width:180px;max-height:180px;width:auto;height:auto;"
+        "vertical-align:middle;display:inline-block;"
+    )
+
+    def _cap_image(match: "re.Match[str]") -> str:
+        tag = match.group(0)
+        if 'style="' in tag:
+            # Prepend our caps so any inline style from the docx wins on
+            # things we don't override (colour, opacity, etc.).
+            return re.sub(
+                r'style="([^"]*)"',
+                lambda m: f'style="{_img_style}{m.group(1)}"',
+                tag,
+                count=1,
+            )
+        return tag.replace("<img", f'<img style="{_img_style}"', 1)
+
+    html = re.sub(r"<img\b[^>]*>", _cap_image, html)
+
+    # ---- 2. Centre the letterhead paragraphs -------------------------------
+    lowered = html.lower()
+    stop_idx = -1
+    for marker in _LETTERHEAD_STOP_MARKERS:
+        i = lowered.find(marker)
+        if i != -1 and (stop_idx == -1 or i < stop_idx):
+            stop_idx = i
+    if stop_idx > 0:
+        # Split at the start of the <p> that contains the stop marker.
+        p_open = html.rfind("<p", 0, stop_idx)
+        if p_open > 0:
+            head, tail = html[:p_open], html[p_open:]
+            head = re.sub(
+                r"<p(\s+[^>]*)?>",
+                lambda m: (
+                    '<p class="letterhead-line"'
+                    + (m.group(1) or "")
+                    + ">"
+                    if not m.group(1) or "class=" not in m.group(1)
+                    else m.group(0).replace(
+                        'class="', 'class="letterhead-line ', 1
+                    )
+                ),
+                head,
+            )
+            html = head + tail
+    return html
 
 
 # ---------------------------------------------------------------------------
