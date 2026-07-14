@@ -1,0 +1,111 @@
+{% extends "settings/_layout.html" %}
+{% block title %}{{ t("settings.tab_complaints") }}{% endblock %}
+
+{% block settings_body %}
+{% set section_labels = {
+  "general": t("settings.section_general"),
+  "ear": t("settings.section_ear"),
+  "nose": t("settings.section_nose"),
+  "pharynx": t("settings.section_pharynx"),
+  "larynx": t("settings.section_larynx"),
+} %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-plus-lg"></i> {{ t("settings.add_complaint") }}</div>
+      <form method="post" action="/settings/complaints/new">
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.section") }} *</label>
+            <select name="section" class="form-select" required>
+              {% for s in sections %}
+              <option value="{{ s }}">{{ section_labels.get(s, s) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.name_uz") }} *</label>
+            <input type="text" name="name_uz" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ t("settings.name_ru") }} *</label>
+            <input type="text" name="name_ru" class="form-control" required>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" name="has_discharge_type" value="1" class="form-check-input" id="new-complaint-hd">
+            <label class="form-check-label" for="new-complaint-hd">{{ t("settings.has_discharge_type") }}</label>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> {{ t("common.add") }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header">{{ t("settings.complaints_list") }} — {{ complaints | length }}</div>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>{{ t("settings.section") }}</th>
+              <th>{{ t("settings.name_uz") }}</th>
+              <th>{{ t("settings.name_ru") }}</th>
+              <th>{{ t("settings.status") }}</th>
+              <th class="text-end">{{ t("common.actions") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in complaints %}
+            <tr class="{% if not c.is_active %}text-muted{% endif %}">
+              <td class="small">{{ c.id }}</td>
+              <td colspan="3">
+                <form method="post" action="/settings/complaints/{{ c.id }}/edit" class="d-flex gap-2 flex-wrap">
+                  <select name="section" class="form-select form-select-sm" style="max-width: 130px;">
+                    {% for s in sections %}
+                    <option value="{{ s }}" {% if c.section == s %}selected{% endif %}>{{ section_labels.get(s, s) }}</option>
+                    {% endfor %}
+                  </select>
+                  <input type="text" name="name_uz" class="form-control form-control-sm" value="{{ c.name_uz }}" style="min-width: 140px;">
+                  <input type="text" name="name_ru" class="form-control form-control-sm" value="{{ c.name_ru }}" style="min-width: 140px;">
+                  <div class="form-check form-check-inline ms-1">
+                    <input type="checkbox" name="has_discharge_type" value="1" class="form-check-input"
+                           id="c-hd-{{ c.id }}" {% if c.has_discharge_type %}checked{% endif %}>
+                    <label class="form-check-label small" for="c-hd-{{ c.id }}">{{ t("settings.has_discharge_type_short") }}</label>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary"><i class="bi bi-check-lg"></i></button>
+                </form>
+              </td>
+              <td>
+                {% if c.is_active %}
+                  <span class="badge text-bg-success">{{ t("settings.active") }}</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ t("common.archived") }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <form method="post" action="/settings/complaints/{{ c.id }}/toggle" class="d-inline">
+                  <button class="btn btn-sm {% if c.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                    {% if c.is_active %}<i class="bi bi-archive"></i>{% else %}<i class="bi bi-arrow-counterclockwise"></i>{% endif %}
+                  </button>
+                </form>
+                <form method="post" action="/settings/complaints/{{ c.id }}/delete" class="d-inline"
+                      onsubmit="return confirm('{{ t('patients.confirm_delete') }}');">
+                  <button class="btn btn-sm btn-outline-danger" title="{{ t('common.delete') }}">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">{{ t("settings.no_complaints") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

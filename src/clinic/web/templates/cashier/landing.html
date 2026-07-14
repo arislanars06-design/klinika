@@ -14,6 +14,47 @@
   </div>
 </div>
 
+<!-- All-time revenue KPI — grand total + breakdown by payment type -->
+<div class="card shadow-sm mb-4 border-primary">
+  <div class="card-body">
+    <div class="row align-items-center g-3">
+      <div class="col-md-4">
+        <div class="text-uppercase small text-primary fw-semibold">{{ t("cashier.all_time_revenue") }}</div>
+        <div class="fs-1 fw-bold text-primary">
+          {{ all_time_total }}
+          <span class="fs-5 text-muted">{{ t("cashier.currency") }}</span>
+        </div>
+        <div class="small text-muted">{{ t("cashier.all_time_hint") }}</div>
+      </div>
+      <div class="col-md-8">
+        <div class="row g-2 text-center">
+          <div class="col-4">
+            <div class="p-2 rounded bg-body-tertiary">
+              <div class="small text-muted"><i class="bi bi-cash-stack"></i> {{ t("cashier.pt_cash") }}</div>
+              <div class="fs-4 fw-semibold">{{ all_time_by_type.cash }}</div>
+              <div class="small text-muted">{{ t("cashier.currency") }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 rounded bg-body-tertiary">
+              <div class="small text-muted"><i class="bi bi-credit-card-2-front"></i> {{ t("cashier.pt_terminal") }}</div>
+              <div class="fs-4 fw-semibold">{{ all_time_by_type.terminal }}</div>
+              <div class="small text-muted">{{ t("cashier.currency") }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 rounded bg-body-tertiary">
+              <div class="small text-muted"><i class="bi bi-bank"></i> {{ t("cashier.pt_transfer") }}</div>
+              <div class="fs-4 fw-semibold">{{ all_time_by_type.transfer }}</div>
+              <div class="small text-muted">{{ t("cashier.currency") }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Today revenue KPIs — total + breakdown by payment type -->
 <div class="card shadow-sm mb-4">
   <div class="card-body">

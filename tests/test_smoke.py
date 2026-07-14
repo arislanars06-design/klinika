@@ -21,11 +21,12 @@ def test_catalogs_load() -> None:
         complaints_catalog,
         discharge_types_catalog,
         lor_status_catalog,
+        reload_all,
     )
 
-    complaints_catalog.cache_clear()
-    lor_status_catalog.cache_clear()
-    discharge_types_catalog.cache_clear()
+    # Complaint and LOR catalogs are no longer memoized — they merge DB
+    # extras on every call — but the sibling bundled caches still are.
+    reload_all()
 
     complaints = complaints_catalog()
     lor = lor_status_catalog()

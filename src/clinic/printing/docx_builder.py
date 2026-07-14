@@ -177,24 +177,27 @@ def _render_with_template(template_path: Path, context: dict[str, Any]) -> Docum
 # ============================================================================
 
 
-_HEADING_UZ = "QABUL VARAQASI"
+_HEADING_UZ = "ҚАБУЛ ВАРАҚАСИ"
 _HEADING_RU = "ЛИСТ ПРИЁМА"
 
+# Uzbek labels are Cyrillic to match the rest of the UI. LOR STATUS is
+# deliberately kept in Latin — the LOR terminology is Latin-only per user
+# request.
 _SECTION_LABELS = {
-    "patient": {"uz": "BEMOR", "ru": "ПАЦИЕНТ"},
-    "reception_date": {"uz": "Qabul sanasi", "ru": "Дата приёма"},
-    "birth_year": {"uz": "Tug'ilgan yili", "ru": "Год рождения"},
-    "age_suffix": {"uz": "yosh", "ru": "лет"},
-    "address": {"uz": "Manzil", "ru": "Адрес"},
-    "phone": {"uz": "Telefon", "ru": "Телефон"},
-    "complaints": {"uz": "SHIKOYATLAR", "ru": "ЖАЛОБЫ"},
-    "anamnesis": {"uz": "ANAMNEZ", "ru": "АНАМНЕЗ"},
-    "lor_status": {"uz": "LOR STATUS", "ru": "ЛОР СТАТУС"},
-    "diagnosis": {"uz": "TASHXIS", "ru": "ДИАГНОЗ"},
-    "recommendation": {"uz": "TAVSIYA", "ru": "РЕКОМЕНДАЦИИ"},
-    "doctor": {"uz": "Shifokor", "ru": "Врач"},
-    "signature": {"uz": "Imzo", "ru": "Подпись"},
-    "date_short": {"uz": "Sana", "ru": "Дата"},
+    "patient": {"uz": "БЕМОР", "ru": "ПАЦИЕНТ"},
+    "reception_date": {"uz": "Қабул санаси", "ru": "Дата приёма"},
+    "birth_year": {"uz": "Туғилган йили", "ru": "Год рождения"},
+    "age_suffix": {"uz": "ёш", "ru": "лет"},
+    "address": {"uz": "Манзил", "ru": "Адрес"},
+    "phone": {"uz": "Телефон", "ru": "Телефон"},
+    "complaints": {"uz": "ШИКОЯТЛАР", "ru": "ЖАЛОБЫ"},
+    "anamnesis": {"uz": "АНАМНЕЗ", "ru": "АНАМНЕЗ"},
+    "lor_status": {"uz": "LOR STATUS", "ru": "LOR STATUS"},
+    "diagnosis": {"uz": "ТАШХИС", "ru": "ДИАГНОЗ"},
+    "recommendation": {"uz": "ТАВСИЯ", "ru": "РЕКОМЕНДАЦИИ"},
+    "doctor": {"uz": "Шифокор", "ru": "Врач"},
+    "signature": {"uz": "Имзо", "ru": "Подпись"},
+    "date_short": {"uz": "Сана", "ru": "Дата"},
 }
 
 
@@ -245,16 +248,27 @@ def _render_default(context: dict[str, Any], *, lang: str) -> DocumentType:
 
     doc.add_paragraph()
 
-    # ----- patient block -----
-    _add_kv_line(doc, _label("patient", lang), patient.get("full_name", ""), bold=True)
-    _add_kv_line(
-        doc,
-        _label("birth_year", lang),
-        f"{patient.get('birth_year', '—')}  ({patient.get('age', '')} {_label('age_suffix', lang)})",
-    )
-    _add_kv_line(doc, _label("address", lang), patient.get("address") or "—")
-    _add_kv_line(doc, _label("phone", lang), patient.get("phone") or "—")
-    _add_kv_line(doc, _label("reception_date", lang), reception.get("date", "—"))
+    # ----- patient block: 4-row two-column table -----
+    patient_rows = [
+        (_label("patient", lang), patient.get("full_name", "—")),
+        (
+            _label("birth_year", lang),
+            f"{patient.get('birth_year', '—')} ({patient.get('age', '')} {_label('age_suffix', lang)})",
+        ),
+        (_label("address", lang), patient.get("address") or "—"),
+        (
+            f"{_label('phone', lang)} / {_label('reception_date', lang)}",
+            f"{patient.get('phone') or '—'}  ·  {reception.get('date', '—')}",
+        ),
+    ]
+    table = doc.add_table(rows=len(patient_rows), cols=2)
+    table.autofit = False
+    for row_idx, (label, value) in enumerate(patient_rows):
+        cells = table.rows[row_idx].cells
+        cells[0].width = Cm(5.0)
+        cells[1].width = Cm(11.0)
+        _cell_text(cells[0], label, bold=True)
+        _cell_text(cells[1], value, bold=(row_idx == 0))
 
     # ----- complaints -----
     _add_heading(doc, _label("complaints", lang))
@@ -325,6 +339,16 @@ def _add_heading(doc: DocumentType, text: str) -> None:
 def _add_paragraph(doc: DocumentType, text: str) -> None:
     for line in text.split("\n"):
         doc.add_paragraph(line)
+
+
+def _cell_text(cell, text: str, *, bold: bool = False) -> None:
+    """Write ``text`` into a table cell with a specific run style."""
+    # ``add_table`` seeds each cell with an empty paragraph — reuse it so we
+    # don't end up with a leading blank line.
+    para = cell.paragraphs[0]
+    run = para.add_run(text if text else "—")
+    run.bold = bold
+    run.font.size = Pt(11)
 
 
 __all__ = [

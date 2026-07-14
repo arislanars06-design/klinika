@@ -64,7 +64,13 @@ def sample() -> dict:
 
 
 def _all_text(doc) -> str:  # type: ignore[no-untyped-def]
-    return "\n".join(p.text for p in doc.paragraphs)
+    """Flatten all body text — including cells of any tables — into one blob."""
+    parts = [p.text for p in doc.paragraphs]
+    for table in getattr(doc, "tables", []):
+        for row in table.rows:
+            for cell in row.cells:
+                parts.extend(p.text for p in cell.paragraphs)
+    return "\n".join(parts)
 
 
 def test_reception_default_uz(sample: dict, tmp_path: Path) -> None:
@@ -79,11 +85,12 @@ def test_reception_default_uz(sample: dict, tmp_path: Path) -> None:
     )
     text = _all_text(doc)
     assert "LOR klinikasi" in text
-    assert "QABUL VARAQASI" in text
+    # Phase 9: Uzbek heading is now Cyrillic per user preference.
+    assert "ҚАБУЛ ВАРАҚАСИ" in text
     assert "Aliyev Anvar" in text
     assert "Otitis media akuta" in text
     assert "қулоқда оғриқ" in text.lower()
-    assert "LOR STATUS" in text
+    assert "LOR STATUS" in text  # stays in Latin
 
 
 def test_reception_default_ru(sample: dict, tmp_path: Path) -> None:
@@ -98,7 +105,8 @@ def test_reception_default_ru(sample: dict, tmp_path: Path) -> None:
     text = _all_text(doc)
     assert "ЛОР клиника" in text
     assert "ЛИСТ ПРИЁМА" in text
-    assert "ЛОР СТАТУС" in text
+    # LOR STATUS stays Latin in both languages per Phase 9 request.
+    assert "LOR STATUS" in text
 
 
 def test_reception_omits_optional_sections(sample: dict, tmp_path: Path) -> None:
@@ -117,14 +125,16 @@ def test_reception_omits_optional_sections(sample: dict, tmp_path: Path) -> None
     )
     text = _all_text(doc)
     # No RECOMMENDATION / ANAMNEZ heading should appear.
-    assert "TAVSIYA" not in text
-    assert "ANAMNEZ" not in text
+    assert "ТАВСИЯ" not in text
+    assert "АНАМНЕЗ" not in text
 
 
 def test_save_reception_document_writes_valid_file(
     sample: dict, tmp_path: Path
 ) -> None:
     dest = tmp_path / "out.docx"
+    # Explicitly bypass the shipped ``reception_template.docx`` so we're
+    # exercising the default renderer's output on disk.
     save_reception_document(
         output_path=dest,
         reception=sample["reception"],
@@ -132,11 +142,12 @@ def test_save_reception_document_writes_valid_file(
         doctor=sample["doctor"],
         clinic=sample["clinic"],
         lang="uz",
+        template_path=tmp_path / "nonexistent.docx",
     )
     assert dest.exists()
     # Round-trip: re-open the file.
     doc = Document(str(dest))
-    assert any("QABUL VARAQASI" in p.text for p in doc.paragraphs)
+    assert any("ҚАБУЛ ВАРАҚАСИ" in p.text for p in doc.paragraphs)
 
 
 def test_reception_with_user_template(sample: dict, tmp_path: Path) -> None:
@@ -177,4 +188,4 @@ def test_missing_template_falls_back_to_default(sample: dict, tmp_path: Path) ->
     )
     text = _all_text(doc)
     # Default header wins.
-    assert "QABUL VARAQASI" in text
+    assert "ҚАБУЛ ВАРАҚАСИ" in text

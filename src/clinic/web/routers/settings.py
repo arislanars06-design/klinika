@@ -12,7 +12,9 @@ from fastapi.responses import RedirectResponse
 
 from clinic.domain import (
     clinic_info_service,
+    complaint_catalog_service,
     doctor_service,
+    lor_catalog_service,
     service_service,
     user_service,
 )
@@ -258,6 +260,139 @@ def users_toggle(user_id: int, request: Request, _: str = Depends(require_admin)
     user_service.set_active(user_id, not current.is_active)
     _flash(request, "success", "settings.user_toggled")
     return RedirectResponse(url="/settings/users", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Complaints (custom catalog)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/complaints")
+def complaints_list(request: Request, _: str = Depends(require_admin)):
+    return render(request, "settings/complaints.html", {
+        "complaints": complaint_catalog_service.list_custom(active_only=False),
+        "sections": complaint_catalog_service.VALID_SECTIONS,
+        "tab": "complaints",
+    })
+
+
+@router.post("/complaints/new")
+async def complaints_create(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        complaint_catalog_service.create(
+            section=(form.get("section") or "").strip(),
+            name_uz=(form.get("name_uz") or "").strip(),
+            name_ru=(form.get("name_ru") or "").strip(),
+            has_discharge_type=bool(form.get("has_discharge_type")),
+        )
+        _flash(request, "success", "settings.complaint_added")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.complaint_error")
+    return RedirectResponse(url="/settings/complaints", status_code=303)
+
+
+@router.post("/complaints/{item_id}/edit")
+async def complaints_update(item_id: int, request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        complaint_catalog_service.update(
+            item_id,
+            section=(form.get("section") or "").strip(),
+            name_uz=(form.get("name_uz") or "").strip(),
+            name_ru=(form.get("name_ru") or "").strip(),
+            has_discharge_type=bool(form.get("has_discharge_type")),
+        )
+        _flash(request, "success", "settings.complaint_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.complaint_error")
+    return RedirectResponse(url="/settings/complaints", status_code=303)
+
+
+@router.post("/complaints/{item_id}/toggle")
+def complaints_toggle(item_id: int, request: Request, _: str = Depends(require_admin)):
+    current = complaint_catalog_service.get(item_id)
+    if current is None:
+        raise HTTPException(status_code=404, detail="complaint_not_found")
+    complaint_catalog_service.set_active(item_id, not current.is_active)
+    _flash(request, "success", "settings.complaint_toggled")
+    return RedirectResponse(url="/settings/complaints", status_code=303)
+
+
+@router.post("/complaints/{item_id}/delete")
+def complaints_delete(item_id: int, request: Request, _: str = Depends(require_admin)):
+    ok = complaint_catalog_service.delete(item_id)
+    _flash(request, "success" if ok else "warning", "info.deleted" if ok else "common.not_found")
+    return RedirectResponse(url="/settings/complaints", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# LOR STATUS (custom catalog)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/lor_status")
+def lor_status_list(request: Request, _: str = Depends(require_admin)):
+    return render(request, "settings/lor_status.html", {
+        "items": lor_catalog_service.list_custom(active_only=False),
+        "methods": lor_catalog_service.VALID_METHODS,
+        "field_types": lor_catalog_service.VALID_FIELD_TYPES,
+        "tab": "lor_status",
+    })
+
+
+@router.post("/lor_status/new")
+async def lor_status_create(request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        lor_catalog_service.create(
+            method=(form.get("method") or "").strip(),
+            section=(form.get("section") or "").strip(),
+            field_type=(form.get("field_type") or "").strip(),
+            label_uz=(form.get("label_uz") or "").strip(),
+            label_ru=(form.get("label_ru") or "").strip(),
+            options_raw=(form.get("options_raw") or "").strip() or None,
+        )
+        _flash(request, "success", "settings.lor_added")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.lor_error")
+    return RedirectResponse(url="/settings/lor_status", status_code=303)
+
+
+@router.post("/lor_status/{item_id}/edit")
+async def lor_status_update(item_id: int, request: Request, _: str = Depends(require_admin)):
+    form = await request.form()
+    try:
+        lor_catalog_service.update(
+            item_id,
+            method=(form.get("method") or "").strip(),
+            section=(form.get("section") or "").strip(),
+            field_type=(form.get("field_type") or "").strip(),
+            label_uz=(form.get("label_uz") or "").strip(),
+            label_ru=(form.get("label_ru") or "").strip(),
+            options_raw=(form.get("options_raw") or "").strip(),
+        )
+        _flash(request, "success", "settings.lor_updated")
+    except ValidationError as ve:
+        _flash_validation(request, ve, prefix="settings.lor_error")
+    return RedirectResponse(url="/settings/lor_status", status_code=303)
+
+
+@router.post("/lor_status/{item_id}/toggle")
+def lor_status_toggle(item_id: int, request: Request, _: str = Depends(require_admin)):
+    current = lor_catalog_service.get(item_id)
+    if current is None:
+        raise HTTPException(status_code=404, detail="lor_not_found")
+    lor_catalog_service.set_active(item_id, not current.is_active)
+    _flash(request, "success", "settings.lor_toggled")
+    return RedirectResponse(url="/settings/lor_status", status_code=303)
+
+
+@router.post("/lor_status/{item_id}/delete")
+def lor_status_delete(item_id: int, request: Request, _: str = Depends(require_admin)):
+    ok = lor_catalog_service.delete(item_id)
+    _flash(request, "success" if ok else "warning", "info.deleted" if ok else "common.not_found")
+    return RedirectResponse(url="/settings/lor_status", status_code=303)
 
 
 # ---------------------------------------------------------------------------
