@@ -565,7 +565,10 @@ def template_download(_: str = Depends(require_admin)):
 
 @router.post("/template/upload")
 async def template_upload(request: Request, _: str = Depends(require_admin)):
-    from fastapi import UploadFile
+    # NOTE: starlette's UploadFile is the runtime type; fastapi's UploadFile
+    # is a subclass. We check against starlette's version so this works
+    # across fastapi versions where the two diverge.
+    from starlette.datastructures import UploadFile
 
     form = await request.form()
     upload = form.get("file")
@@ -584,6 +587,45 @@ async def template_upload(request: Request, _: str = Depends(require_admin)):
     try:
         template_service.save_uploaded(payload)
         _flash(request, "success", "settings.template_uploaded")
+    except template_service.TemplateError as te:
+        key = {
+            "too_large": "settings.template_too_large",
+            "invalid":   "settings.template_invalid",
+            "empty":     "settings.template_invalid",
+        }.get(str(te), "settings.template_invalid")
+        _flash(request, "warning", key)
+    return RedirectResponse(url="/settings/template", status_code=303)
+
+
+@router.post("/template/from-letterhead")
+async def template_from_letterhead(request: Request, _: str = Depends(require_admin)):
+    """Accept a clinic letterhead and append the standard reception sections.
+
+    The operator uploads *only* their letterhead-only .docx (logo, clinic
+    name, address, phones, QR code — the header block); the service adds
+    the patient / complaints / diagnosis / signature sections below it and
+    saves the result as the active template.
+    """
+    # See ``template_upload`` for why we import from starlette here.
+    from starlette.datastructures import UploadFile
+
+    form = await request.form()
+    upload = form.get("file")
+    if not isinstance(upload, UploadFile) or not upload.filename:
+        _flash(request, "warning", "settings.template_invalid")
+        return RedirectResponse(url="/settings/template", status_code=303)
+
+    try:
+        payload = await upload.read()
+    finally:
+        try:
+            await upload.close()
+        except Exception:
+            pass
+
+    try:
+        template_service.save_letterhead_with_sections(payload)
+        _flash(request, "success", "settings.template_letterhead_ok")
     except template_service.TemplateError as te:
         key = {
             "too_large": "settings.template_too_large",
