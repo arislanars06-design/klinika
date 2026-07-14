@@ -22,10 +22,20 @@
 
 <div class="alert alert-info small no-print">
   <i class="bi bi-info-circle"></i>
-  {{ t("print.preview_hint") }}
+  {% if template_html %}
+    {{ t("print.preview_hint_with_template") }}
+  {% else %}
+    {{ t("print.preview_hint") }}
+  {% endif %}
 </div>
 
-<!-- A4-sized preview sheet that mimics the docx layout. -->
+{% if template_html %}
+{# ---- Template-based preview: what the actual Word file will look like ---- #}
+<div class="print-sheet template-sheet">
+  {{ template_html | safe }}
+</div>
+{% else %}
+{# ---- Fallback: programmatic HTML layout when no template is uploaded ---- #}
 <div class="print-sheet">
   {% set clinic = doc_ctx.clinic %}
   {% set patient_ctx = doc_ctx.patient %}
@@ -107,6 +117,7 @@
     {{ doc_ctx.today }}
   </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -122,6 +133,40 @@
     border: 1px solid #e0e0e0;
     font-family: "Times New Roman", "Liberation Serif", serif;
     line-height: 1.5;
+  }
+
+  /* Template-based preview: mammoth-rendered HTML from the operator's docx.
+     Extra rules preserve typical letterhead formatting (centered clinic
+     name, list of services, phone numbers, address line, then the
+     appended sections). */
+  .template-sheet {
+    padding: 1.5cm 1.8cm;
+  }
+  .template-sheet p {
+    margin: 0.15em 0;
+    line-height: 1.35;
+  }
+  .template-sheet h1,
+  .template-sheet h2,
+  .template-sheet h3 {
+    margin: 0.6em 0 0.2em;
+    line-height: 1.25;
+  }
+  .template-sheet table {
+    border-collapse: collapse;
+    margin: 0.4em 0 0.6em;
+    width: 100%;
+  }
+  .template-sheet table td {
+    border: 1px solid #bbb;
+    padding: 4px 8px;
+    vertical-align: top;
+  }
+  .template-sheet strong { font-weight: bold; }
+  .template-sheet em { font-style: italic; }
+  .template-sheet img {
+    max-width: 100%;
+    height: auto;
   }
   [data-bs-theme="dark"] .print-sheet {
     background: #fff;

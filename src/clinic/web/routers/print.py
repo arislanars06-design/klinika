@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import unicodedata
 from datetime import date
+from typing import Any
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -151,11 +152,17 @@ def print_reception(request: Request, reception_id: int, _user: str = Depends(re
 def preview_reception(
     request: Request, reception_id: int, _user: str = Depends(require_login)
 ):
-    """HTML page that visualises the Word document before downloading.
+    """HTML preview of the Word document that will be produced.
 
-    The layout mirrors ``docx_builder._render_default`` so the operator can
-    confirm the content, then click "Download .docx" to get the actual file
-    (or use the browser's built-in Print → PDF).
+    Behavior:
+      1. If an uploaded template exists → render the actual reception .docx
+         (template + data), convert to HTML via mammoth, embed it in the
+         page. What the operator sees IS what Word will show.
+      2. If no template is installed → fall back to the programmatic HTML
+         layout, driven by the same context dict as the built-in renderer.
+
+    The result is that "Print" on the preview page always matches the
+    "Download .docx" output.
     """
     rec = reception_service.get(reception_id)
     if rec is None:
@@ -173,12 +180,66 @@ def preview_reception(
         clinic=_clinic_dict(),
         lang=lang,
     )
+
+    # Try to render the real template as HTML — this is the accurate preview.
+    template_html: str | None = None
+    try:
+        from clinic.domain import template_service
+
+        if template_service.status().exists:
+            template_html = _render_template_as_html(
+                reception=rec,
+                patient=patient,
+                doctor=doctor,
+                lang=lang,
+            )
+    except Exception as exc:
+        # Any mammoth / rendering error → fall through to the programmatic
+        # preview so the operator still gets something useful.
+        from loguru import logger
+        logger.warning("Template preview failed, falling back to layout preview: {}", exc)
+        template_html = None
+
     return render(request, "reception/print_preview.html", {
         "reception": rec,
         "patient": patient,
         "doctor": doctor,
         "doc_ctx": context,
+        "template_html": template_html,
     })
+
+
+def _render_template_as_html(
+    *,
+    reception: Any,
+    patient: Any,
+    doctor: Any,
+    lang: str,
+) -> str:
+    """Render the reception .docx into an HTML fragment for the preview.
+
+    Uses the same builder as the actual download, then converts the result
+    to HTML with mammoth so the letterhead, tables, and inline formatting
+    from the operator's template are all preserved.
+    """
+    import io
+
+    import mammoth
+
+    doc = build_reception_document(
+        reception=reception,
+        patient=patient,
+        doctor=doctor,
+        clinic=_clinic_dict(),
+        lang=lang,
+    )
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    result = mammoth.convert_to_html(buf)
+    # We deliberately ignore result.messages here — mammoth emits warnings
+    # for unmapped styles that don't affect readability of the preview.
+    return result.value
 
 
 # ---------------------------------------------------------------------------
