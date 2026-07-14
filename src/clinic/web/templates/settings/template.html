@@ -68,14 +68,53 @@
     </div>
   </div>
 
-  <!-- ============ UPLOAD ============ -->
+  <!-- ============ UPLOAD LETTERHEAD (recommended) ============ -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100 border-primary-subtle">
+      <div class="card-header bg-primary-subtle">
+        <i class="bi bi-image"></i> <b>{{ t("settings.template_letterhead") }}</b>
+        <span class="badge bg-primary ms-2">{{ t("settings.template_recommended") }}</span>
+      </div>
+      <form method="post" action="/settings/template/from-letterhead" enctype="multipart/form-data">
+        <div class="card-body">
+          <p class="small mb-3">
+            <i class="bi bi-info-circle text-primary"></i>
+            {{ t("settings.template_letterhead_hint") }}
+          </p>
+          <div class="mb-3">
+            <label class="form-label small">
+              {{ t("settings.template_letterhead_pick") }}
+            </label>
+            <input type="file" name="file" accept=".docx"
+                   class="form-control" required>
+            <div class="form-text small">
+              {{ t("settings.template_letterhead_note") }}
+              <br>
+              <span class="text-muted">Max: {{ max_size_kb }} KB</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-magic"></i> {{ t("settings.template_letterhead_action") }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ UPLOAD FULL TEMPLATE (advanced) ============ -->
   <div class="col-lg-6">
     <div class="card shadow-sm h-100">
       <div class="card-header">
-        <i class="bi bi-upload"></i> {{ t("settings.template_upload") }}
+        <i class="bi bi-upload"></i> {{ t("settings.template_upload_full") }}
+        <span class="badge bg-secondary ms-2">{{ t("settings.template_advanced") }}</span>
       </div>
       <form method="post" action="/settings/template/upload" enctype="multipart/form-data">
         <div class="card-body">
+          <p class="small mb-3 text-muted">
+            {{ t("settings.template_upload_full_hint") }}
+          </p>
           <div class="mb-3">
             <input type="file" name="file" accept=".docx"
                    class="form-control" required>
@@ -87,7 +126,7 @@
           </div>
         </div>
         <div class="card-footer d-flex justify-content-end">
-          <button type="submit" class="btn btn-primary btn-sm">
+          <button type="submit" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-upload"></i> {{ t("settings.template_upload") }}
           </button>
         </div>
