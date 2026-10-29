@@ -213,10 +213,12 @@ function renderReadOnlyVisit(el, v, patient) {
     <section class="card doc-preview">${visitDocBody(v)}</section>
     <div class="actions">
       <button class="btn" id="print">${t('print')}</button>
+      <button class="btn btn--ghost" id="word">${t('word')}</button>
       ${can('billing.write') && v.status !== 'cancelled' ? html`<a class="btn btn--ghost" href="#/cash/new?patient=${v.patient_id}&visit=${v.id}">${t('visit.cash')}</a>` : ''}
       ${can('visit.cancel') && v.status !== 'cancelled' ? html`<button class="btn btn--danger" id="cancel">${t('visit.cancel')}</button>` : ''}
     </div>`);
   $('#print', el).onclick = () => printVisit(v.id);
+  $('#word', el).onclick = () => printVisit(v.id, 'word');
   const c = $('#cancel', el);
   if (c) c.onclick = () => cancelVisit(v.id, () => visitView(el, v.id));
 }
@@ -479,6 +481,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
           <button type="submit" class="btn" data-mode="save">${t('save')}</button>
           <button type="submit" class="btn btn--ok" data-mode="done">${t('visit.finish')}</button>
           <button type="submit" class="btn btn--ghost" data-mode="print">${t('visit.save_print')}</button>
+          <button type="submit" class="btn btn--ghost" data-mode="word">${t('word')}</button>
           ${can('billing.write') ? html`<button type="submit" class="btn btn--ghost" data-mode="cash">${t('visit.cash')}</button>` : ''}
           ${!isNew && can('visit.cancel') ? html`<button type="button" class="btn btn--danger" id="cancel">${t('visit.cancel')}</button>` : ''}
           <span class="spacer"></span>
@@ -578,7 +581,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
       const saved = isNew ? await POST('/api/visits', { ...body, patient_id: p.id }) : await PUT(`/api/visits/${v.id}`, body);
       dirty = false;
       toast(t('saved'));
-      if (mode === 'print') printVisit(saved.id);
+      if (mode === 'print' || mode === 'word') printVisit(saved.id, mode);
       if (mode === 'cash') go(`/cash/new?patient=${p.id}&visit=${saved.id}`);
       else if (isNew || mode === 'done') go(`/visit/${saved.id}`);
       else flag.textContent = '';
@@ -641,9 +644,10 @@ export function visitDocBody(v) {
     ${block(t('doc.followup'), v.followup_date || v.followup_note ? html`<p>${v.followup_date ? fmtDate(v.followup_date) + '. ' : ''}${v.followup_note}</p>` : '')}`;
 }
 
-export async function printVisit(id) {
+export async function printVisit(id, mode = 'print') {
   try {
     const v = await GET(`/api/visits/${id}` + qs({ print: 1 }));
+    const word = mode === 'word' ? `${v.patient_name} ${fmtDate(v.visit_at)}` : null;
     printDoc(html`
       <article class="doc">
         ${docHeader()}
@@ -656,6 +660,6 @@ export async function printVisit(id) {
           </div>
           <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
         </footer>
-      </article>`);
+      </article>`, { word });
   } catch (e) { toast(errorText(e), 'err'); }
 }
