@@ -1,0 +1,222 @@
+// NURMED — ilovaning kirish nuqtasi: login, bosh menyu, til, soat va sahifalar marshruti.
+import {
+  html, render, $, t, state, GET, POST, can, toast, errorText, parseHash, setUnauthorizedHandler, setRefresh,
+  localDate, fmtDate, busy, modal, ApiError,
+} from './core.js';
+import { dashboardView, historyView, patientView } from './views/main-views.js';
+import { newVisitView, visitView } from './views/visit.js';
+import { cashListView, newInvoiceView, invoiceView, dailyView } from './views/cash.js';
+import { reportsView } from './views/reports.js';
+import { adminView } from './views/admin.js';
+
+const app = $('#app');
+
+const ROUTES = [
+  { re: /^\/$/, view: (el, q) => dashboardView(el, q) },
+  { re: /^\/visit\/new$/, perm: 'visit.create', view: (el, q) => newVisitView(el, q) },
+  { re: /^\/visit\/(\d+)$/, perm: 'visit.list', view: (el, q, m) => visitView(el, Number(m[1])) },
+  { re: /^\/history$/, perm: 'visit.list', view: (el, q) => historyView(el, q) },
+  { re: /^\/patient\/(\d+)$/, perm: 'patient.read', view: (el, q, m) => patientView(el, Number(m[1])) },
+  { re: /^\/cash$/, perm: 'billing.read', view: (el, q) => cashListView(el, q) },
+  { re: /^\/cash\/new$/, perm: 'billing.write', view: (el, q) => newInvoiceView(el, q) },
+  { re: /^\/cash\/invoice\/(\d+)$/, perm: 'billing.read', view: (el, q, m) => invoiceView(el, Number(m[1])) },
+  { re: /^\/cash\/daily$/, perm: 'billing.read', view: (el, q) => dailyView(el, q) },
+  { re: /^\/reports$/, any: ['report.visits', 'report.finance'], view: (el, q) => reportsView(el, q) },
+  { re: /^\/admin$/, perm: 'admin', view: (el, q) => adminView(el, q) },
+];
+
+const NAV = [
+  { href: '#/', key: 'nav.dashboard', match: /^\/$/ },
+  { href: '#/visit/new', key: 'nav.visit', perm: 'visit.create', match: /^\/visit/ },
+  { href: '#/history', key: 'nav.history', perm: 'visit.list', match: /^\/(history|patient)/ },
+  { href: '#/cash', key: 'nav.cash', perm: 'billing.read', match: /^\/cash/ },
+  { href: '#/reports', key: 'nav.reports', any: ['report.visits', 'report.finance'], match: /^\/reports/ },
+  { href: '#/admin', key: 'nav.admin', perm: 'admin', match: /^\/admin/ },
+];
+const allowed = (r) => (r.perm ? can(r.perm) : r.any ? r.any.some(can) : true);
+
+/* ---------- Til ---------- */
+function setLang(lang) {
+  state.lang = lang;
+  localStorage.setItem('nurmed_lang', lang);
+  document.documentElement.lang = lang;
+  start();
+}
+const langSwitch = () => html`<div class="lang">
+  <button type="button" class="${state.lang === 'uz' ? 'active' : ''}" data-lang="uz">UZ</button>
+  <button type="button" class="${state.lang === 'ru' ? 'active' : ''}" data-lang="ru">RU</button></div>`;
+function bindLang(root) {
+  root.querySelectorAll('[data-lang]').forEach((b) => { b.onclick = () => setLang(b.dataset.lang); });
+}
+
+/* ---------- Kirish ---------- */
+function loginScreen(msg) {
+  stopClock();
+  render(app, html`
+    <div class="login">
+      <form class="login__box card" id="login">
+        <div class="login__brand"><span class="brand__mark">+</span> NURMED</div>
+        <div class="muted">${t('login.subtitle')}</div>
+        ${msg ? html`<div class="alert alert--warn">${msg}</div>` : ''}
+        <label class="field"><span>${t('f.username')}</span><input name="username" autocomplete="username" required autofocus></label>
+        <label class="field"><span>${t('f.password')}</span><input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="btn btn--lg">${t('login.submit')}</button>
+        ${langSwitch()}
+      </form>
+    </div>`);
+  bindLang(app);
+  const f = $('#login');
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await POST('/api/login', { username: f.elements.username.value.trim(), password: f.elements.password.value });
+      start();
+    } catch (err) { toast(errorText(err), 'err'); f.elements.password.value = ''; }
+  };
+}
+
+function passwordScreen(forced) {
+  const content = html`
+    <form class="form dialog__body" id="pw">
+      <h2>${t('pw.title')}</h2>
+      ${forced ? html`<div class="alert alert--warn">${t('pw.forced')}</div>` : ''}
+      <label class="field"><span>${t('pw.old')}</span><input name="old" type="password" autocomplete="current-password" required></label>
+      <label class="field"><span>${t('pw.new')}</span><input name="n1" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label class="field"><span>${t('pw.repeat')}</span><input name="n2" type="password" autocomplete="new-password" minlength="8" required></label>
+      <div class="dialog__actions">
+        ${forced ? html`<button type="button" class="btn btn--ghost" id="pw-logout">${t('logout')}</button>`
+          : html`<button type="button" class="btn btn--ghost" data-close>${t('cancel')}</button>`}
+        <button class="btn">${t('save')}</button>
+      </div>
+    </form>`;
+  const bind = (root, close) => {
+    const f = $('#pw', root);
+    const lo = $('#pw-logout', root);
+    if (lo) lo.onclick = logout;
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      if (f.elements.n1.value !== f.elements.n2.value) { toast(t('pw.mismatch'), 'err'); return; }
+      await busy(e.submitter, async () => {
+        await POST('/api/me/password', { old_password: f.elements.old.value, new_password: f.elements.n1.value });
+        toast(t('pw.changed'));
+        if (close) close();
+        start();
+      });
+    };
+  };
+  if (forced) {
+    stopClock();
+    render(app, html`<div class="login"><div class="login__box card">${content}</div></div>`);
+    bind(app);
+  } else modal(content, bind);
+}
+
+async function logout() {
+  try { await POST('/api/logout'); } catch { /* baribir chiqamiz */ }
+  state.user = null;
+  loginScreen();
+}
+
+/* ---------- Asosiy oyna ---------- */
+let clockTimer = null;
+function stopClock() { clearInterval(clockTimer); clockTimer = null; }
+function tickClock() {
+  const c = $('#clock');
+  if (!c) return;
+  const d = new Date();
+  c.textContent = `${fmtDate(localDate(d))} ${d.toTimeString().slice(0, 8)}`;
+}
+
+function shell() {
+  const s = state.settings;
+  render(app, html`
+    <header class="topbar">
+      <a class="brand" href="#/">
+        ${s.clinic_logo ? html`<img class="brand__logo" src="${s.clinic_logo}" alt="">` : html`<span class="brand__mark">+</span>`}
+        <span class="brand__name">${s.clinic_name || 'NURMED'}</span></a>
+      <nav class="nav" id="nav">${NAV.filter(allowed).map((n) => html`<a href="${n.href}" data-match="${n.match.source}">${t(n.key)}</a>`)}</nav>
+      <div class="topbar__right">
+        <span class="clock" id="clock"></span>
+        ${langSwitch()}
+        <details class="user-menu">
+          <summary>${state.user.full_name}</summary>
+          <div class="user-menu__body">
+            <div class="muted small">${state.user.roles.map((r) => t('role.' + r)).join(', ')}</div>
+            <button type="button" class="btn btn--ghost btn--sm" id="chpw">${t('pw.title')}</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="logout">${t('logout')}</button>
+          </div>
+        </details>
+      </div>
+    </header>
+    <main class="main" id="view"></main>`);
+  bindLang(app);
+  $('#logout').onclick = logout;
+  $('#chpw').onclick = () => { $('.user-menu').open = false; passwordScreen(false); };
+  stopClock();
+  tickClock();
+  clockTimer = setInterval(tickClock, 1000);
+}
+
+let renderSeq = 0;
+async function route() {
+  if (!state.user) return;
+  const { path, query } = parseHash();
+  $$nav(path);
+  const view = $('#view');
+  const r = ROUTES.find((x) => x.re.test(path));
+  const my = ++renderSeq;
+  state.leaveGuard = null;
+  if (!r) { render(view, html`<p class="alert alert--err">${t('err.not_found')}</p>`); return; }
+  if (!allowed(r)) { render(view, html`<p class="alert alert--err">${t('err.forbidden')}</p>`); return; }
+  render(view, html`<p class="muted">${t('loading')}</p>`);
+  try {
+    await r.view(view, query, path.match(r.re));
+  } catch (e) {
+    if (my !== renderSeq) return;
+    if (e instanceof ApiError && e.status === 401) return;
+    console.error(e);
+    render(view, html`<p class="alert alert--err">${errorText(e)}</p>`);
+  }
+  if (my === renderSeq) window.scrollTo(0, 0);
+}
+function $$nav(path) {
+  document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('active', new RegExp(a.dataset.match).test(path)));
+}
+
+let lastHash = location.hash;
+window.addEventListener('hashchange', () => {
+  // Saqlanmagan tibbiy yozuvni tasodifan yo'qotmaslik uchun
+  if (state.leaveGuard && state.leaveGuard.dirty() && !window.confirm(t('visit.leave_confirm'))) {
+    history.replaceState(null, '', lastHash || '#/');
+    return;
+  }
+  lastHash = location.hash;
+  route();
+});
+window.addEventListener('beforeunload', (e) => {
+  if (state.leaveGuard && state.leaveGuard.dirty()) e.preventDefault();
+});
+
+setUnauthorizedHandler(() => { state.user = null; loginScreen(t('login.expired')); });
+setRefresh(() => route());
+document.addEventListener('nurmed:settings', () => { shell(); route(); });
+
+async function start() {
+  document.documentElement.lang = state.lang;
+  document.title = 'NURMED';
+  try {
+    const me = await GET('/api/me');
+    state.user = me.user;
+    state.settings = me.settings;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) { loginScreen(); return; }
+    render(app, html`<div class="login"><div class="alert alert--err">${errorText(e)}</div></div>`);
+    return;
+  }
+  if (state.user.must_change_password) { passwordScreen(true); return; }
+  document.title = state.settings.clinic_name || 'NURMED';
+  shell();
+  route();
+}
+
+start();
