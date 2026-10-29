@@ -90,7 +90,7 @@ nurmed/
         └── views/            Bosh oyna, qabul, tarix, kassa, hisobotlar, sozlamalar
 ```
 
-Shikoyatlar, ajralma turlari va LOR STATUS katalogi eski "Clinic LOR Desktop" dasturidan (`src/clinic/catalogs/*.json`) ko'chirilgan. O'zbekcha matnlar lotin yozuviga o'girilgan. LOR STATUS 4 ta metoddan iborat: rinoskopiya, faringoskopiya, otoskopiya (AD va AS alohida) va laringoskopiya. Shartli maydonlar saqlangan: masalan, deformatsiya turi faqat "Deformatsiya" tanlanganda chiqadi, baraban bo'shlig'i esa faqat perforatsiya bo'lsa ko'rinadi. Eski dasturdagi "Norma" tugmasi qo'shilmagan: tekshirilmagan maydon avtomatik "norma" deb yozilmaydi.
+Shikoyatlar, ajralma turlari va LOR STATUS katalogi eski "Clinic LOR Desktop" dasturidan (`src/clinic/catalogs/*.json`) ko'chirilgan. O'zbekcha matnlar lotin yozuviga o'girilgan. LOR STATUS 4 ta metoddan iborat: rinoskopiya, faringoskopiya, otoskopiya (AD va AS alohida) va laringoskopiya. Shartli maydonlar saqlangan: masalan, deformatsiya turi faqat "Deformatsiya" tanlanganda chiqadi, baraban bo'shlig'i esa faqat perforatsiya bo'lsa ko'rinadi. Tekshirilmagan maydon avtomatik "norma" deb yozilmaydi. Har bir metodda "Norma (bo'sh maydonlarga)" tugmasi bor, uni shifokor o'zi bosadi. Tugma faqat bo'sh maydonlarga norma variantini qo'yadi, shifokor tanlagan qiymatlarni o'zgartirmaydi. Shartli maydonlarni (masalan, gipertrofiya darajasini) ham to'ldirmaydi. Shuning uchun avval patologiyani belgilab, keyin "Norma" tugmasini bosish mumkin.
 
 Variantlarni `public/js/lor-template.js` faylida o'zgartirish mumkin. Server saqlashdan oldin ma'lumotni shu shablon bo'yicha tekshiradi.
 

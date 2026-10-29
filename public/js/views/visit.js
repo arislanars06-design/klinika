@@ -287,7 +287,10 @@ function lorBlock(v) {
             : lorParts(m, '', mv.parts || {})}
           <label class="field"><span>${t('lor.section_note')}</span>
             <textarea name="lornote|${m.code}" rows="2" maxlength="2000">${mv.note || ''}</textarea></label>
-          <button type="button" class="btn btn--ghost btn--sm" data-clear="${m.code}">${t('lor.clear')}</button>
+          <div class="actions">
+            <button type="button" class="btn btn--ghost btn--sm" data-norm-method="${m.code}">${t('lor.norm')}</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-clear="${m.code}">${t('lor.clear')}</button>
+          </div>
         </details>`;
       })}
     </section>`;
@@ -311,6 +314,31 @@ function readParts(form, m, ear) {
     if (Object.keys(pv).length) parts[p.code] = pv;
   }
   return parts;
+}
+
+/**
+ * "Norma" tugmasi: shifokor o‘zi bosganda, shu metoddagi faqat BO‘SH maydonlarga norma variantini qo‘yadi.
+ * Shifokor allaqachon tanlagan qiymatlar o‘zgarmaydi. Shartli maydonlar (masalan, gipertrofiya darajasi)
+ * to‘ldirilmaydi, chunki ular faqat patologiya tanlanganda ma’noga ega. Natija: to‘ldirilgan maydonlar soni.
+ */
+function fillNorm(form, m) {
+  let n = 0;
+  for (const ear of m.ears ? m.ears.map((e) => e.code) : ['']) {
+    for (const p of m.parts) {
+      const box = $(`details[data-method="${m.code}"] .lor-part[data-part="${p.code}"][data-ear="${ear}"]`, form);
+      if (!box || box.classList.contains('hidden')) continue;
+      for (const f of p.fields) {
+        if (f.when) continue;
+        const norm = LOR.choicesOf(f).find((c) => c.is_norm);
+        if (!norm) continue;
+        const inputs = $$(`input[name="${CSS.escape(lorName(m.code, ear, p.code, f.code))}"]`, box);
+        if (inputs.some((i) => i.checked)) continue;
+        const target = inputs.find((i) => i.value === norm.code);
+        if (target) { target.checked = true; n += 1; }
+      }
+    }
+  }
+  return n;
 }
 
 /** Shartli maydon va qismlarni ko‘rsatish/yashirish. Yashiringan maydon tanlovlari tozalanadi. */
@@ -482,6 +510,15 @@ async function renderClinicalForm(el, v, patient, { isNew }) {
   }
   updateCounts();
 
+  $$('[data-norm-method]', form).forEach((b) => {
+    b.onclick = () => {
+      const m = LOR.METHODS.find((x) => x.code === b.dataset.normMethod);
+      const n = fillNorm(form, m);
+      applyLorVisibility(form);
+      markDirty();
+      toast(n ? t('lor.norm_done', { n }) : t('lor.norm_none'), n ? 'ok' : 'err');
+    };
+  });
   $$('[data-clear]', form).forEach((b) => {
     b.onclick = () => {
       const d = b.closest('details');
