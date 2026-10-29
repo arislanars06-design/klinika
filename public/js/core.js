@@ -273,18 +273,23 @@ export function patientSummary(p) {
 }
 
 /* ---------- Chop etish ---------- */
+/** "Чоп этиш" tugmasi Word fayl ochadimi (Созламалар → Клиника → Чоп этиш усули) */
+export const printsToWord = () => state.settings.print_mode !== 'browser';
+/** Alohida "Word" tugmasi faqat chop etish brauzer orqali bo'lganda ko'rsatiladi */
+export const showWordButton = () => !printsToWord();
+
 /**
- * Hujjatni chop etish yoki Word fayli sifatida yuklab olish.
- * opts.word berilsa (fayl nomi, kengaytmasiz), chop etish o'rniga .docx yuklab olinadi.
+ * Hujjatni chop etish yoki Word fayli (.docx) sifatida yuklab olish.
+ * opts.name — Word fayl nomi (kengaytmasiz). opts.word = true bo'lsa yoki sozlamada Word tanlangan bo'lsa, .docx yuklanadi.
  */
 export function printDoc(content, opts = {}) {
   const root = $('#print-root');
   render(root, content);
   const imgs = $$('img', root);
   return Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))).then(() => {
-    if (!opts.word) { window.print(); return; }
+    if (!(opts.word || printsToWord())) { window.print(); return; }
     const doc = $('.doc', root) || root;
-    downloadBlob(docToDocx(doc), safeName(opts.word) + '.docx');
+    downloadBlob(docToDocx(doc), safeName(opts.name || 'hujjat') + '.docx');
     toast(t('word.ready'));
   });
 }

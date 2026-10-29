@@ -25,6 +25,12 @@ async function settings(el) {
       <label class="field"><span>${t('f.address')}</span><input name="clinic_address" maxlength="300" value="${s.clinic_address}"></label>
       <label class="field"><span>${t('f.phone')}</span><input name="clinic_phone" maxlength="100" value="${s.clinic_phone}"></label>
       <label class="field"><span>${t('admin.requisites')}</span><textarea name="clinic_requisites" rows="2" maxlength="500">${s.clinic_requisites}</textarea></label>
+      <label class="field"><span>${t('admin.print_mode')}</span>
+        <select name="print_mode">
+          <option value="word" ${s.print_mode !== 'browser' ? raw('selected') : ''}>${t('admin.print_word')}</option>
+          <option value="browser" ${s.print_mode === 'browser' ? raw('selected') : ''}>${t('admin.print_browser')}</option>
+        </select>
+        <span class="hint">${t('admin.print_hint')}</span></label>
       <div class="field"><span>${t('admin.logo')}</span>
         <div class="logo-edit">
           <img id="logo-prev" class="${s.clinic_logo ? '' : 'hidden'}" src="${s.clinic_logo || ''}" alt="">
@@ -51,7 +57,7 @@ async function settings(el) {
     e.preventDefault();
     await busy(e.submitter, async () => {
       const body = Object.fromEntries(['clinic_name', 'clinic_address', 'clinic_phone', 'clinic_requisites'].map((k) => [k, f.elements[k].value.trim()]));
-      state.settings = await PUT('/api/settings', { ...body, clinic_logo: logo });
+      state.settings = await PUT('/api/settings', { ...body, print_mode: f.elements.print_mode.value, clinic_logo: logo });
       document.dispatchEvent(new Event('nurmed:settings'));
       toast(t('saved'));
     });

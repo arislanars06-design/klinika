@@ -3,7 +3,7 @@
 import {
   html, raw, render, $, $$, t, L, state, GET, POST, PUT, qs, can, go, toast, errorText, busy,
   confirmDialog, fmtDate, fmtDateTime, age, genderText, statusBadge, patientSummary,
-  printDoc, docHeader, localDate, ApiError, refresh,
+  printDoc, docHeader, localDate, ApiError, refresh, showWordButton,
 } from '../core.js';
 
 const LOR = window.LOR;
@@ -213,12 +213,12 @@ function renderReadOnlyVisit(el, v, patient) {
     <section class="card doc-preview">${visitDocBody(v)}</section>
     <div class="actions">
       <button class="btn" id="print">${t('print')}</button>
-      <button class="btn btn--ghost" id="word">${t('word')}</button>
+      ${showWordButton() ? html`<button class="btn btn--ghost" id="word">${t('word')}</button>` : ''}
       ${can('billing.write') && v.status !== 'cancelled' ? html`<a class="btn btn--ghost" href="#/cash/new?patient=${v.patient_id}&visit=${v.id}">${t('visit.cash')}</a>` : ''}
       ${can('visit.cancel') && v.status !== 'cancelled' ? html`<button class="btn btn--danger" id="cancel">${t('visit.cancel')}</button>` : ''}
     </div>`);
   $('#print', el).onclick = () => printVisit(v.id);
-  $('#word', el).onclick = () => printVisit(v.id, 'word');
+  if ($('#word', el)) $('#word', el).onclick = () => printVisit(v.id, 'word');
   const c = $('#cancel', el);
   if (c) c.onclick = () => cancelVisit(v.id, () => visitView(el, v.id));
 }
@@ -481,7 +481,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
           <button type="submit" class="btn" data-mode="save">${t('save')}</button>
           <button type="submit" class="btn btn--ok" data-mode="done">${t('visit.finish')}</button>
           <button type="submit" class="btn btn--ghost" data-mode="print">${t('visit.save_print')}</button>
-          <button type="submit" class="btn btn--ghost" data-mode="word">${t('word')}</button>
+          ${showWordButton() ? html`<button type="submit" class="btn btn--ghost" data-mode="word">${t('word')}</button>` : ''}
           ${can('billing.write') ? html`<button type="submit" class="btn btn--ghost" data-mode="cash">${t('visit.cash')}</button>` : ''}
           ${!isNew && can('visit.cancel') ? html`<button type="button" class="btn btn--danger" id="cancel">${t('visit.cancel')}</button>` : ''}
           <span class="spacer"></span>
@@ -647,7 +647,6 @@ export function visitDocBody(v) {
 export async function printVisit(id, mode = 'print') {
   try {
     const v = await GET(`/api/visits/${id}` + qs({ print: 1 }));
-    const word = mode === 'word' ? `${v.patient_name} ${fmtDate(v.visit_at)}` : null;
     printDoc(html`
       <article class="doc">
         ${docHeader()}
@@ -660,6 +659,6 @@ export async function printVisit(id, mode = 'print') {
           </div>
           <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
         </footer>
-      </article>`, { word });
+      </article>`, { name: `${v.patient_name} ${fmtDate(v.visit_at)}`, word: mode === 'word' });
   } catch (e) { toast(errorText(e), 'err'); }
 }

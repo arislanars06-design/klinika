@@ -193,6 +193,7 @@ const DEFAULT_SETTINGS = {
   clinic_phone: '',
   clinic_requisites: '',
   clinic_logo: '', // data:image/... (ixtiyoriy)
+  print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
 };
 
 function seed() {
