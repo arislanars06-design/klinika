@@ -340,3 +340,9 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .doc__sign { margin-top: 18px; }
 .doc--receipt { max-width: 520px; }
 .doc-preview .doc__table th, .doc-preview .doc__table td { border-color: var(--line-strong); }
+
+/* Jadval qatoridagi amallar */
+.row-actions { white-space: nowrap; text-align: right !important; }
+.row-actions .btn { margin-left: 4px; }
+.inv-patient b { font-size: 1rem; }
+.dialog .items select { min-width: 0; }

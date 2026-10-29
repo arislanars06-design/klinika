@@ -388,8 +388,12 @@ function applyLorVisibility(form) {
   }
 }
 
+/** Eski formatdagi dorilar jadvalini (dori, doza, usul, muddat) bitta "Тавсия" matniga aylantiradi */
+const legacyRx = (rx) => (Array.isArray(rx) ? rx : [])
+  .map((r) => [r.name, r.dose, r.usage, r.duration].filter(Boolean).join(', ')).filter(Boolean).join('\n');
+const recommendationOf = (v) => v.recommendation || legacyRx(v.prescriptions);
+
 function diagnosisBlock(v) {
-  const rx = v.prescriptions && v.prescriptions.length ? v.prescriptions : [{}];
   return html`
     <section class="card">
       <h2>${t('visit.step_diagnosis')}</h2>
@@ -404,28 +408,13 @@ function diagnosisBlock(v) {
         <label class="field field--wide"><span>${t('f.exams')}</span>
           <textarea name="exams" rows="2" maxlength="2000" placeholder="${t('visit.exams_ph')}">${v.exams || ''}</textarea></label>
       </div>
-      <div class="field"><span>${t('f.prescriptions')}</span>
-        <table class="rx">
-          <thead><tr><th>${t('rx.name')}</th><th>${t('rx.dose')}</th><th>${t('rx.usage')}</th><th>${t('rx.duration')}</th><th></th></tr></thead>
-          <tbody id="rx-body">${rx.map(rxRow)}</tbody>
-        </table>
-        <div><button type="button" class="btn btn--ghost btn--sm" id="rx-add">+ ${t('rx.add')}</button></div>
-      </div>
+      <label class="field"><span>${t('f.recommendation')}</span>
+        <textarea name="recommendation" rows="3" maxlength="4000" placeholder="${t('visit.recommendation_ph')}">${recommendationOf(v)}</textarea></label>
       <div class="grid-fields">
         <label class="field"><span>${t('f.followup_date')}</span><input type="date" name="followup_date" value="${v.followup_date || ''}"></label>
         <label class="field field--wide"><span>${t('f.followup_note')}</span><input name="followup_note" maxlength="1000" value="${v.followup_note || ''}"></label>
       </div>
     </section>`;
-}
-
-function rxRow(r = {}) {
-  return html`<tr class="rx__row">
-    <td><input data-rx="name" maxlength="200" value="${r.name || ''}"></td>
-    <td><input data-rx="dose" maxlength="100" value="${r.dose || ''}"></td>
-    <td><input data-rx="usage" maxlength="200" value="${r.usage || ''}"></td>
-    <td><input data-rx="duration" maxlength="100" value="${r.duration || ''}"></td>
-    <td><button type="button" class="btn btn--ghost btn--sm" data-rx-del title="${t('delete')}">✕</button></td>
-  </tr>`;
 }
 
 function collect(form) {
@@ -458,12 +447,10 @@ function collect(form) {
     }
     return c;
   });
-  const prescriptions = $$('.rx__row', form).map((tr) => Object.fromEntries($$('[data-rx]', tr).map((i) => [i.dataset.rx, i.value.trim()])))
-    .filter((r) => r.name);
   const g = (k) => (fd.get(k) || '').trim();
   return {
     complaints, complaints_text: g('complaints_text'), anamnesis: g('anamnesis'), lor_status: lor,
-    diagnosis_main: g('diagnosis_main'), diagnosis_extra: g('diagnosis_extra'), treatment: g('treatment'), prescriptions,
+    diagnosis_main: g('diagnosis_main'), diagnosis_extra: g('diagnosis_extra'), treatment: g('treatment'), recommendation: g('recommendation'), prescriptions: [],
     exams: g('exams'), followup_date: g('followup_date'), followup_note: g('followup_note'),
   };
 }
@@ -574,15 +561,6 @@ async function renderVisitForm(el, v, patient, { isNew }) {
       markDirty();
     };
   });
-  const rxBody = $('#rx-body', form);
-  $('#rx-add', form).onclick = () => { rxBody.insertAdjacentHTML('beforeend', rxRow().s); };
-  rxBody.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-rx-del]');
-    if (!b) return;
-    b.closest('tr').remove();
-    if (!rxBody.children.length) rxBody.insertAdjacentHTML('beforeend', rxRow().s);
-    markDirty();
-  });
   const cancelBtn = $('#cancel', el);
   if (cancelBtn) cancelBtn.onclick = () => cancelVisit(v.id, () => { dirty = false; refresh(); });
 
@@ -659,9 +637,7 @@ export function visitDocBody(v) {
       ${v.diagnosis_main ? html`<p><b>${t('f.diagnosis_main')}:</b> ${v.diagnosis_main}</p>` : ''}
       ${v.diagnosis_extra ? html`<p><b>${t('f.diagnosis_extra')}:</b> ${v.diagnosis_extra}</p>` : ''}` : '')}
     ${block(t('f.treatment'), p(v.treatment))}
-    ${block(t('f.prescriptions'), v.prescriptions && v.prescriptions.length ? html`
-      <table class="doc__table"><thead><tr><th>№</th><th>${t('rx.name')}</th><th>${t('rx.dose')}</th><th>${t('rx.usage')}</th><th>${t('rx.duration')}</th></tr></thead>
-      <tbody>${v.prescriptions.map((r, i) => html`<tr><td>${i + 1}</td><td>${r.name}</td><td>${r.dose}</td><td>${r.usage}</td><td>${r.duration}</td></tr>`)}</tbody></table>` : '')}
+    ${block(t('f.recommendation'), p(recommendationOf(v)))}
     ${block(t('f.exams'), p(v.exams))}
     ${block(t('doc.followup'), v.followup_date || v.followup_note ? html`<p>${v.followup_date ? fmtDate(v.followup_date) + '. ' : ''}${v.followup_note}</p>` : '')}`;
 }

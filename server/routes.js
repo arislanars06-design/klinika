@@ -285,7 +285,7 @@ router.put('/api/patients/:id', async (ctx) => {
 
 /* ================= Qabullar ================= */
 const CLINICAL_FIELDS = ['complaints', 'complaints_text', 'anamnesis', 'lor_status', 'diagnosis_main', 'diagnosis_extra',
-  'treatment', 'prescriptions', 'exams', 'followup_date', 'followup_note'];
+  'treatment', 'recommendation', 'prescriptions', 'exams', 'followup_date', 'followup_note'];
 
 function clinicalInput(body) {
   const pres = Array.isArray(body.prescriptions) ? body.prescriptions.slice(0, 30) : [];
@@ -297,6 +297,7 @@ function clinicalInput(body) {
     diagnosis_main: str(body.diagnosis_main, 500, 'diagnosis_main'),
     diagnosis_extra: str(body.diagnosis_extra, 1000, 'diagnosis_extra'),
     treatment: str(body.treatment, 4000, 'treatment'),
+    recommendation: str(body.recommendation, 4000, 'recommendation'),
     prescriptions: JSON.stringify(pres.map((x) => ({
       name: str(x && x.name, 200, 'prescriptions'),
       dose: str(x && x.dose, 100, 'prescriptions'),

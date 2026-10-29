@@ -1,14 +1,13 @@
 // Kassa: hisoblar, yangi hisob (xizmatlar × miqdor), to'lov, qaytarish, bekor qilish, chek va kunlik hisobot.
 import {
   html, raw, render, $, $$, t, GET, POST, qs, can, go, toast, errorText, busy, confirmDialog, money, fmtDate,
-  fmtDateTime, payBadge, pager, setQuery, localDate, patientPicker, patientSummary, printDoc, docHeader, METHODS, refresh,
+  fmtDateTime, payBadge, pager, setQuery, localDate, patientPicker, printDoc, docHeader, METHODS, refresh, modal,
 } from '../core.js';
 import { invoiceTable } from './main-views.js';
 
 function cashTabs(active) {
   return html`<div class="tabs">
     <a class="tab ${active === 'list' ? 'tab--active' : ''}" href="#/cash">${t('cash.invoices')}</a>
-    ${can('billing.write') ? html`<a class="tab ${active === 'new' ? 'tab--active' : ''}" href="#/cash/new">${t('cash.new_invoice')}</a>` : ''}
     <a class="tab ${active === 'daily' ? 'tab--active' : ''}" href="#/cash/daily">${t('cash.daily')}</a>
   </div>`;
 }
@@ -20,7 +19,8 @@ const toInt = (v) => { const n = Number(String(v).replace(/\s/g, '')); return Nu
 export async function cashListView(el, query) {
   const f = { date: query.get('date') ?? localDate(), q: query.get('q') || '', debt: query.get('debt') === '1', page: Number(query.get('page')) || 1 };
   render(el, html`
-    <div class="page-head"><h1>${t('nav.cash')}</h1></div>
+    <div class="page-head"><h1>${t('nav.cash')}</h1>
+      ${can('billing.write') ? html`<button type="button" class="btn" id="create-inv">+ ${t('cash.create')}</button>` : ''}</div>
     ${cashTabs('list')}
     <form class="filters card" id="f">
       <label class="inline">${t('date')}: <input type="date" name="date" value="${f.date}"></label>
@@ -43,139 +43,127 @@ export async function cashListView(el, query) {
   };
   if (f.date === 'all') f.date = '';
   form.elements.date.value = f.date;
+  const cb = $('#create-inv', el);
+  if (cb) cb.onclick = () => invoiceDialog({});
   load(f).catch((e) => toast(errorText(e), 'err'));
 }
 
-/* ================= Yangi hisob ================= */
+/* ================= Hisob yaratish (oyna) ================= */
+// "#/cash/new?patient=..&visit=.." manzili ham shu oynani ochadi (qabul oynasidagi "Касса" tugmasi).
 export async function newInvoiceView(el, query) {
-  if (!can('billing.write')) { render(el, html`<p class="alert alert--err">${t('err.forbidden')}</p>`); return; }
-  const services = await GET('/api/services');
-  let patient = null;
-  let visits = [];
-  const presetVisit = Number(query.get('visit')) || null;
+  await cashListView(el, new URLSearchParams());
+  if (!can('billing.write')) return;
+  setQuery('/cash', {});
+  invoiceDialog({ patientId: Number(query.get('patient')) || null, visitId: Number(query.get('visit')) || null });
+}
 
-  render(el, html`
-    <div class="page-head"><h1>${t('cash.new_invoice')}</h1></div>
-    ${cashTabs('new')}
-    <section class="card"><h2 class="step"><span>1</span>${t('cash.step_patient')}</h2><div id="pat"></div></section>
-    <form id="inv" class="hidden">
-      <section class="card">
-        <h2 class="step"><span>2</span>${t('cash.step_services')}</h2>
-        <label class="field"><span>${t('cash.visit_link')}</span><select name="visit_id" id="visit-sel"></select></label>
+/**
+ * Ixcham hisob oynasi: bemor F.I.Sh. va tug'ilgan yili, xizmat turi (bir nechta bo'lishi mumkin), jami summa va to'lov.
+ * Hisob qabulga bog'lanadi: berilgan qabul yoki bemorning bugungi qabuli.
+ */
+export async function invoiceDialog({ patientId = null, visitId = null }) {
+  let services;
+  try { services = await GET('/api/services'); } catch (e) { toast(errorText(e), 'err'); return; }
+  let patient = null;
+  let linkVisit = null;
+
+  modal(html`
+    <form class="dialog__body form" id="invf" autocomplete="off">
+      <div class="card-head"><h2>${t('cash.create')}</h2><button type="button" class="btn btn--ghost btn--sm" data-close>×</button></div>
+      <div id="inv-pat"></div>
+      <div id="inv-body" class="hidden">
         <table class="table items">
-          <thead><tr><th>${t('cash.service')}</th><th class="num">${t('cash.price')}</th><th class="num">${t('cash.qty')}</th><th class="num">${t('cash.amount')}</th><th></th></tr></thead>
+          <thead><tr><th>${t('cash.service_type')}</th><th class="num">${t('cash.qty')}</th><th class="num">${t('cash.amount')}</th><th></th></tr></thead>
           <tbody id="items"></tbody>
         </table>
         <button type="button" class="btn btn--ghost btn--sm" id="add">+ ${t('cash.add_service')}</button>
         ${services.length ? '' : html`<p class="alert alert--warn">${t('cash.no_services')}</p>`}
-      </section>
-      <section class="card">
-        <h2 class="step"><span>3</span>${t('cash.step_total')}</h2>
-        <dl class="totals">
-          <dt>${t('cash.subtotal')}</dt><dd id="subtotal"></dd>
-          <dt>${t('cash.discount')}</dt><dd><input name="discount" inputmode="numeric" value="0" class="num-input"></dd>
-          <dt class="totals__big">${t('cash.total')}</dt><dd class="totals__big" id="total"></dd>
-        </dl>
-      </section>
-      <section class="card">
-        <h2 class="step"><span>4</span>${t('cash.step_payment')}</h2>
+        <dl class="totals"><dt class="totals__big">${t('cash.total')}</dt><dd class="totals__big" id="total"></dd></dl>
         <div class="row">
           <label class="field"><span>${t('cash.pay_amount')}</span><input name="pay_amount" inputmode="numeric" class="num-input"></label>
           <label class="field"><span>${t('cash.method')}</span><select name="method">${methodOptions('cash')}</select></label>
-          <label class="field field--grow"><span>${t('cash.note')}</span><input name="note" maxlength="300"></label>
         </div>
-        <p class="hint">${t('cash.bank_hint')}</p>
-        <div class="actions"><button class="btn btn--lg" type="submit">${t('cash.save_invoice')}</button></div>
-      </section>
-    </form>`);
+        <div class="dialog__actions"><button type="button" class="btn btn--ghost" data-close>${t('cancel')}</button>
+          <button type="submit" class="btn">${t('cash.save_invoice')}</button></div>
+      </div>
+    </form>`, (dlg, close) => {
+    const form = $('#invf', dlg);
+    const tbody = $('#items', dlg);
+    const patBox = $('#inv-pat', dlg);
+    let payTouched = false;
 
-  const form = $('#inv', el);
-  const tbody = $('#items', el);
-  const svcOptions = (sel) => services.map((s) => html`<option value="${s.id}" ${s.id === sel ? raw('selected') : ''}>${s.name}</option>`);
-  const addRow = (svcId) => {
-    const s = services.find((x) => x.id === svcId) || services[0];
-    if (!s) return;
-    const tr = document.createElement('tr');
-    tr.className = 'item';
-    render(tr, html`<td><select data-k="svc">${svcOptions(s.id)}</select></td>
-      <td class="num"><input data-k="price" class="num-input" inputmode="numeric" value="${s.price}"></td>
-      <td class="num"><input data-k="qty" class="num-input num-input--sm" type="number" min="1" max="1000" value="1"></td>
-      <td class="num" data-k="amount"></td>
-      <td><button type="button" class="btn btn--ghost btn--sm" data-del>✕</button></td>`);
-    tbody.appendChild(tr);
-    recalc();
-  };
-  let payTouched = false;
-  function recalc() {
-    let subtotal = 0;
-    $$('tr.item', tbody).forEach((tr) => {
-      const price = toInt($('[data-k=price]', tr).value);
-      const qty = toInt($('[data-k=qty]', tr).value);
-      const amount = price >= 0 && qty >= 1 ? price * qty : 0;
-      $('[data-k=amount]', tr).textContent = money(amount);
-      subtotal += amount;
-    });
-    const disc = Math.max(0, toInt(form.elements.discount.value) || 0);
-    const total = Math.max(0, subtotal - disc);
-    $('#subtotal', el).textContent = money(subtotal);
-    $('#total', el).textContent = money(total);
-    if (!payTouched) form.elements.pay_amount.value = total;
-    return { subtotal, disc, total };
-  }
-  tbody.addEventListener('input', recalc);
-  tbody.addEventListener('change', (e) => {
-    if (e.target.dataset.k === 'svc') {
-      const s = services.find((x) => x.id === Number(e.target.value));
-      $('[data-k=price]', e.target.closest('tr')).value = s.price;
-    }
-    recalc();
-  });
-  tbody.addEventListener('click', (e) => { if (e.target.closest('[data-del]')) { e.target.closest('tr').remove(); recalc(); } });
-  $('#add', el).onclick = () => addRow();
-  form.elements.discount.oninput = recalc;
-  form.elements.pay_amount.oninput = () => { payTouched = true; };
-
-  const pat = $('#pat', el);
-  const choose = async (p) => {
-    patient = p;
-    render(pat, html`${patientSummary(p)}<button type="button" class="btn btn--ghost btn--sm" id="chg">${t('visit.change_patient')}</button>`);
-    $('#chg', pat).onclick = () => { patient = null; form.classList.add('hidden'); showPicker(); };
-    try { visits = (await GET(`/api/patients/${p.id}`)).visits.filter((v) => v.status !== 'cancelled'); } catch { visits = []; }
-    const today = localDate();
-    const def = presetVisit && visits.some((v) => v.id === presetVisit) ? presetVisit
-      : (visits.find((v) => v.visit_at.slice(0, 10) === today) || {}).id;
-    render($('#visit-sel', el), html`<option value="">${t('cash.no_visit')}</option>
-      ${visits.slice(0, 30).map((v) => html`<option value="${v.id}" ${v.id === def ? raw('selected') : ''}>${fmtDateTime(v.visit_at)} · ${v.doctor_name || ''}</option>`)}`);
-    form.classList.remove('hidden');
-    if (!tbody.children.length) addRow();
-  };
-  const showPicker = () => patientPicker(pat, choose);
-
-  const presetPatient = Number(query.get('patient')) || null;
-  if (presetPatient) {
-    try { await choose((await GET(`/api/patients/${presetPatient}`)).patient); } catch (e) { toast(errorText(e), 'err'); showPicker(); }
-  } else showPicker();
-
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    const { disc, total } = recalc();
-    const items = $$('tr.item', tbody).map((tr) => ({
-      service_id: Number($('[data-k=svc]', tr).value), unit_price: toInt($('[data-k=price]', tr).value), qty: toInt($('[data-k=qty]', tr).value),
-    }));
-    if (!items.length) { toast(t('cash.need_items'), 'err'); return; }
-    if (items.some((i) => !(i.unit_price >= 0) || !(i.qty >= 1))) { toast(t('err.invalid'), 'err'); return; }
-    const payAmount = toInt(form.elements.pay_amount.value) || 0;
-    if (payAmount > total) { toast(t('err.overpayment'), 'err'); return; }
-    await busy(e.submitter, async () => {
-      const inv = await POST('/api/invoices', {
-        patient_id: patient.id, visit_id: form.elements.visit_id.value ? Number(form.elements.visit_id.value) : null,
-        items, discount: disc,
-        payment: payAmount > 0 ? { amount: payAmount, method: form.elements.method.value, note: form.elements.note.value.trim() } : null,
+    const recalc = () => {
+      let total = 0;
+      $$('tr.item', tbody).forEach((tr) => {
+        const s = services.find((x) => x.id === Number($('select', tr).value));
+        const qty = toInt($('[data-k=qty]', tr).value);
+        const amount = s && qty >= 1 ? s.price * qty : 0;
+        $('[data-k=amount]', tr).textContent = money(amount);
+        total += amount;
       });
-      toast(t('saved'));
-      go(`/cash/invoice/${inv.id}`);
-    });
-  };
+      $('#total', dlg).textContent = money(total);
+      if (!payTouched) form.elements.pay_amount.value = total;
+      return total;
+    };
+    const addRow = () => {
+      if (!services.length) return;
+      const tr = document.createElement('tr');
+      tr.className = 'item';
+      render(tr, html`<td><select>${services.map((s) => html`<option value="${s.id}">${s.name} — ${money(s.price)}</option>`)}</select></td>
+        <td class="num"><input data-k="qty" class="num-input num-input--sm" type="number" min="1" max="1000" value="1"></td>
+        <td class="num" data-k="amount"></td>
+        <td><button type="button" class="btn btn--ghost btn--sm" data-del>×</button></td>`);
+      tbody.appendChild(tr);
+      recalc();
+    };
+    tbody.addEventListener('input', recalc);
+    tbody.addEventListener('change', recalc);
+    tbody.addEventListener('click', (e) => { if (e.target.closest('[data-del]')) { e.target.closest('tr').remove(); recalc(); } });
+    $('#add', dlg).onclick = addRow;
+    form.elements.pay_amount.oninput = () => { payTouched = true; };
+
+    const choose = async (p) => {
+      patient = p;
+      let visits = [];
+      try { visits = (await GET(`/api/patients/${p.id}`)).visits.filter((v) => v.status !== 'cancelled'); } catch { /* ixtiyoriy */ }
+      linkVisit = (visitId && visits.find((v) => v.id === visitId)) || visits.find((v) => v.visit_at.slice(0, 10) === localDate()) || null;
+      render(patBox, html`
+        <div class="grid-fields inv-patient">
+          <div class="field field--wide"><span>${t('f.full_name')}</span><b>${p.full_name}</b> <span class="muted small">${p.code}</span></div>
+          <div class="field"><span>${t('f.birth_year')}</span><b>${p.birth_date ? p.birth_date.slice(0, 4) : '—'}</b></div>
+          <div class="field"><span></span><button type="button" class="btn btn--ghost btn--sm" id="chg">${t('visit.change_patient')}</button></div>
+        </div>
+        ${linkVisit ? html`<div class="muted small">${t('cash.visit_link')}: ${fmtDateTime(linkVisit.visit_at)}</div>` : ''}`);
+      $('#chg', patBox).onclick = () => { patient = null; $('#inv-body', dlg).classList.add('hidden'); showPicker(); };
+      $('#inv-body', dlg).classList.remove('hidden');
+      if (!tbody.children.length) addRow();
+    };
+    const showPicker = () => patientPicker(patBox, choose);
+
+    if (patientId) {
+      GET(`/api/patients/${patientId}`).then((d) => choose(d.patient)).catch((e) => { toast(errorText(e), 'err'); showPicker(); });
+    } else showPicker();
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!patient) return;
+      const total = recalc();
+      const items = $$('tr.item', tbody).map((tr) => ({ service_id: Number($('select', tr).value), qty: toInt($('[data-k=qty]', tr).value) }));
+      if (!items.length) { toast(t('cash.need_items'), 'err'); return; }
+      if (items.some((i) => !(i.qty >= 1))) { toast(t('err.invalid'), 'err'); return; }
+      const payAmount = toInt(form.elements.pay_amount.value) || 0;
+      if (payAmount > total) { toast(t('err.overpayment'), 'err'); return; }
+      await busy(e.submitter, async () => {
+        const inv = await POST('/api/invoices', {
+          patient_id: patient.id, visit_id: linkVisit ? linkVisit.id : null, items,
+          payment: payAmount > 0 ? { amount: payAmount, method: form.elements.method.value } : null,
+        });
+        toast(t('saved'));
+        close();
+        go(`/cash/invoice/${inv.id}`);
+      });
+    };
+  });
 }
 
 /* ================= Hisob sahifasi ================= */
