@@ -8,21 +8,27 @@ const SESSION_MS = SESSION_HOURS * 3600 * 1000;
 /* ---------- Rollar va huquqlar ---------- */
 const ROLES = ['admin', 'doctor', 'registrar', 'cashier'];
 
+// Administrator barcha huquqlarga ega (shifokor, registrator, kassir va sozlamalar).
+// Shifokor kassir huquqlariga ham ega (hisob, to'lov, moliyaviy hisobot).
 const PERMISSIONS = {
   'patient.read': ['admin', 'doctor', 'registrar', 'cashier'],
   'patient.write': ['admin', 'doctor', 'registrar'],
   'visit.list': ['admin', 'doctor', 'registrar', 'cashier'],
-  'visit.create': ['doctor', 'registrar'],
+  'visit.create': ['admin', 'doctor', 'registrar'],
   'visit.clinical.read': ['admin', 'doctor'],
-  'visit.clinical.write': ['doctor'],
+  'visit.clinical.write': ['admin', 'doctor'],
   'visit.cancel': ['admin', 'doctor'],
-  'billing.read': ['admin', 'cashier'],
-  'billing.write': ['admin', 'cashier'],
+  'billing.read': ['admin', 'doctor', 'cashier'],
+  'billing.write': ['admin', 'doctor', 'cashier'],
   'report.visits': ['admin', 'doctor'],
-  'report.finance': ['admin', 'cashier'],
+  'report.finance': ['admin', 'doctor', 'cashier'],
   'export': ['admin', 'doctor'],
   'admin': ['admin'],
 };
+
+// Qabul o'tkaza oladigan (shifokor sifatida tanlanadigan) rollar
+const CLINICIAN_ROLES = ['doctor', 'admin'];
+const isClinician = (roles) => roles.some((r) => CLINICIAN_ROLES.includes(r));
 
 function permissionsFor(roles) {
   return Object.keys(PERMISSIONS).filter((p) => PERMISSIONS[p].some((r) => roles.includes(r)));
@@ -128,7 +134,7 @@ function ensureAdmin() {
 }
 
 module.exports = {
-  ROLES, PERMISSIONS, permissionsFor, can,
+  ROLES, PERMISSIONS, permissionsFor, can, isClinician,
   hashPassword, verifyPassword, validatePasswordStrength,
   createSession, destroySession, destroyUserSessions, userFromToken, loadUser, purgeExpiredSessions,
   isLocked, registerFailure, clearFailures, audit, ensureAdmin, SESSION_MS,

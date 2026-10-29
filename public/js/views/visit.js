@@ -1,11 +1,13 @@
-// Qabul bo'limi: yangi qabul, elektron tibbiy karta (shikoyat, LOR STATUS, tashxis), chop etish.
+// Qabul bo'limi: yangi qabul (pasport ma'lumotlari shu oynaning o'zida), elektron tibbiy karta
+// (shikoyat, LOR STATUS, tashxis), chop etish va kassaga o'tish.
 import {
   html, raw, render, $, $$, t, L, state, GET, POST, PUT, qs, can, go, toast, errorText, busy,
-  confirmDialog, fmtDate, fmtDateTime, age, genderText, statusBadge, patientPicker, patientSummary,
+  confirmDialog, fmtDate, fmtDateTime, age, genderText, statusBadge, patientSummary,
   printDoc, docHeader, localDate, ApiError, refresh,
 } from '../core.js';
 
 const LOR = window.LOR;
+const PATIENT_FIELDS = ['full_name', 'birth_date', 'gender', 'phone', 'address'];
 
 /* ================= Yangi qabul ================= */
 export async function newVisitView(el, query) {
@@ -14,123 +16,143 @@ export async function newVisitView(el, query) {
   if (presetId) {
     try { patient = (await GET(`/api/patients/${presetId}`)).patient; } catch (e) { toast(errorText(e), 'err'); }
   }
+  if (can('visit.clinical.write')) return renderVisitForm(el, { status: 'open' }, patient, { isNew: true });
+  return renderRegistrarForm(el, patient);
+}
 
-  render(el, html`
-    <div class="page-head"><h1>${t('visit.new')}</h1><div class="muted">${t('visit.date')}: ${fmtDateTime(localDate() + ' ' + new Date().toTimeString().slice(0, 5))}</div></div>
-    <section class="card">
-      <h2 class="step"><span>02</span>${t('visit.step_patient')}</h2>
-      <div id="patient-area"></div>
-    </section>
-    <div id="after-patient"></div>`);
+/* ---------- Pasport ma'lumotlari (bemor kartasi shu yerda ochiladi yoki tanlanadi) ---------- */
+function pasportFields(p, locked) {
+  const dis = locked ? raw('disabled') : '';
+  return html`
+    <div class="grid-fields">
+      <label class="field field--wide"><span>${t('f.full_name')} *</span>
+        <input name="full_name" required maxlength="200" autocomplete="off" value="${p.full_name || ''}" ${dis}></label>
+      <label class="field"><span>${t('f.birth_date')}</span>
+        <input name="birth_date" maxlength="10" placeholder="${t('patient.birth_ph')}" pattern="\\d{4}(-\\d{2}-\\d{2})?" value="${p.birth_date || ''}" ${dis}></label>
+      <label class="field"><span>${t('f.gender')}</span>
+        <select name="gender" ${dis}>
+          <option value="">—</option>
+          <option value="m" ${p.gender === 'm' ? raw('selected') : ''}>${t('gender.m')}</option>
+          <option value="f" ${p.gender === 'f' ? raw('selected') : ''}>${t('gender.f')}</option>
+        </select></label>
+      <label class="field"><span>${t('f.phone')}</span>
+        <input name="phone" type="tel" maxlength="30" placeholder="+998 90 123 45 67" autocomplete="off" value="${p.phone || ''}" ${dis}></label>
+      <label class="field field--wide"><span>${t('f.address')}</span>
+        <input name="address" maxlength="300" value="${p.address || ''}" ${dis}></label>
+    </div>`;
+}
 
-  const area = $('#patient-area', el);
-  const after = $('#after-patient', el);
+/**
+ * Pasport bo'limini boshqaradi. Yangi qabulda F.I.Sh. yoki telefon yozilganda bazadan mos bemorlar taklif qilinadi
+ * (bir bemorga ikkinchi karta ochilmasligi uchun). Saqlashda bemor kartasi avtomatik yaratiladi.
+ */
+function pasportController(box, initial, { canChange, onPatient }) {
+  let patient = initial;
+  const body = $('[data-pasport-body]', box);
+  const draw = (p) => {
+    render(body, html`
+      ${patient ? html`<div class="card-head"><span class="locked">${patient.code}${patient.birth_date ? ` · ${age(patient.birth_date)} ${t('years')}` : ''}</span>
+        <span>${canChange ? html`<button type="button" class="btn btn--ghost btn--sm" data-change>${t('visit.change_patient')}</button>`
+          : html`<a class="btn btn--ghost btn--sm" href="#/patient/${patient.id}">${t('patient.card')}</a>`}</span></div>` : ''}
+      ${pasportFields(p || {}, !!patient)}
+      <div class="suggest" data-suggest></div>`);
+    const ch = $('[data-change]', body);
+    if (ch) ch.onclick = () => { patient = null; draw({}); onPatient(null); $('input[name=full_name]', body).focus(); };
+    if (!patient) bindSuggest();
+  };
+  const read = () => Object.fromEntries(PATIENT_FIELDS.map((k) => [k, $(`[name=${k}]`, body).value.trim()]));
+  const lock = (p) => { patient = p; draw(p); onPatient(p); };
 
-  const choose = (p) => { patient = p; showChosen(); };
+  function showMatches(rows, title, withForce) {
+    const sb = $('[data-suggest]', body);
+    render(sb, rows.length || withForce ? html`
+      <div class="suggest__title">${title}</div>
+      ${rows.map((m) => html`<button type="button" class="picker__item" data-use="${m.id}">
+        <span><b>${m.full_name}</b> <span class="muted">${m.code} · ${fmtDate(m.birth_date)} · ${m.phone}</span></span></button>`)}
+      ${withForce ? html`<div><button type="button" class="btn btn--ghost btn--sm" data-force>${t('patient.create_anyway')}</button></div>` : ''}` : '');
+    $$('[data-use]', sb).forEach((b) => {
+      b.onclick = async () => {
+        try { lock((await GET(`/api/patients/${b.dataset.use}`)).patient); toast(t('visit.patient_selected')); } catch (e) { toast(errorText(e), 'err'); }
+      };
+    });
+    const f = $('[data-force]', sb);
+    if (f) f.onclick = () => create(true).then((p) => { if (p) toast(t('visit.patient_created')); });
+  }
 
-  function showChosen() {
-    render(area, html`${patientSummary(patient)}
-      <button class="btn btn--ghost btn--sm" id="change-patient">${t('visit.change_patient')}</button>`);
-    $('#change-patient', area).onclick = () => { patient = null; showSearch(); };
-    if (can('visit.clinical.write')) {
-      renderClinicalForm(after, { patient_id: patient.id, status: 'open' }, patient, { isNew: true });
-    } else {
-      renderRegistrarForm(after, patient);
+  let timer; let seq = 0;
+  function bindSuggest() {
+    const run = async () => {
+      const v = read();
+      const digits = v.phone.replace(/\D/g, '');
+      const q = v.full_name.length >= 3 ? v.full_name : digits.length >= 5 ? digits : '';
+      if (!q) { render($('[data-suggest]', body), ''); return; }
+      const my = ++seq;
+      try {
+        const d = await GET('/api/patients' + qs({ q }));
+        if (my === seq && !patient) showMatches(d.rows.slice(0, 5), t('visit.suggest'), false);
+      } catch { /* taklif ixtiyoriy */ }
+    };
+    ['full_name', 'phone'].forEach((n) => $(`[name=${n}]`, body).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 300); }));
+  }
+
+  async function create(force) {
+    const data = read();
+    if (!data.full_name) { toast(t('visit.need_name'), 'err'); $('[name=full_name]', body).focus(); return null; }
+    try {
+      const p = await POST('/api/patients', { ...data, force });
+      lock(p);
+      return p;
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'possible_duplicate') {
+        showMatches(e.data.matches, t('patient.dup_title'), true);
+        toast(t('err.possible_duplicate'), 'err');
+      } else toast(errorText(e), 'err');
+      return null;
     }
   }
 
-  function showSearch() {
-    render(after, '');
-    render(area, html`
-      <div class="grid2">
-        <div><h3>${t('visit.find_patient')}</h3><div id="picker"></div></div>
-        <div>
-          <h3>${t('visit.new_patient')}</h3>
-          ${can('patient.write') ? patientForm({}) : html`<p class="muted">${t('err.forbidden')}</p>`}
-        </div>
-      </div>`);
-    patientPicker($('#picker', area), choose);
-    const f = $('form.patient-form', area);
-    if (f) bindPatientForm(f, null, choose);
-  }
-
-  if (patient) showChosen(); else showSearch();
-}
-
-/* ---------- Bemor kartasi formasi (yangi / tahrir) ---------- */
-export function patientForm(p) {
-  return html`
-    <form class="form patient-form" autocomplete="off">
-      <label class="field"><span>${t('f.full_name')} *</span><input name="full_name" required maxlength="200" value="${p.full_name || ''}"></label>
-      <div class="row">
-        <label class="field"><span>${t('f.birth_date')}</span>
-          <input name="birth_date" maxlength="10" placeholder="${t('patient.birth_ph')}" pattern="\\d{4}(-\\d{2}-\\d{2})?" value="${p.birth_date || ''}"></label>
-        <label class="field"><span>${t('f.gender')}</span>
-          <select name="gender">
-            <option value="">—</option>
-            <option value="m" ${p.gender === 'm' ? raw('selected') : ''}>${t('gender.m')}</option>
-            <option value="f" ${p.gender === 'f' ? raw('selected') : ''}>${t('gender.f')}</option>
-          </select></label>
-      </div>
-      <label class="field"><span>${t('f.phone')}</span><input name="phone" type="tel" maxlength="30" placeholder="+998 90 123 45 67" value="${p.phone || ''}"></label>
-      <label class="field"><span>${t('f.address')}</span><input name="address" maxlength="300" value="${p.address || ''}"></label>
-      <div class="form__dup"></div>
-      <button class="btn" type="submit">${p.id ? t('save') : t('patient.create')}</button>
-    </form>`;
-}
-
-export function bindPatientForm(f, id, onSaved) {
-  const read = () => Object.fromEntries(['full_name', 'birth_date', 'gender', 'phone', 'address'].map((k) => [k, f.elements[k].value.trim()]));
-  const save = async (force) => {
-    const btn = f.querySelector('button[type=submit]');
-    btn.disabled = true;
-    try {
-      const body = { ...read(), force };
-      const p = id ? await PUT(`/api/patients/${id}`, body) : await POST('/api/patients', body);
-      toast(t('saved'));
-      onSaved(p);
-    } catch (e) {
-      if (e instanceof ApiError && e.code === 'possible_duplicate') {
-        const box = $('.form__dup', f);
-        render(box, html`
-          <div class="alert alert--warn">
-            <b>${t('patient.dup_title')}</b>
-            ${e.data.matches.map((m) => html`<div class="dup-row"><span>${m.full_name} · ${m.code} · ${fmtDate(m.birth_date)} · ${m.phone}</span>
-              <button type="button" class="btn btn--sm" data-use="${m.id}">${t('patient.use_existing')}</button></div>`)}
-            <button type="button" class="btn btn--ghost btn--sm" data-force>${t('patient.create_anyway')}</button>
-          </div>`);
-        box.querySelectorAll('[data-use]').forEach((b) => {
-          b.onclick = async () => onSaved((await GET(`/api/patients/${b.dataset.use}`)).patient);
-        });
-        $('[data-force]', box).onclick = () => save(true);
-      } else toast(errorText(e), 'err');
-    } finally { btn.disabled = false; }
+  draw(initial);
+  return {
+    get: () => patient,
+    /** Tanlangan bemor yoki yangi yaratilgan bemor; muammo bo'lsa null */
+    ensure: () => (patient ? Promise.resolve(patient) : create(false)),
   };
-  f.onsubmit = (e) => { e.preventDefault(); if (f.reportValidity()) save(false); };
 }
 
-/* ---------- Registrator: qabulni ro'yxatga olish ---------- */
+const pasportCard = (extra = '') => html`
+  <section class="card" data-pasport>
+    <div class="card-head"><h2>${t('visit.pasport')}</h2>${extra}</div>
+    <div data-pasport-body></div>
+  </section>`;
+
+/* ---------- Registrator: pasport va shifokor navbatiga yozish ---------- */
 async function renderRegistrarForm(el, patient) {
   const doctors = await GET('/api/doctors');
   render(el, html`
-    <section class="card">
-      <h2 class="step"><span>→</span>${t('visit.register')}</h2>
-      <form class="form row" id="reg-form">
-        <label class="field"><span>${t('f.doctor_id')} *</span>
-          <select name="doctor_id" required>
-            <option value="">—</option>
-            ${doctors.map((d) => html`<option value="${d.id}">${d.full_name}</option>`)}
-          </select></label>
-        <button class="btn" type="submit">${t('visit.register_btn')}</button>
-      </form>
-      ${doctors.length ? '' : html`<p class="alert alert--warn">${t('visit.no_doctors')}</p>`}
-    </section>`);
+    <div class="page-head"><h1>${t('visit.new')}</h1><div class="muted">${t('visit.date')}: ${fmtDateTime(localDate() + ' ' + new Date().toTimeString().slice(0, 5))}</div></div>
+    <form id="reg-form" autocomplete="off">
+      ${pasportCard()}
+      <section class="card">
+        <div class="row">
+          <label class="field"><span>${t('f.doctor_id')} *</span>
+            <select name="doctor_id" required>
+              <option value="">—</option>
+              ${doctors.map((d) => html`<option value="${d.id}">${d.full_name}</option>`)}
+            </select></label>
+          <button class="btn" type="submit">${t('visit.register_btn')}</button>
+        </div>
+        ${doctors.length ? '' : html`<p class="alert alert--warn">${t('visit.no_doctors')}</p>`}
+      </section>
+    </form>`);
   const f = $('#reg-form', el);
+  const pas = pasportController($('[data-pasport]', el), patient, { canChange: true, onPatient: () => {} });
   f.onsubmit = async (e) => {
     e.preventDefault();
     if (!f.reportValidity()) return;
-    await busy(f.querySelector('button'), async () => {
-      await POST('/api/visits', { patient_id: patient.id, doctor_id: Number(f.elements.doctor_id.value) });
+    await busy(e.submitter, async () => {
+      const p = await pas.ensure();
+      if (!p) return;
+      await POST('/api/visits', { patient_id: p.id, doctor_id: Number(f.elements.doctor_id.value) });
       toast(t('visit.registered'));
       go('/');
     });
@@ -145,14 +167,11 @@ export async function visitView(el, id) {
     gender: v.gender, phone: v.patient_phone, address: v.patient_address,
   };
   if (v.lor_status === undefined) return renderBasicVisit(el, v, patient);
-  if (can('visit.clinical.write') && v.status !== 'cancelled') {
-    render(el, html`<div id="visit-form"></div>`);
-    return renderClinicalForm($('#visit-form', el), v, patient, { isNew: false });
-  }
+  if (can('visit.clinical.write') && v.status !== 'cancelled') return renderVisitForm(el, v, patient, { isNew: false });
   return renderReadOnlyVisit(el, v, patient);
 }
 
-function visitHead(v, patient) {
+function visitHead(v, patient, withSummary = true) {
   return html`
     <div class="page-head">
       <h1>${t('visit.title')} #${v.id}</h1>
@@ -160,7 +179,7 @@ function visitHead(v, patient) {
         <span class="muted">${fmtDateTime(v.visit_at)} · ${t('f.doctor_id')}: ${v.doctor_name || '—'}</span></div>
     </div>
     ${v.status === 'cancelled' ? html`<div class="alert alert--err">${t('visit.cancelled_reason')}: ${v.cancel_reason}</div>` : ''}
-    <section class="card">${patientSummary(patient)}</section>`;
+    ${withSummary ? html`<section class="card">${patientSummary(patient)}</section>` : ''}`;
 }
 
 async function renderBasicVisit(el, v, patient) {
@@ -194,6 +213,7 @@ function renderReadOnlyVisit(el, v, patient) {
     <section class="card doc-preview">${visitDocBody(v)}</section>
     <div class="actions">
       <button class="btn" id="print">${t('print')}</button>
+      ${can('billing.write') && v.status !== 'cancelled' ? html`<a class="btn btn--ghost" href="#/cash/new?patient=${v.patient_id}&visit=${v.id}">${t('visit.cash')}</a>` : ''}
       ${can('visit.cancel') && v.status !== 'cancelled' ? html`<button class="btn btn--danger" id="cancel">${t('visit.cancel')}</button>` : ''}
     </div>`);
   $('#print', el).onclick = () => printVisit(v.id);
@@ -225,24 +245,27 @@ function complaintsBlock(v) {
   };
   return html`
     <section class="card">
-      <h2 class="step"><span>03</span>${t('visit.step_complaints')}</h2>
+      <h2>${t('visit.step_complaints')}</h2>
       <div class="complaints">
         ${LOR.COMPLAINTS.map((g) => html`
           <div class="complaints__group"><div class="complaints__title">${L(g)}</div>
-            <div class="chips chips--col">${g.items.map((i) => html`<div class="complaint-item">
-              ${chip('complaint', i.code, L(i), !!sel[i.code])}${i.has_discharge_type ? dischargeBox(i) : ''}</div>`)}</div>
+            <div class="chips chips--sm">${g.items.map((i) => html`<span class="complaint-item">
+              ${chip('complaint', i.code, L(i), !!sel[i.code])}${i.has_discharge_type ? dischargeBox(i) : ''}</span>`)}</div>
           </div>`)}
       </div>
-      <label class="field"><span>${t('f.complaints_text')}</span>
-        <textarea name="complaints_text" rows="2" maxlength="4000" placeholder="${t('visit.complaints_ph')}">${v.complaints_text || ''}</textarea></label>
-      <label class="field"><span>${t('f.anamnesis')}</span>
-        <textarea name="anamnesis" rows="3" maxlength="4000" placeholder="${t('visit.anamnesis_ph')}">${v.anamnesis || ''}</textarea></label>
+      <div class="grid-fields">
+        <label class="field field--wide"><span>${t('f.complaints_text')}</span>
+          <textarea name="complaints_text" rows="2" maxlength="4000" placeholder="${t('visit.complaints_ph')}">${v.complaints_text || ''}</textarea></label>
+        <label class="field field--wide"><span>${t('f.anamnesis')}</span>
+          <textarea name="anamnesis" rows="2" maxlength="4000" placeholder="${t('visit.anamnesis_ph')}">${v.anamnesis || ''}</textarea></label>
+      </div>
     </section>`;
 }
 
 /* Input nomi: lor|<metod>|<quloq yoki ->|<qism>|<maydon>. Radio, tomon va daraja ham checkbox
    ko‘rinishida chiziladi (data-single): bittasi tanlanadi, qayta bosilsa tanlov olib tashlanadi. */
 const lorName = (m, ear, p, f) => `lor|${m}|${ear || '-'}|${p}|${f}`;
+const methodBox = (form, code) => $(`.lor[data-method="${code}"]`, form);
 
 function lorParts(m, ear, parts) {
   return html`${m.parts.map((p) => {
@@ -260,7 +283,7 @@ function lorParts(m, ear, parts) {
             : LOR.choicesOf(f).map((c) => html`<label class="chip"><input type="checkbox" name="${n}" value="${c.code}"
                 ${single ? raw('data-single') : ''} ${c.is_norm ? raw('data-norm') : ''} ${has(c.code) ? raw('checked') : ''}><span>${L(c)}</span></label>`);
           return html`<div class="lor-field ${LOR.fieldVisible(f, pv) ? '' : 'hidden'}" data-field="${f.code}">
-            ${f.type !== 'checkbox' && LOR.FIELD_LABELS[f.code] ? html`<span class="lor-field__label">${L(LOR.FIELD_LABELS[f.code])}</span>` : ''}
+            ${f.type !== 'checkbox' && LOR.FIELD_LABELS[f.code] && p.fields.length > 1 ? html`<span class="lor-field__label">${L(LOR.FIELD_LABELS[f.code])}:</span>` : ''}
             <div class="chips chips--sm">${body}</div></div>`;
         })}
         <input class="lor__text" name="${lorName(m.code, ear, p.code, '_text')}" maxlength="500" placeholder="${t('lor.note')}" value="${pv._text || ''}">
@@ -273,26 +296,28 @@ function lorBlock(v) {
   const data = v.lor_status || {};
   return html`
     <section class="card">
-      <h2 class="step"><span>04</span>${t('visit.step_lor')}</h2>
-      <p class="hint">${t('visit.lor_hint')}</p>
-      ${LOR.METHODS.map((m) => {
+      <div class="card-head"><h2>${t('visit.step_lor')}</h2></div>
+      <div class="tabs lor-tabs" role="tablist">
+        ${LOR.METHODS.map((m, i) => html`<button type="button" class="tab ${i === 0 ? 'tab--active' : ''}" data-lor-tab="${m.code}">
+          ${L(m)}<span class="tab__count hidden" data-count-for="${m.code}"></span></button>`)}
+      </div>
+      ${LOR.METHODS.map((m, i) => {
         const mv = data[m.code] || {};
-        const filled = !!(mv.parts || mv.ears || mv.note);
         return html`
-        <details class="lor" data-method="${m.code}" ${filled || m.code === 'rhinoscopy' ? raw('open') : ''}>
-          <summary><span>${L(m)}</span><span class="lor__count" data-count></span></summary>
+        <div class="lor ${i === 0 ? '' : 'hidden'}" data-method="${m.code}">
           ${m.ears
             ? html`<div class="lor-ears">${m.ears.map((e) => html`<div class="lor-ear" data-ear-box="${e.code}">
                 <h4 class="lor-ear__title">${L(e)}</h4>${lorParts(m, e.code, (mv.ears || {})[e.code] || {})}</div>`)}</div>`
             : lorParts(m, '', mv.parts || {})}
-          <label class="field"><span>${t('lor.section_note')}</span>
-            <textarea name="lornote|${m.code}" rows="2" maxlength="2000">${mv.note || ''}</textarea></label>
-          <div class="actions">
+          <div class="lor__foot">
+            <label class="field"><span>${t('lor.section_note')}</span>
+              <textarea name="lornote|${m.code}" rows="1" maxlength="2000">${mv.note || ''}</textarea></label>
             <button type="button" class="btn btn--ghost btn--sm" data-norm-method="${m.code}">${t('lor.norm')}</button>
             <button type="button" class="btn btn--ghost btn--sm" data-clear="${m.code}">${t('lor.clear')}</button>
           </div>
-        </details>`;
+        </div>`;
       })}
+      <p class="hint">${t('visit.lor_hint')}</p>
     </section>`;
 }
 
@@ -325,7 +350,7 @@ function fillNorm(form, m) {
   let n = 0;
   for (const ear of m.ears ? m.ears.map((e) => e.code) : ['']) {
     for (const p of m.parts) {
-      const box = $(`details[data-method="${m.code}"] .lor-part[data-part="${p.code}"][data-ear="${ear}"]`, form);
+      const box = $(`.lor-part[data-part="${p.code}"][data-ear="${ear}"]`, methodBox(form, m.code));
       if (!box || box.classList.contains('hidden')) continue;
       for (const f of p.fields) {
         if (f.when) continue;
@@ -347,7 +372,7 @@ function applyLorVisibility(form) {
     for (const ear of m.ears ? m.ears.map((e) => e.code) : ['']) {
       const parts = readParts(form, m, ear);
       for (const p of m.parts) {
-        const box = $(`.lor-part[data-part="${p.code}"][data-ear="${ear}"]`, $(`details[data-method="${m.code}"]`, form));
+        const box = $(`.lor-part[data-part="${p.code}"][data-ear="${ear}"]`, methodBox(form, m.code));
         if (!box) continue;
         const pvis = LOR.partVisible(p, parts);
         box.classList.toggle('hidden', !pvis);
@@ -367,26 +392,28 @@ function diagnosisBlock(v) {
   const rx = v.prescriptions && v.prescriptions.length ? v.prescriptions : [{}];
   return html`
     <section class="card">
-      <h2 class="step"><span>05</span>${t('visit.step_diagnosis')}</h2>
+      <h2>${t('visit.step_diagnosis')}</h2>
       <datalist id="dx-list">${LOR.DIAGNOSES.map((d) => html`<option value="${d.code} — ${L(d)}"></option>`)}</datalist>
-      <label class="field"><span>${t('f.diagnosis_main')}</span>
-        <input name="diagnosis_main" list="dx-list" maxlength="500" value="${v.diagnosis_main || ''}" placeholder="${t('visit.dx_ph')}"></label>
-      <label class="field"><span>${t('f.diagnosis_extra')}</span>
-        <input name="diagnosis_extra" maxlength="1000" value="${v.diagnosis_extra || ''}"></label>
-      <label class="field"><span>${t('f.treatment')}</span>
-        <textarea name="treatment" rows="3" maxlength="4000">${v.treatment || ''}</textarea></label>
+      <div class="grid-fields">
+        <label class="field field--wide"><span>${t('f.diagnosis_main')}</span>
+          <input name="diagnosis_main" list="dx-list" maxlength="500" value="${v.diagnosis_main || ''}" placeholder="${t('visit.dx_ph')}"></label>
+        <label class="field field--wide"><span>${t('f.diagnosis_extra')}</span>
+          <input name="diagnosis_extra" maxlength="1000" value="${v.diagnosis_extra || ''}"></label>
+        <label class="field field--wide"><span>${t('f.treatment')}</span>
+          <textarea name="treatment" rows="2" maxlength="4000">${v.treatment || ''}</textarea></label>
+        <label class="field field--wide"><span>${t('f.exams')}</span>
+          <textarea name="exams" rows="2" maxlength="2000" placeholder="${t('visit.exams_ph')}">${v.exams || ''}</textarea></label>
+      </div>
       <div class="field"><span>${t('f.prescriptions')}</span>
         <table class="rx">
           <thead><tr><th>${t('rx.name')}</th><th>${t('rx.dose')}</th><th>${t('rx.usage')}</th><th>${t('rx.duration')}</th><th></th></tr></thead>
           <tbody id="rx-body">${rx.map(rxRow)}</tbody>
         </table>
-        <button type="button" class="btn btn--ghost btn--sm" id="rx-add">+ ${t('rx.add')}</button>
+        <div><button type="button" class="btn btn--ghost btn--sm" id="rx-add">+ ${t('rx.add')}</button></div>
       </div>
-      <label class="field"><span>${t('f.exams')}</span>
-        <textarea name="exams" rows="2" maxlength="2000" placeholder="${t('visit.exams_ph')}">${v.exams || ''}</textarea></label>
-      <div class="row">
+      <div class="grid-fields">
         <label class="field"><span>${t('f.followup_date')}</span><input type="date" name="followup_date" value="${v.followup_date || ''}"></label>
-        <label class="field field--grow"><span>${t('f.followup_note')}</span><input name="followup_note" maxlength="1000" value="${v.followup_note || ''}"></label>
+        <label class="field field--wide"><span>${t('f.followup_note')}</span><input name="followup_note" maxlength="1000" value="${v.followup_note || ''}"></label>
       </div>
     </section>`;
 }
@@ -441,40 +468,51 @@ function collect(form) {
   };
 }
 
-async function renderClinicalForm(el, v, patient, { isNew }) {
-  let history = [];
-  try { history = (await GET(`/api/patients/${patient.id}`)).visits.filter((x) => x.id !== v.id); } catch { /* ixtiyoriy */ }
+function historyList(history) {
+  return history.length ? html`<ul class="hist">${history.map((h) => html`
+    <li><a href="#/visit/${h.id}">${fmtDate(h.visit_at)}</a> ${h.status === 'cancelled' ? statusBadge('cancelled') : ''}
+      <div class="small">${h.diagnosis_main || html`<span class="muted">${t('visit.no_dx')}</span>`}</div>
+      <div class="muted small">${h.doctor_name || ''}</div></li>`)}</ul>`
+    : html`<p class="muted small">${t('visit.first_visit')}</p>`;
+}
 
+/** Yangi va mavjud qabul uchun bitta ixcham oyna: pasport → shikoyatlar → LOR STATUS → tashxis → amallar */
+async function renderVisitForm(el, v, patient, { isNew }) {
   render(el, html`
-    ${isNew ? '' : visitHead(v, patient)}
+    ${isNew ? html`<div class="page-head"><h1>${t('visit.new')}</h1>
+      <div class="muted">${t('visit.date')}: ${fmtDateTime(localDate() + ' ' + new Date().toTimeString().slice(0, 5))}</div></div>`
+      : visitHead(v, patient, false)}
     <div class="visit-layout">
       <form id="clinical" class="visit-main" autocomplete="off">
+        ${pasportCard()}
         ${complaintsBlock(v)}
         ${lorBlock(v)}
         ${diagnosisBlock(v)}
-        <section class="card sticky-actions">
-          <h2 class="step"><span>06</span>${t('visit.step_save')}</h2>
-          <div class="actions">
-            <button type="submit" class="btn" data-mode="save">${t('save')}</button>
-            <button type="submit" class="btn btn--ok" data-mode="done">${t('visit.finish')}</button>
-            <button type="submit" class="btn btn--ghost" data-mode="print">${t('visit.save_print')}</button>
-            ${!isNew && can('visit.cancel') ? html`<button type="button" class="btn btn--danger" id="cancel">${t('visit.cancel')}</button>` : ''}
-            <span class="muted small" id="dirty-flag"></span>
-          </div>
-          ${!isNew && v.updated_at ? html`<p class="muted small">${t('visit.updated')}: ${fmtDateTime(v.updated_at)} · ${v.updated_by_name || ''}</p>` : ''}
-        </section>
+        <div class="card sticky-actions">
+          <button type="submit" class="btn" data-mode="save">${t('save')}</button>
+          <button type="submit" class="btn btn--ok" data-mode="done">${t('visit.finish')}</button>
+          <button type="submit" class="btn btn--ghost" data-mode="print">${t('visit.save_print')}</button>
+          ${can('billing.write') ? html`<button type="submit" class="btn btn--ghost" data-mode="cash">${t('visit.cash')}</button>` : ''}
+          ${!isNew && can('visit.cancel') ? html`<button type="button" class="btn btn--danger" id="cancel">${t('visit.cancel')}</button>` : ''}
+          <span class="spacer"></span>
+          <span class="muted small" id="dirty-flag">${!isNew && v.updated_at ? `${t('visit.updated')}: ${fmtDateTime(v.updated_at)} · ${v.updated_by_name || ''}` : ''}</span>
+        </div>
       </form>
-      <aside class="visit-side card">
+      <aside class="visit-side card card--tight">
         <h3>${t('visit.history')}</h3>
-        ${history.length ? html`<ul class="hist">${history.map((h) => html`
-          <li><a href="#/visit/${h.id}">${fmtDate(h.visit_at)}</a> ${h.status === 'cancelled' ? statusBadge('cancelled') : ''}
-            <div class="small">${h.diagnosis_main || html`<span class="muted">${t('visit.no_dx')}</span>`}</div>
-            <div class="muted small">${h.doctor_name || ''}</div></li>`)}</ul>`
-          : html`<p class="muted">${t('visit.first_visit')}</p>`}
+        <div id="history"><p class="muted small">—</p></div>
       </aside>
     </div>`);
 
   const form = $('#clinical', el);
+  const loadHistory = async (p) => {
+    const box = $('#history', el);
+    if (!p) { render(box, html`<p class="muted small">—</p>`); return; }
+    try { render(box, historyList((await GET(`/api/patients/${p.id}`)).visits.filter((x) => x.id !== v.id))); } catch { /* ixtiyoriy */ }
+  };
+  const pas = pasportController($('[data-pasport]', el), patient, { canChange: isNew, onPatient: loadHistory });
+  loadHistory(patient);
+
   let dirty = false;
   const flag = $('#dirty-flag', el);
   const markDirty = () => { dirty = true; flag.textContent = t('visit.unsaved'); updateCounts(); };
@@ -501,11 +539,19 @@ async function renderClinicalForm(el, v, patient, { isNew }) {
   });
   state.leaveGuard = { dirty: () => dirty };
 
+  // LOR STATUS tablari
+  $$('[data-lor-tab]', form).forEach((b) => {
+    b.onclick = () => {
+      $$('[data-lor-tab]', form).forEach((x) => x.classList.toggle('tab--active', x === b));
+      $$('.lor[data-method]', form).forEach((p) => p.classList.toggle('hidden', p.dataset.method !== b.dataset.lorTab));
+    };
+  });
   function updateCounts() {
-    $$('details.lor', form).forEach((d) => {
-      const n = $$('.lor-part', d).filter((p) => $$('input[type=checkbox]:checked', p).length
-        || $('.lor__text', p).value.trim()).length;
-      $('[data-count]', d).textContent = n ? `${t('lor.recorded')}: ${n}` : t('lor.not_recorded');
+    $$('.lor[data-method]', form).forEach((d) => {
+      const n = $$('.lor-part', d).filter((p) => $$('input[type=checkbox]:checked', p).length || $('.lor__text', p).value.trim()).length;
+      const c = $(`[data-count-for="${d.dataset.method}"]`, form);
+      c.textContent = n || '';
+      c.classList.toggle('hidden', !n);
     });
   }
   updateCounts();
@@ -521,7 +567,7 @@ async function renderClinicalForm(el, v, patient, { isNew }) {
   });
   $$('[data-clear]', form).forEach((b) => {
     b.onclick = () => {
-      const d = b.closest('details');
+      const d = methodBox(form, b.dataset.clear);
       $$('input[type=checkbox]', d).forEach((c) => { c.checked = false; });
       $$('input.lor__text, textarea', d).forEach((i) => { i.value = ''; });
       applyLorVisibility(form);
@@ -549,13 +595,38 @@ async function renderClinicalForm(el, v, patient, { isNew }) {
       body.status = 'done';
     }
     await busy(e.submitter, async () => {
-      const saved = isNew ? await POST('/api/visits', { ...body, patient_id: patient.id })
-        : await PUT(`/api/visits/${v.id}`, body);
+      const p = await pas.ensure();
+      if (!p) return;
+      const saved = isNew ? await POST('/api/visits', { ...body, patient_id: p.id }) : await PUT(`/api/visits/${v.id}`, body);
       dirty = false;
       toast(t('saved'));
       if (mode === 'print') printVisit(saved.id);
-      if (isNew || mode === 'done') go(`/visit/${saved.id}`);
-      else { flag.textContent = ''; }
+      if (mode === 'cash') go(`/cash/new?patient=${p.id}&visit=${saved.id}`);
+      else if (isNew || mode === 'done') go(`/visit/${saved.id}`);
+      else flag.textContent = '';
+    });
+  };
+}
+
+/* ---------- Bemor kartasini tahrirlash formasi (bemor kartasi sahifasida) ---------- */
+export function patientForm(p) {
+  return html`
+    <form class="form patient-form" autocomplete="off">
+      ${pasportFields(p, false)}
+      <div class="form__dup"></div>
+      <div><button class="btn" type="submit">${p.id ? t('save') : t('patient.create')}</button></div>
+    </form>`;
+}
+
+export function bindPatientForm(f, id, onSaved) {
+  const read = () => Object.fromEntries(PATIENT_FIELDS.map((k) => [k, f.elements[k].value.trim()]));
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    if (!f.reportValidity()) return;
+    await busy(f.querySelector('button[type=submit]'), async () => {
+      const p = id ? await PUT(`/api/patients/${id}`, read()) : await POST('/api/patients', read());
+      toast(t('saved'));
+      onSaved(p);
     });
   };
 }
@@ -575,7 +646,7 @@ export function visitDocBody(v) {
       ${v.patient_address ? html`<div><b>${t('f.address')}:</b> ${v.patient_address}</div>` : ''}
       <div><b>${t('visit.date')}:</b> ${fmtDateTime(v.visit_at)}</div>
     </div>
-    ${block(t('doc.complaints'), complaints.length || v.complaints_text ? html`
+    ${block(t('doc.complaints'), complaints || v.complaints_text ? html`
       ${complaints ? html`<p>${complaints}.</p>` : ''}${p(v.complaints_text)}` : '')}
     ${block(t('f.anamnesis'), p(v.anamnesis))}
     ${block(t('doc.lor_status'), lor.length ? html`${lor.map((s) => html`

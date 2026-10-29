@@ -178,7 +178,7 @@ function tx(fn) {
 }
 
 const DEFAULT_SETTINGS = {
-  clinic_name: 'NURMED LOR klinikasi',
+  clinic_name: 'NURMED ЛОР клиникаси',
   clinic_address: '',
   clinic_phone: '',
   clinic_requisites: '',
@@ -195,12 +195,12 @@ function seed() {
     const s = db.prepare('INSERT INTO services(name, price, active, created_at) VALUES (?, ?, 1, ?)');
     const now = nowLocal();
     [
-      ['LOR ko‘rigi (birlamchi)', 100000],
-      ['LOR ko‘rigi (takroriy)', 70000],
-      ['Endoskopiya', 80000],
-      ['Muolaja', 30000],
-      ['Quloqni yuvish', 50000],
-      ['Audiometriya', 60000],
+      ['ЛОР кўриги (бирламчи)', 100000],
+      ['ЛОР кўриги (такрорий)', 70000],
+      ['Эндоскопия', 80000],
+      ['Муолажа', 30000],
+      ['Қулоқни ювиш', 50000],
+      ['Аудиометрия', 60000],
     ].forEach(([n, p]) => s.run(n, p, now));
   }
 }

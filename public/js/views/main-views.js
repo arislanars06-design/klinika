@@ -1,6 +1,6 @@
 // Bosh oyna, Bemorlar tarixi (qidiruv, filtr, eksport) va bemor kartasi.
 import {
-  html, raw, render, $, t, state, GET, PUT, can, hasRole, qs, toast, errorText, money, fmtDate, fmtDateTime, age,
+  html, raw, render, $, t, state, GET, PUT, can, qs, toast, errorText, money, fmtDate, fmtDateTime, age,
   genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go,
 } from '../core.js';
 import { patientForm, bindPatientForm } from './visit.js';
@@ -10,7 +10,7 @@ export async function dashboardView(el, query) {
   const date = query.get('date') || localDate();
   const d = await GET('/api/dashboard' + qs({ date }));
   const isToday = date === localDate();
-  const mine = hasRole('doctor') ? d.visits.filter((v) => v.doctor_id === state.user.id && v.status === 'open') : [];
+  const mine = can('visit.clinical.write') ? d.visits.filter((v) => v.doctor_id === state.user.id && v.status === 'open') : [];
 
   const visitLink = (v) => {
     if (can('visit.clinical.read') || can('visit.create')) return `#/visit/${v.id}`;
@@ -28,7 +28,7 @@ export async function dashboardView(el, query) {
         <div class="stat__value">${d.visits_count}</div><div class="muted small">${t('dash.patients_note')}</div></div>
       ${d.revenue !== undefined ? html`<div class="stat"><div class="stat__label">${isToday ? t('dash.today_revenue') : t('dash.revenue_on')}</div>
         <div class="stat__value">${money(d.revenue)}</div><div class="muted small">${t('dash.revenue_note')}</div></div>` : ''}
-      ${hasRole('doctor') ? html`<div class="stat"><div class="stat__label">${t('dash.my_queue')}</div><div class="stat__value">${mine.length}</div></div>` : ''}
+      ${can('visit.clinical.write') ? html`<div class="stat"><div class="stat__label">${t('dash.my_queue')}</div><div class="stat__value">${mine.length}</div></div>` : ''}
     </div>
     <div class="quick">
       ${can('visit.create') ? html`<a class="btn btn--lg" href="#/visit/new">+ ${t('dash.new_visit')}</a>` : ''}
