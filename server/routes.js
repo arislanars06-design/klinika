@@ -499,7 +499,7 @@ router.get('/api/services', async (ctx) => {
   need(ctx);
   if (!sec.can(ctx.user, 'billing.read') && !sec.can(ctx.user, 'admin')) throw new HttpError(403, 'forbidden');
   const all = ctx.query.get('all') === '1' && sec.can(ctx.user, 'admin');
-  return db.prepare(`SELECT * FROM services ${all ? '' : 'WHERE active = 1'} ORDER BY name COLLATE NOCASE`).all();
+  return db.prepare(`SELECT * FROM services WHERE deleted = 0 ${all ? '' : 'AND active = 1'} ORDER BY name COLLATE NOCASE`).all();
 });
 
 function serviceInput(body) {
@@ -522,12 +522,26 @@ router.post('/api/services', async (ctx) => {
 router.put('/api/services/:id', async (ctx) => {
   need(ctx, 'admin');
   const id = int(ctx.params.id, 'id', 1);
-  const old = db.prepare('SELECT * FROM services WHERE id = ?').get(id);
+  const old = db.prepare('SELECT * FROM services WHERE id = ? AND deleted = 0').get(id);
   if (!old) throw new HttpError(404, 'not_found');
   const d = serviceInput(await readJson(ctx.req));
   db.prepare('UPDATE services SET name = ?, price = ?, active = ? WHERE id = ?').run(d.name, d.price, d.active, id);
   sec.audit(ctx.user, 'service.update', 'service', id, { from: { name: old.name, price: old.price, active: old.active }, to: d }, ctx.ip);
   return db.prepare('SELECT * FROM services WHERE id = ?').get(id);
+});
+
+// Xizmatni o'chirish. Hisoblarda ishlatilmagan bo'lsa bazadan o'chiriladi; ishlatilgan bo'lsa,
+// eski hisoblar buzilmasligi uchun yozuv saqlanadi, lekin katalogdan butunlay yashiriladi.
+router.post('/api/services/:id/delete', async (ctx) => {
+  need(ctx, 'admin');
+  const id = int(ctx.params.id, 'id', 1);
+  const s = db.prepare('SELECT * FROM services WHERE id = ? AND deleted = 0').get(id);
+  if (!s) throw new HttpError(404, 'not_found');
+  const used = db.prepare('SELECT 1 FROM invoice_items WHERE service_id = ? LIMIT 1').get(id);
+  if (used) db.prepare('UPDATE services SET deleted = 1, active = 0 WHERE id = ?').run(id);
+  else db.prepare('DELETE FROM services WHERE id = ?').run(id);
+  sec.audit(ctx.user, 'service.delete', 'service', id, { name: s.name, price: s.price, kept_for_history: !!used }, ctx.ip);
+  return { ok: true };
 });
 
 /* ================= Hisoblar va to'lovlar ================= */
@@ -792,7 +806,7 @@ function rolesInput(v) {
 
 router.get('/api/users', async (ctx) => {
   need(ctx, 'admin');
-  return db.prepare('SELECT id, username, full_name, roles, phone, active, must_change_password, created_at FROM users ORDER BY full_name')
+  return db.prepare('SELECT id, username, full_name, roles, phone, active, must_change_password, created_at FROM users WHERE deleted = 0 ORDER BY full_name')
     .all().map((u) => ({ ...u, roles: JSON.parse(u.roles) }));
 });
 
@@ -815,7 +829,7 @@ router.post('/api/users', async (ctx) => {
 router.put('/api/users/:id', async (ctx) => {
   need(ctx, 'admin');
   const id = int(ctx.params.id, 'id', 1);
-  const old = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  const old = db.prepare('SELECT * FROM users WHERE id = ? AND deleted = 0').get(id);
   if (!old) throw new HttpError(404, 'not_found');
   const b = await readJson(ctx.req);
   const roles = rolesInput(b.roles);
@@ -832,6 +846,25 @@ router.put('/api/users/:id', async (ctx) => {
   }
   if (!active || b.password || old.roles !== JSON.stringify(roles)) sec.destroyUserSessions(id);
   sec.audit(ctx.user, 'user.update', 'user', id, details, ctx.ip);
+  return { ok: true };
+});
+
+// Xodimni o'chirish. Xodim nomi uning qabullari, hisoblari va audit yozuvlarida qolishi uchun yozuv saqlanadi:
+// akkaunt o'chiriladi (kirib bo'lmaydi), ro'yxatdan yashiriladi va login bo'shatiladi.
+router.post('/api/users/:id/delete', async (ctx) => {
+  need(ctx, 'admin');
+  const id = int(ctx.params.id, 'id', 1);
+  if (id === ctx.user.id) throw new HttpError(400, 'cannot_delete_self');
+  const u = db.prepare('SELECT * FROM users WHERE id = ? AND deleted = 0').get(id);
+  if (!u) throw new HttpError(404, 'not_found');
+  if (JSON.parse(u.roles).includes('admin')) {
+    const admins = db.prepare('SELECT roles FROM users WHERE deleted = 0 AND active = 1 AND id != ?').all(id)
+      .filter((r) => JSON.parse(r.roles).includes('admin')).length;
+    if (!admins) throw new HttpError(400, 'last_admin');
+  }
+  db.prepare('UPDATE users SET deleted = 1, active = 0, username = ? WHERE id = ?').run(`${u.username}~deleted~${id}`, id);
+  sec.destroyUserSessions(id);
+  sec.audit(ctx.user, 'user.delete', 'user', id, { username: u.username, full_name: u.full_name }, ctx.ip);
   return { ok: true };
 });
 
@@ -871,6 +904,13 @@ router.get('/api/backups/:name', async (ctx) => {
   sec.audit(ctx.user, 'backup.download', 'backup', null, { file: ctx.params.name }, ctx.ip);
   backup.stream(file, ctx.res, ctx.params.name);
   return undefined;
+});
+
+router.post('/api/backups/:name/delete', async (ctx) => {
+  need(ctx, 'admin');
+  backup.remove(ctx.params.name);
+  sec.audit(ctx.user, 'backup.delete', 'backup', null, { file: ctx.params.name }, ctx.ip);
+  return { ok: true };
 });
 
 module.exports = { router, json };

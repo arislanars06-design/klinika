@@ -158,6 +158,8 @@ function addColumn(table, column, ddl) {
   if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
 }
 addColumn('visits', 'recommendation', "TEXT NOT NULL DEFAULT ''");
+addColumn('users', 'deleted', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('services', 'deleted', 'INTEGER NOT NULL DEFAULT 0');
 
 const TZ = process.env.NURMED_TZ || 'Asia/Tashkent';
 const fmt = new Intl.DateTimeFormat('en-CA', {

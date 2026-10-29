@@ -1,7 +1,7 @@
-// Kassa: hisoblar, yangi hisob (xizmatlar × miqdor), to'lov, qaytarish, bekor qilish, chek va kunlik hisobot.
+// Kassa: hisoblar, hisob yaratish sahifasi (xizmatlar × miqdor), to'lov, qaytarish, bekor qilish, chek va kunlik hisobot.
 import {
   html, raw, render, $, $$, t, GET, POST, qs, can, go, toast, errorText, busy, confirmDialog, money, fmtDate,
-  fmtDateTime, payBadge, pager, setQuery, localDate, patientPicker, printDoc, docHeader, METHODS, refresh, modal,
+  fmtDateTime, payBadge, pager, setQuery, localDate, patientPicker, printDoc, docHeader, METHODS, refresh,
 } from '../core.js';
 import { invoiceTable } from './main-views.js';
 
@@ -20,7 +20,7 @@ export async function cashListView(el, query) {
   const f = { date: query.get('date') ?? localDate(), q: query.get('q') || '', debt: query.get('debt') === '1', page: Number(query.get('page')) || 1 };
   render(el, html`
     <div class="page-head"><h1>${t('nav.cash')}</h1>
-      ${can('billing.write') ? html`<button type="button" class="btn" id="create-inv">+ ${t('cash.create')}</button>` : ''}</div>
+      ${can('billing.write') ? html`<a class="btn" href="#/cash/new">+ ${t('cash.create')}</a>` : ''}</div>
     ${cashTabs('list')}
     <form class="filters card" id="f">
       <label class="inline">${t('date')}: <input type="date" name="date" value="${f.date}"></label>
@@ -43,33 +43,28 @@ export async function cashListView(el, query) {
   };
   if (f.date === 'all') f.date = '';
   form.elements.date.value = f.date;
-  const cb = $('#create-inv', el);
-  if (cb) cb.onclick = () => invoiceDialog({});
   load(f).catch((e) => toast(errorText(e), 'err'));
 }
 
-/* ================= Hisob yaratish (oyna) ================= */
-// "#/cash/new?patient=..&visit=.." manzili ham shu oynani ochadi (qabul oynasidagi "Касса" tugmasi).
-export async function newInvoiceView(el, query) {
-  await cashListView(el, new URLSearchParams());
-  if (!can('billing.write')) return;
-  setQuery('/cash', {});
-  invoiceDialog({ patientId: Number(query.get('patient')) || null, visitId: Number(query.get('visit')) || null });
-}
-
+/* ================= Hisob yaratish (kassa sahifasi) ================= */
 /**
- * Ixcham hisob oynasi: bemor F.I.Sh. va tug'ilgan yili, xizmat turi (bir nechta bo'lishi mumkin), jami summa va to'lov.
+ * "+ Ҳисоб яратиш" tugmasi va qabul oynasidagi "Касса" tugmasi shu sahifani ochadi (#/cash/new?patient=..&visit=..).
+ * Sahifada: bemor F.I.Sh. va tug'ilgan yili, xizmat turi (bir nechta bo'lishi mumkin), jami summa va to'lov.
  * Hisob qabulga bog'lanadi: berilgan qabul yoki bemorning bugungi qabuli.
  */
-export async function invoiceDialog({ patientId = null, visitId = null }) {
-  let services;
-  try { services = await GET('/api/services'); } catch (e) { toast(errorText(e), 'err'); return; }
+export async function newInvoiceView(el, query) {
+  if (!can('billing.write')) { render(el, html`<p class="alert alert--err">${t('err.forbidden')}</p>`); return; }
+  const patientId = Number(query.get('patient')) || null;
+  const visitId = Number(query.get('visit')) || null;
+  const services = await GET('/api/services');
   let patient = null;
   let linkVisit = null;
 
-  modal(html`
-    <form class="dialog__body form" id="invf" autocomplete="off">
-      <div class="card-head"><h2>${t('cash.create')}</h2><button type="button" class="btn btn--ghost btn--sm" data-close>×</button></div>
+  render(el, html`
+    <div class="page-head"><h1>${t('cash.create')}</h1>
+      <a class="btn btn--ghost" href="#/cash">${t('cancel')}</a></div>
+    ${cashTabs('')}
+    <form class="card form invoice-page" id="invf" autocomplete="off">
       <div id="inv-pat"></div>
       <div id="inv-body" class="hidden">
         <table class="table items">
@@ -83,10 +78,12 @@ export async function invoiceDialog({ patientId = null, visitId = null }) {
           <label class="field"><span>${t('cash.pay_amount')}</span><input name="pay_amount" inputmode="numeric" class="num-input"></label>
           <label class="field"><span>${t('cash.method')}</span><select name="method">${methodOptions('cash')}</select></label>
         </div>
-        <div class="dialog__actions"><button type="button" class="btn btn--ghost" data-close>${t('cancel')}</button>
+        <div class="dialog__actions"><a class="btn btn--ghost" href="#/cash">${t('cancel')}</a>
           <button type="submit" class="btn">${t('cash.save_invoice')}</button></div>
       </div>
-    </form>`, (dlg, close) => {
+    </form>`);
+  {
+    const dlg = el;
     const form = $('#invf', dlg);
     const tbody = $('#items', dlg);
     const patBox = $('#inv-pat', dlg);
@@ -159,11 +156,10 @@ export async function invoiceDialog({ patientId = null, visitId = null }) {
           payment: payAmount > 0 ? { amount: payAmount, method: form.elements.method.value } : null,
         });
         toast(t('saved'));
-        close();
         go(`/cash/invoice/${inv.id}`);
       });
     };
-  });
+  }
 }
 
 /* ================= Hisob sahifasi ================= */

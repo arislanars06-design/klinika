@@ -346,3 +346,5 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .row-actions .btn { margin-left: 4px; }
 .inv-patient b { font-size: 1rem; }
 .dialog .items select { min-width: 0; }
+.invoice-page { max-width: 820px; }
+.invoice-page .totals { margin-top: 8px; }
