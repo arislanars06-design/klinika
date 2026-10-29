@@ -3,7 +3,7 @@ import {
   html, raw, render, $, $$, t, GET, POST, qs, can, go, toast, errorText, busy, confirmDialog, money, fmtDate,
   fmtDateTime, payBadge, pager, setQuery, localDate, patientPicker, printDoc, docHeader, METHODS, refresh,
 } from '../core.js';
-import { invoiceTable } from './main-views.js';
+import { invoiceTable, bindInvoiceDelete } from './main-views.js';
 
 function cashTabs(active) {
   return html`<div class="tabs">
@@ -34,8 +34,9 @@ export async function cashListView(el, query) {
     setQuery('/cash', { date: o.date === localDate() ? '' : o.date || 'all', q: o.q, debt: o.debt ? 1 : '', page: o.page > 1 ? o.page : '' });
     const d = await GET('/api/invoices' + qs({ date: o.date, q: o.q, status: o.debt ? 'debt' : '', page: o.page }));
     const box = $('#res', el);
-    render(box, d.rows.length ? invoiceTable(d.rows) : html`<p class="muted">${t('empty')}</p>`);
+    render(box, d.rows.length ? invoiceTable(d.rows, { actions: true }) : html`<p class="muted">${t('empty')}</p>`);
     box.appendChild(pager(d, (pg) => load({ ...o, page: pg })));
+    bindInvoiceDelete(box, d.rows, () => load(o));
   };
   form.onsubmit = (e) => {
     e.preventDefault();

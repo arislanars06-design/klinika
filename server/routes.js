@@ -181,10 +181,10 @@ router.get('/api/dashboard', async (ctx) => {
     SELECT v.id, v.visit_at, v.status, v.doctor_id, p.id AS patient_id, p.full_name AS patient_name, p.code AS patient_code,
            u.full_name AS doctor_name
     FROM visits v JOIN patients p ON p.id = v.patient_id LEFT JOIN users u ON u.id = v.doctor_id
-    WHERE substr(v.visit_at, 1, 10) = ? ORDER BY v.visit_at`).all(date);
+    WHERE substr(v.visit_at, 1, 10) = ? AND v.status != 'cancelled' ORDER BY v.visit_at`).all(date);
   const out = {
     date,
-    visits_count: visits.filter((v) => v.status !== 'cancelled').length,
+    visits_count: visits.length,
     visits: sec.can(ctx.user, 'visit.list') ? visits : [],
   };
   if (sec.can(ctx.user, 'billing.read')) {
@@ -586,7 +586,7 @@ function paymentInput(body, field = 'payment') {
 
 router.get('/api/invoices', async (ctx) => {
   need(ctx, 'billing.read');
-  const where = ['1 = 1'];
+  const where = ["i.status = 'active'"];
   const params = [];
   const date = dateParam(ctx.query.get('date'), 'date', '');
   if (date) { where.push('substr(i.created_at, 1, 10) = ?'); params.push(date); }
@@ -704,6 +704,27 @@ router.post('/api/invoices/:id/cancel', async (ctx) => {
     .run(reason, nowLocal(), ctx.user.id, id);
   sec.audit(ctx.user, 'invoice.cancel', 'invoice', id, { reason }, ctx.ip);
   return invoiceFull(id);
+});
+
+// Hisobni o'chirish (xato ochilgan hisob uchun). Hisob bazadan yo'qolmaydi: uning faol to'lovlari bekor qilinadi,
+// hisob "bekor qilingan" bo'ladi va ro'yxatdan yashiriladi. Kunlik tushum shunga mos kamayadi. Hammasi audit jurnaliga yoziladi.
+router.post('/api/invoices/:id/delete', async (ctx) => {
+  need(ctx, 'billing.write');
+  const id = int(ctx.params.id, 'id', 1);
+  const inv = invoiceFull(id);
+  if (inv.status === 'cancelled') throw new HttpError(400, 'invoice_cancelled');
+  const body = await readJson(ctx.req);
+  const reason = str(body.reason, 300, 'reason', true);
+  const now = nowLocal();
+  const voided = inv.payments.filter((p) => !p.voided).map((p) => ({ id: p.id, kind: p.kind, amount: p.amount, method: p.method }));
+  tx(() => {
+    db.prepare('UPDATE payments SET voided = 1, void_reason = ?, voided_at = ?, voided_by = ? WHERE invoice_id = ? AND voided = 0')
+      .run(reason, now, ctx.user.id, id);
+    db.prepare("UPDATE invoices SET status = 'cancelled', cancel_reason = ?, cancelled_at = ?, cancelled_by = ? WHERE id = ?")
+      .run(reason, now, ctx.user.id, id);
+  });
+  sec.audit(ctx.user, 'invoice.delete', 'invoice', id, { number: inv.number, total: inv.total, reason, voided_payments: voided }, ctx.ip);
+  return { ok: true };
 });
 
 router.get('/api/cash/daily', async (ctx) => {

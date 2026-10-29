@@ -189,6 +189,7 @@ function bindPatientActions(box, rows, reload) {
 export async function printPatientCard(id) {
   try {
     const d = await GET(`/api/patients/${id}`);
+    d.visits = d.visits.filter((v) => v.status !== 'cancelled');
     const p = d.patient;
     const clinical = can('visit.clinical.read');
     printDoc(html`<article class="doc">${docHeader()}
@@ -214,6 +215,7 @@ export async function printPatientCard(id) {
 /* ================= Bemor kartasi ================= */
 export async function patientView(el, id) {
   const d = await GET(`/api/patients/${id}`);
+  d.visits = d.visits.filter((v) => v.status !== 'cancelled');
   const p = d.patient;
   const clinical = can('visit.clinical.read');
 
@@ -251,7 +253,7 @@ export async function patientView(el, id) {
     </div>
     ${d.invoices ? html`<section class="card">
       <h2>${t('cash.invoices')} (${d.invoices.length})</h2>
-      ${d.invoices.length ? invoiceTable(d.invoices) : html`<p class="muted">${t('empty')}</p>`}
+      ${d.invoices.filter((i) => i.status === 'active').length ? invoiceTable(d.invoices.filter((i) => i.status === 'active')) : html`<p class="muted">${t('empty')}</p>`}
     </section>` : ''}`);
 
   const f = $('form.patient-form', el);
@@ -270,10 +272,25 @@ export async function patientView(el, id) {
   }
 }
 
-export function invoiceTable(rows) {
+export function invoiceTable(rows, { actions = false } = {}) {
+  const del = actions && can('billing.write');
   return html`<table class="table"><thead><tr><th>№</th><th>${t('date')}</th><th>${t('f.full_name')}</th><th class="num">${t('cash.total')}</th>
-    <th class="num">${t('cash.paid')}</th><th class="num">${t('cash.debt')}</th><th>${t('status')}</th></tr></thead>
+    <th class="num">${t('cash.paid')}</th><th class="num">${t('cash.debt')}</th><th>${t('status')}</th>${del ? html`<th></th>` : ''}</tr></thead>
     <tbody>${rows.map((i) => html`<tr><td><a href="#/cash/invoice/${i.id}">${i.number}</a></td><td>${fmtDateTime(i.created_at)}</td>
       <td>${i.patient_name}</td><td class="num">${money(i.total)}</td><td class="num">${money(i.paid)}</td>
-      <td class="num">${i.debt ? money(i.debt) : '—'}</td><td>${payBadge(i.pay_status)}</td></tr>`)}</tbody></table>`;
+      <td class="num">${i.debt ? money(i.debt) : '—'}</td><td>${payBadge(i.pay_status)}</td>
+      ${del ? html`<td class="row-actions">${i.status === 'active' ? html`<button type="button" class="btn btn--danger btn--sm" data-inv-del="${i.id}">${t('delete')}</button>` : ''}</td>` : ''}</tr>`)}</tbody></table>`;
+}
+
+/** Hisoblar jadvalidagi "Ўчириш" tugmalari */
+export function bindInvoiceDelete(box, rows, reload) {
+  $$('[data-inv-del]', box).forEach((b) => {
+    b.onclick = async () => {
+      const inv = rows.find((x) => x.id === Number(b.dataset.invDel));
+      const msg = inv.paid ? t('cash.delete_paid_confirm', { number: inv.number, sum: money(inv.paid) }) : t('cash.delete_confirm', { number: inv.number });
+      const reason = await confirmDialog(msg, { input: true, danger: true, okText: t('delete') });
+      if (!reason) return;
+      try { await POST(`/api/invoices/${inv.id}/delete`, { reason }); toast(t('hist.deleted')); reload(); } catch (e) { toast(errorText(e), 'err'); }
+    };
+  });
 }
