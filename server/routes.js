@@ -154,6 +154,11 @@ router.put('/api/settings', async (ctx) => {
   for (const [k, max] of Object.entries(SETTING_KEYS)) {
     if (k in body) { upd.run(k, str(body[k], max, k, k === 'clinic_name')); changed.push(k); }
   }
+  if ('print_mode' in body) {
+    if (!['word', 'browser'].includes(body.print_mode)) throw new HttpError(400, 'invalid', { field: 'print_mode' });
+    upd.run('print_mode', body.print_mode);
+    changed.push('print_mode');
+  }
   if ('clinic_logo' in body) {
     const logo = typeof body.clinic_logo === 'string' ? body.clinic_logo : '';
     if (logo && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(logo) || logo.length > 700000)) {

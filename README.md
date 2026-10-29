@@ -52,6 +52,13 @@ Huquqlar **serverda** tekshiriladi.
 - Yangi qabul bitta oynada: **Паспорт маълумотлари** → shikoyatlar → LOR STATUS (metodlar tablarda) → tashxis va tavsiya. Bemor F.I.Sh. yoki telefoni yozilganda bazadagi mos bemorlar taklif qilinadi; tanlanmasa, saqlashda yangi bemor kartasi avtomatik ochiladi.
 - Pastdagi amallar paneli: Сақлаш, Якунлаш, Сақлаш ва чоп этиш, **Касса** (qabulni saqlab, shu bemor va qabul bilan yangi hisob ochadi).
 
+## Chop etish
+
+- **"Созламалар → Клиника → Чоп этиш усули"**:
+  - **Word** (standart): "Чоп этиш" tugmasi hujjatni A5 o'lchamli `.docx` fayl qilib yuklab beradi. Uni Word'da tahrirlab, chop etasiz.
+  - **Brauzer**: "Чоп этиш" brauzerning chop etish oynasini ochadi (A5). Bu rejimda yonida alohida "Word" tugmasi ham bo'ladi.
+- Word fayl o'zi ochilishi uchun har bir kompyuterda bir marta sozlang: Chrome yoki Edge'da yuklab olingan fayl yonidagi «⋯» (yoki strelka) → **«Всегда открывать файлы этого типа»**.
+
 ## Asosiy qoidalar
 
 - Bemor kartasi bitta, qabullar alohida. Yangi qabul eskisini ustidan yozmaydi.

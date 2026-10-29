@@ -1,7 +1,7 @@
 // Bosh oyna, Bemorlar tarixi (qidiruv, filtr, eksport) va bemor kartasi.
 import {
   html, raw, render, $, $$, t, state, GET, POST, PUT, can, qs, toast, confirmDialog, modal, printDoc, docHeader, errorText, money, fmtDate, fmtDateTime, age,
-  genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go,
+  genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go, showWordButton,
 } from '../core.js';
 import { patientForm, bindPatientForm, printVisit } from './visit.js';
 
@@ -119,7 +119,7 @@ export async function historyView(el, query) {
             <td class="row-actions">
               ${can('patient.write') ? html`<button type="button" class="btn btn--ghost btn--sm" data-p-edit="${p.id}">${t('edit')}</button>` : ''}
               <button type="button" class="btn btn--ghost btn--sm" data-p-print="${p.id}">${t('print')}</button>
-              <button type="button" class="btn btn--ghost btn--sm" data-p-word="${p.id}">${t('word')}</button>
+              ${showWordButton() ? html`<button type="button" class="btn btn--ghost btn--sm" data-p-word="${p.id}">${t('word')}</button>` : ''}
               ${can('admin') ? html`<button type="button" class="btn btn--danger btn--sm" data-p-del="${p.id}">${t('delete')}</button>` : ''}
             </td></tr>`)}</tbody></table>`
           : html`<p class="muted">${t('empty')}</p>`);
@@ -143,7 +143,7 @@ export async function historyView(el, query) {
           <td class="row-actions">
             <a class="btn btn--ghost btn--sm" href="#/visit/${v.id}">${t('edit')}</a>
             ${clinical ? html`<button type="button" class="btn btn--ghost btn--sm" data-v-print="${v.id}">${t('print')}</button>
-              <button type="button" class="btn btn--ghost btn--sm" data-v-word="${v.id}">${t('word')}</button>` : ''}
+              ${showWordButton() ? html`<button type="button" class="btn btn--ghost btn--sm" data-v-word="${v.id}">${t('word')}</button>` : ''}` : ''}
             ${can('visit.cancel') && v.status !== 'cancelled' ? html`<button type="button" class="btn btn--danger btn--sm" data-v-del="${v.id}">${t('delete')}</button>` : ''}
           </td></tr>`)}</tbody></table>`
         : html`<p class="muted">${t('empty')}</p>`);
@@ -212,7 +212,7 @@ export async function printPatientCard(id, mode = 'print') {
           ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${t('status.' + v.status)}</td></tr>`)}</tbody></table>` : html`<p>—</p>`}
       </div>
       <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
-    </article>`, { word: mode === 'word' ? `${p.full_name} ${fmtDate(localDate())}` : null });
+    </article>`, { name: `${p.full_name} ${fmtDate(localDate())}`, word: mode === 'word' });
   } catch (e) { toast(errorText(e), 'err'); }
 }
 
