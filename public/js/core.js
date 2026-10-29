@@ -1,5 +1,6 @@
 // NURMED — umumiy yordamchilar: API, xavfsiz HTML, tarjima, formatlash, dialoglar, router.
 import { DICT } from './i18n.js';
+import { docToDocx, downloadBlob, safeName } from './docx.js';
 
 export const state = {
   user: null,
@@ -272,12 +273,19 @@ export function patientSummary(p) {
 }
 
 /* ---------- Chop etish ---------- */
-export function printDoc(content) {
+/**
+ * Hujjatni chop etish yoki Word fayli sifatida yuklab olish.
+ * opts.word berilsa (fayl nomi, kengaytmasiz), chop etish o'rniga .docx yuklab olinadi.
+ */
+export function printDoc(content, opts = {}) {
   const root = $('#print-root');
   render(root, content);
   const imgs = $$('img', root);
-  Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))).then(() => {
-    window.print();
+  return Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))).then(() => {
+    if (!opts.word) { window.print(); return; }
+    const doc = $('.doc', root) || root;
+    downloadBlob(docToDocx(doc), safeName(opts.word) + '.docx');
+    toast(t('word.ready'));
   });
 }
 

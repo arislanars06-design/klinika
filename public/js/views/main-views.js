@@ -119,6 +119,7 @@ export async function historyView(el, query) {
             <td class="row-actions">
               ${can('patient.write') ? html`<button type="button" class="btn btn--ghost btn--sm" data-p-edit="${p.id}">${t('edit')}</button>` : ''}
               <button type="button" class="btn btn--ghost btn--sm" data-p-print="${p.id}">${t('print')}</button>
+              <button type="button" class="btn btn--ghost btn--sm" data-p-word="${p.id}">${t('word')}</button>
               ${can('admin') ? html`<button type="button" class="btn btn--danger btn--sm" data-p-del="${p.id}">${t('delete')}</button>` : ''}
             </td></tr>`)}</tbody></table>`
           : html`<p class="muted">${t('empty')}</p>`);
@@ -141,12 +142,14 @@ export async function historyView(el, query) {
           ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${statusBadge(v.status)}</td>
           <td class="row-actions">
             <a class="btn btn--ghost btn--sm" href="#/visit/${v.id}">${t('edit')}</a>
-            ${clinical ? html`<button type="button" class="btn btn--ghost btn--sm" data-v-print="${v.id}">${t('print')}</button>` : ''}
+            ${clinical ? html`<button type="button" class="btn btn--ghost btn--sm" data-v-print="${v.id}">${t('print')}</button>
+              <button type="button" class="btn btn--ghost btn--sm" data-v-word="${v.id}">${t('word')}</button>` : ''}
             ${can('visit.cancel') && v.status !== 'cancelled' ? html`<button type="button" class="btn btn--danger btn--sm" data-v-del="${v.id}">${t('delete')}</button>` : ''}
           </td></tr>`)}</tbody></table>`
         : html`<p class="muted">${t('empty')}</p>`);
       box.appendChild(pager(d, (pg) => load({ ...o, page: pg })));
       $$('[data-v-print]', box).forEach((b) => { b.onclick = () => printVisit(Number(b.dataset.vPrint)); });
+      $$('[data-v-word]', box).forEach((b) => { b.onclick = () => printVisit(Number(b.dataset.vWord), 'word'); });
       $$('[data-v-del]', box).forEach((b) => {
         b.onclick = async () => {
           const reason = await confirmDialog(t('hist.delete_visit_confirm'), { input: true, danger: true, okText: t('delete') });
@@ -172,6 +175,7 @@ function bindPatientActions(box, rows, reload) {
     };
   });
   $$('[data-p-print]', box).forEach((b) => { b.onclick = () => printPatientCard(Number(b.dataset.pPrint)); });
+  $$('[data-p-word]', box).forEach((b) => { b.onclick = () => printPatientCard(Number(b.dataset.pWord), 'word'); });
   $$('[data-p-del]', box).forEach((b) => {
     b.onclick = async () => {
       const p = rows.find((x) => x.id === Number(b.dataset.pDel));
@@ -186,7 +190,7 @@ function bindPatientActions(box, rows, reload) {
 }
 
 /** Bemor kartasi va qabullar ro'yxatini chop etish */
-export async function printPatientCard(id) {
+export async function printPatientCard(id, mode = 'print') {
   try {
     const d = await GET(`/api/patients/${id}`);
     d.visits = d.visits.filter((v) => v.status !== 'cancelled');
@@ -208,7 +212,7 @@ export async function printPatientCard(id) {
           ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${t('status.' + v.status)}</td></tr>`)}</tbody></table>` : html`<p>—</p>`}
       </div>
       <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
-    </article>`);
+    </article>`, { word: mode === 'word' ? `${p.full_name} ${fmtDate(localDate())}` : null });
   } catch (e) { toast(errorText(e), 'err'); }
 }
 

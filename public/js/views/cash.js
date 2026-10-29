@@ -192,6 +192,7 @@ export async function invoiceView(el, id) {
         </dl>
         <div class="actions">
           <button class="btn btn--ghost" id="print">${t('cash.print_receipt')}</button>
+          <button class="btn btn--ghost" id="word">${t('word')}</button>
           ${w && active && inv.paid === 0 ? html`<button class="btn btn--danger" id="cancel">${t('cash.cancel_invoice')}</button>` : ''}
         </div>
       </section>
@@ -233,6 +234,7 @@ export async function invoiceView(el, id) {
     </div>`);
 
   $('#print', el).onclick = () => printReceipt(inv);
+  $('#word', el).onclick = () => printReceipt(inv, 'word');
   const c = $('#cancel', el);
   if (c) c.onclick = async () => {
     const reason = await confirmDialog(t('cash.cancel_confirm'), { input: true, danger: true });
@@ -264,7 +266,7 @@ export async function invoiceView(el, id) {
   bindPay($('#refund', el), 'refund');
 }
 
-function printReceipt(inv) {
+function printReceipt(inv, mode = 'print') {
   printDoc(html`
     <article class="doc doc--receipt">
       ${docHeader()}
@@ -280,7 +282,7 @@ function printReceipt(inv) {
       </dl>
       ${inv.payments.filter((p) => !p.voided).map((p) => html`<div class="small">${fmtDateTime(p.paid_at)} · ${t('kind.' + p.kind)} · ${t('method.' + p.method)} · ${money(p.amount)}</div>`)}
       <p class="small muted">${t('cash.receipt_note')}</p>
-    </article>`);
+    </article>`, { word: mode === 'word' ? `${t('cash.receipt')} ${inv.number} ${inv.patient_name}` : null });
 }
 
 /* ================= Kunlik kassa hisoboti ================= */
@@ -312,10 +314,13 @@ export async function dailyView(el, query) {
     <section class="card"><h2>${t('cash.by_method')}</h2>${methodsTable}</section>
     <section class="card"><h2>${t('cash.payments')}</h2>${d.payments.length ? list : html`<p class="muted">${t('empty')}</p>`}</section>
     <p class="hint">${t('cash.bank_hint')}</p>
-    <div class="actions"><button class="btn" id="print">${t('cash.print_daily')}</button></div>`);
+    <div class="actions"><button class="btn" id="print">${t('cash.print_daily')}</button>
+      <button class="btn btn--ghost" id="word">${t('word')}</button></div>`);
   $('#d', el).onchange = (e) => go('/cash/daily' + qs({ date: e.target.value }));
-  $('#print', el).onclick = () => printDoc(html`<article class="doc">${docHeader()}
+  const dailyDoc = (mode) => printDoc(html`<article class="doc">${docHeader()}
     <h2 class="doc__title">${t('cash.daily')} — ${fmtDate(date)}</h2>${methodsTable}
     <p>${t('cash.invoices_today')}: ${d.invoices_count} (${money(d.invoices_total)})</p>${list}
-    <div class="doc__sign">${t('cash.cashier')}: ____________________</div></article>`);
+    <div class="doc__sign">${t('cash.cashier')}: ____________________</div></article>`, { word: mode === 'word' ? `${t('cash.daily')} ${fmtDate(date)}` : null });
+  $('#print', el).onclick = () => dailyDoc('print');
+  $('#word', el).onclick = () => dailyDoc('word');
 }
