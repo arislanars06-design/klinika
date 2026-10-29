@@ -1,0 +1,181 @@
+// Administrator: klinika rekvizitlari, xodimlar va rollar, xizmatlar narxi, audit jurnali, zaxira nusxalari.
+import {
+  html, raw, render, $, $$, t, state, GET, POST, PUT, qs, toast, busy, fmtDateTime, pager, modal, refresh,
+} from '../core.js';
+
+const TABS = ['settings', 'users', 'services', 'audit', 'backup'];
+const ROLES = ['admin', 'doctor', 'registrar', 'cashier'];
+
+export async function adminView(el, query) {
+  const tab = TABS.includes(query.get('tab')) ? query.get('tab') : 'settings';
+  render(el, html`
+    <div class="page-head"><h1>${t('nav.admin')}</h1></div>
+    <div class="tabs">${TABS.map((x) => html`<a class="tab ${x === tab ? 'tab--active' : ''}" href="#/admin?tab=${x}">${t('admin.' + x)}</a>`)}</div>
+    <div id="admin-body"></div>`);
+  const body = $('#admin-body', el);
+  await ({ settings, users, services, audit, backup })[tab](body, query);
+}
+
+/* ---------- Klinika rekvizitlari ---------- */
+async function settings(el) {
+  const s = state.settings;
+  render(el, html`
+    <form class="form card" id="sf">
+      <label class="field"><span>${t('admin.clinic_name')} *</span><input name="clinic_name" required maxlength="200" value="${s.clinic_name}"></label>
+      <label class="field"><span>${t('f.address')}</span><input name="clinic_address" maxlength="300" value="${s.clinic_address}"></label>
+      <label class="field"><span>${t('f.phone')}</span><input name="clinic_phone" maxlength="100" value="${s.clinic_phone}"></label>
+      <label class="field"><span>${t('admin.requisites')}</span><textarea name="clinic_requisites" rows="2" maxlength="500">${s.clinic_requisites}</textarea></label>
+      <div class="field"><span>${t('admin.logo')}</span>
+        <div class="logo-edit">
+          <img id="logo-prev" class="${s.clinic_logo ? '' : 'hidden'}" src="${s.clinic_logo || ''}" alt="">
+          <input type="file" id="logo" accept="image/png,image/jpeg,image/webp">
+          <button type="button" class="btn btn--ghost btn--sm" id="logo-rm">${t('delete')}</button>
+        </div>
+        <span class="hint">${t('admin.logo_hint')}</span>
+      </div>
+      <button class="btn">${t('save')}</button>
+    </form>`);
+  const f = $('#sf', el);
+  let logo = s.clinic_logo || '';
+  const prev = $('#logo-prev', el);
+  $('#logo', el).onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) { toast(t('admin.logo_big'), 'err'); e.target.value = ''; return; }
+    const r = new FileReader();
+    r.onload = () => { logo = r.result; prev.src = logo; prev.classList.remove('hidden'); };
+    r.readAsDataURL(file);
+  };
+  $('#logo-rm', el).onclick = () => { logo = ''; prev.classList.add('hidden'); $('#logo', el).value = ''; };
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    await busy(e.submitter, async () => {
+      const body = Object.fromEntries(['clinic_name', 'clinic_address', 'clinic_phone', 'clinic_requisites'].map((k) => [k, f.elements[k].value.trim()]));
+      state.settings = await PUT('/api/settings', { ...body, clinic_logo: logo });
+      document.dispatchEvent(new Event('nurmed:settings'));
+      toast(t('saved'));
+    });
+  };
+}
+
+/* ---------- Xodimlar ---------- */
+async function users(el) {
+  const list = await GET('/api/users');
+  render(el, html`
+    <section class="card">
+      <div class="actions"><button class="btn" id="add">+ ${t('admin.add_user')}</button></div>
+      <table class="table"><thead><tr><th>${t('f.full_name')}</th><th>${t('f.username')}</th><th>${t('admin.roles')}</th><th>${t('f.phone')}</th><th>${t('status')}</th><th></th></tr></thead>
+      <tbody>${list.map((u) => html`<tr class="${u.active ? '' : 'row--voided'}"><td>${u.full_name}</td><td>${u.username}</td>
+        <td>${u.roles.map((r) => t('role.' + r)).join(', ')}</td><td>${u.phone}</td>
+        <td>${u.active ? t('admin.active') : t('admin.inactive')}${u.must_change_password ? html`<div class="muted small">${t('admin.must_change')}</div>` : ''}</td>
+        <td><button class="btn btn--ghost btn--sm" data-edit="${u.id}">${t('edit')}</button></td></tr>`)}</tbody></table>
+      <p class="hint">${t('admin.roles_hint')}</p>
+    </section>`);
+  $('#add', el).onclick = () => userDialog(null);
+  $$('[data-edit]', el).forEach((b) => { b.onclick = () => userDialog(list.find((u) => u.id === Number(b.dataset.edit))); });
+}
+
+function userDialog(u) {
+  const isNew = !u;
+  u = u || { roles: [], active: 1 };
+  modal(html`
+    <form class="form dialog__body">
+      <h2>${isNew ? t('admin.add_user') : u.full_name}</h2>
+      <label class="field"><span>${t('f.full_name')} *</span><input name="full_name" required maxlength="200" value="${u.full_name || ''}"></label>
+      <label class="field"><span>${t('f.username')} *</span><input name="username" required pattern="[a-zA-Z0-9._\\-]{3,60}" value="${u.username || ''}" ${isNew ? '' : raw('disabled')}></label>
+      <label class="field"><span>${t('f.phone')}</span><input name="phone" maxlength="30" value="${u.phone || ''}"></label>
+      <fieldset class="field"><legend>${t('admin.roles')} *</legend>
+        ${ROLES.map((r) => html`<label class="inline"><input type="checkbox" name="roles" value="${r}" ${u.roles.includes(r) ? raw('checked') : ''}> ${t('role.' + r)}</label>`)}
+      </fieldset>
+      <label class="field"><span>${isNew ? t('f.password') + ' *' : t('admin.reset_password')}</span>
+        <input name="password" type="text" minlength="8" maxlength="200" autocomplete="new-password" ${isNew ? raw('required') : ''}>
+        <span class="hint">${t('admin.password_hint')}</span></label>
+      ${isNew ? '' : html`<label class="inline"><input type="checkbox" name="active" ${u.active ? raw('checked') : ''}> ${t('admin.active')}</label>`}
+      <div class="dialog__actions"><button type="button" class="btn btn--ghost" data-close>${t('cancel')}</button><button class="btn">${t('save')}</button></div>
+    </form>`, (dlg, close) => {
+    const f = $('form', dlg);
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const roles = $$('input[name=roles]:checked', f).map((i) => i.value);
+      if (!roles.length) { toast(t('err.required') + ` (${t('admin.roles')})`, 'err'); return; }
+      const body = { full_name: f.elements.full_name.value.trim(), phone: f.elements.phone.value.trim(), roles };
+      if (f.elements.password.value) body.password = f.elements.password.value;
+      await busy(e.submitter, async () => {
+        if (isNew) await POST('/api/users', { ...body, username: f.elements.username.value.trim() });
+        else await PUT(`/api/users/${u.id}`, { ...body, active: f.elements.active.checked });
+        toast(t('saved'));
+        close();
+        refresh();
+      });
+    };
+  });
+}
+
+/* ---------- Xizmatlar katalogi ---------- */
+async function services(el) {
+  const list = await GET('/api/services?all=1');
+  const row = (s) => html`<tr data-id="${s.id || ''}">
+    <td><input name="name" maxlength="200" value="${s.name || ''}" required></td>
+    <td class="num"><input name="price" class="num-input" inputmode="numeric" value="${s.price ?? ''}" required></td>
+    <td><label class="inline"><input type="checkbox" name="active" ${s.active !== 0 ? raw('checked') : ''}> ${t('admin.active')}</label></td>
+    <td><button class="btn btn--sm" data-save>${t('save')}</button></td></tr>`;
+  render(el, html`
+    <section class="card">
+      <table class="table"><thead><tr><th>${t('cash.service')}</th><th class="num">${t('cash.price')} (${t('sum')})</th><th>${t('status')}</th><th></th></tr></thead>
+        <tbody id="svc">${list.map(row)}${row({})}</tbody></table>
+      <p class="hint">${t('admin.services_hint')}</p>
+    </section>`);
+  $('#svc', el).addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-save]');
+    if (!b) return;
+    const tr = b.closest('tr');
+    const get = (n) => $(`[name=${n}]`, tr);
+    const price = Number(get('price').value.replace(/\s/g, ''));
+    if (!get('name').value.trim() || !Number.isInteger(price) || price < 0) { toast(t('err.invalid'), 'err'); return; }
+    const body = { name: get('name').value.trim(), price, active: get('active').checked };
+    await busy(b, async () => {
+      if (tr.dataset.id) await PUT(`/api/services/${tr.dataset.id}`, body); else await POST('/api/services', body);
+      toast(t('saved'));
+      refresh();
+    });
+  });
+}
+
+/* ---------- Audit jurnali ---------- */
+async function audit(el, query) {
+  const f = { date: query.get('date') || '', action: query.get('action') || '', page: Number(query.get('page')) || 1 };
+  const load = async (o) => {
+    const d = await GET('/api/audit' + qs(o));
+    render(el, html`
+      <form class="filters card" id="af">
+        <label class="inline">${t('date')}: <input type="date" name="date" value="${o.date}"></label>
+        <input name="action" value="${o.action}" placeholder="${t('admin.action_ph')}">
+        <button class="btn">${t('search')}</button>
+      </form>
+      <section class="card"><table class="table table--compact"><thead><tr><th>${t('time')}</th><th>${t('admin.user')}</th><th>${t('admin.action')}</th>
+        <th>${t('admin.object')}</th><th>${t('admin.details')}</th><th>IP</th></tr></thead>
+        <tbody>${d.rows.map((a) => html`<tr><td>${fmtDateTime(a.at)}</td><td>${a.user_name || '—'}</td><td><code>${a.action}</code></td>
+          <td>${a.entity}${a.entity_id ? ' #' + a.entity_id : ''}</td><td class="details"><code>${a.details === '{}' ? '' : a.details}</code></td><td>${a.ip}</td></tr>`)}</tbody></table>
+        <div id="pg"></div></section>`);
+    $('#pg', el).appendChild(pager(d, (pg) => load({ ...o, page: pg })));
+    const form = $('#af', el);
+    form.onsubmit = (e) => { e.preventDefault(); load({ date: form.elements.date.value, action: form.elements.action.value.trim(), page: 1 }); };
+  };
+  await load(f);
+}
+
+/* ---------- Zaxira nusxalari ---------- */
+async function backup(el) {
+  const list = await GET('/api/backups');
+  const size = (n) => (n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.ceil(n / 1024) + ' KB');
+  render(el, html`
+    <section class="card">
+      <p>${t('admin.backup_info')}</p>
+      <div class="actions"><button class="btn" id="mk">${t('admin.backup_now')}</button></div>
+      <table class="table"><thead><tr><th>${t('admin.file')}</th><th>${t('date')}</th><th class="num">${t('admin.size')}</th><th></th></tr></thead>
+        <tbody>${list.map((b) => html`<tr><td><code>${b.name}</code></td><td>${fmtDateTime(b.created)}</td><td class="num">${size(b.size)}</td>
+          <td><a class="btn btn--ghost btn--sm" href="/api/backups/${encodeURIComponent(b.name)}" download>${t('admin.download')}</a></td></tr>`)}</tbody></table>
+      <div class="alert alert--warn">${t('admin.backup_warn')}</div>
+    </section>`);
+  $('#mk', el).onclick = (e) => busy(e.target, async () => { await POST('/api/backups'); toast(t('saved')); refresh(); });
+}

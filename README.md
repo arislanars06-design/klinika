@@ -1,122 +1,100 @@
-# 🏥 Clinic LOR Desktop
+# NURMED — LOR klinikasi tizimi
 
-**LOR (otorinolaringologiya) klinikasi uchun oflayn desktop dastur**
+Klinikaning lokal tarmog'ida ishlaydigan web-tizim: qabul (elektron LOR karta), bemorlar tarixi, kassa, hisobotlar, xodimlar va rollar, audit, zaxira nusxalari.
 
-Shifokorlar va klinika administratorlari uchun mo'ljallangan, ikkita tilda ishlaydigan (o'zbek/rus) Windows/Linux/macOS desktop dasturi.
+## Qanday ishlaydi
 
----
+- Bitta **markaziy kompyuter (server)** dasturni ishga tushiradi. Barcha ma'lumot shu kompyuterdagi bitta bazada (`data/nurmed.db`, SQLite) saqlanadi.
+- Boshqa kompyuterlar (shifokor, registrator, kassa) **brauzer** orqali `http://<server-IP>:3000` manzilini ochadi. Ularga hech narsa o'rnatilmaydi.
+- Qo'shimcha kutubxona kerak emas: faqat Node.js.
 
-> 🌐 **Web versiyasi ham mavjud!** Xuddi shu ma'lumotlar bazasi bilan brauzerdan
-> ishlaydigan FastAPI qatlami. Ichki tarmoqda bir necha kompyuterdan foydalanish
-> uchun ideal. Ko'rsatmalar: [`docs/web_usage.md`](docs/web_usage.md).
->
-> ```bash
-> python -m clinic.web.main  # → http://127.0.0.1:8000
-> ```
->
-> 📱 **Klinika ichidagi telefon / boshqa kompyuterlardan kirish** uchun
-> `start-network.bat` (Windows) ishlating — batafsil: [`docs/network_access.md`](docs/network_access.md).
+## O'rnatish (server kompyuterda)
 
-## ⚡ Asosiy imkoniyatlar
+1. [Node.js](https://nodejs.org) **22.13 yoki undan yangi** versiyasini o'rnating (LTS, 22 yoki 24).
+2. `nurmed` papkasini kompyuterga ko'chiring.
+3. Shu papkada terminal ochib, quyidagini ishga tushiring:
+   ```
+   npm start
+   ```
+4. Birinchi ishga tushirishda terminalda **administrator logini (`admin`) va vaqtinchalik parol** chiqadi. Kirgandan keyin tizim parolni almashtirishni talab qiladi.
+5. Server kompyuterning IP manzilini aniqlang (Windows: `ipconfig`) va boshqa kompyuterlarda `http://192.168.x.x:3000` ni oching.
+6. Server kompyuterga **doimiy IP** bering (routerda) va Windows Firewall'da 3000-portni faqat lokal tarmoq uchun oching.
+7. Server kompyuter yoqilganda dastur avtomatik ishga tushishi uchun uni Windows xizmati sifatida qo'shing (masalan, NSSM yoki Task Scheduler orqali).
 
-- 🩺 **Qabulni boshlash** — bemor ma'lumotlari, strukturaviy shikoyatlar, LOR STATUS, tashxis, tavsiya
-- 📋 **Bemorlar tarixi** — qidiruv, tahrirlash, filter, statistika (kunlik/haftalik/oylik/yillik)
-- 💰 **Kassa** — xizmatlar, hisob-kitob, kvitansiya, statistika
-- 🌍 **Ikki til** — o'zbekcha va ruscha (bir bosishda almashadi)
-- 🖨 **Word/PDF chop etish** — klinika shabloni asosida qabul varaqasi
-- 📊 **Statistika** — Word formatida eksport
-- ⚙️ **Sozlamalar** — xizmatlar, shifokorlar, katalog tahrirlash
+### Sozlamalar (muhit o'zgaruvchilari)
 
----
+| O'zgaruvchi | Standart | Vazifasi |
+|---|---|---|
+| `PORT` | `3000` | Port |
+| `HOST` | `0.0.0.0` | Tinglanadigan manzil |
+| `NURMED_DATA_DIR` | `./data` | Baza va zaxira papkasi |
+| `NURMED_BACKUP_DIR` | `./data/backups` | Zaxira nusxalar papkasi (masalan, ikkinchi disk) |
+| `NURMED_BACKUP_KEEP` | `30` | Saqlanadigan avtomatik nusxalar soni |
+| `NURMED_TZ` | `Asia/Tashkent` | Vaqt mintaqasi |
+| `NURMED_SESSION_HOURS` | `12` | Sessiya muddati |
+| `NURMED_TLS_CERT`, `NURMED_TLS_KEY` | — | Berilsa, HTTPS yoqiladi |
 
-## 🛠 Texnologiyalar
+## Rollar
 
-- **Python 3.11+** — asosiy dasturlash tili
-- **PySide6 (Qt 6)** — desktop grafik interfeys
-- **FastAPI + Jinja2 + Bootstrap 5 + HTMX** — web versiyasi
-- **SQLite + SQLAlchemy** — mahalliy ma'lumotlar bazasi (desktop va web bir xil bazani ishlatadi)
-- **python-docx + docxtpl** — Word hujjatlarini yaratish va shablonlarni to'ldirish
-- **PyInstaller** — bitta `.exe` faylga paketlash
+| Rol | Nima qila oladi |
+|---|---|
+| Shifokor | Bemor kartasi, qabul yaratish, shikoyat, LOR STATUS, tashxis, tavsiya, chop etish, tarixda tashxis bo'yicha qidirish, CSV eksport, qabul statistikasi |
+| Registrator | Bemorni ro'yxatga olish, shifokor navbatiga yozish, qidiruv. Tibbiy yozuvlarni ko'rmaydi |
+| Kassir | Hisob, to'lov, qisman to'lov, qaytarish, bekor qilish, chek, kunlik hisobot, moliyaviy statistika. Tibbiy yozuvlarni ko'rmaydi |
+| Administrator | Xodimlar va rollar, xizmatlar narxi, klinika rekvizitlari va logosi, audit jurnali, zaxira nusxalari. Tibbiy yozuvlarni o'qiydi, lekin o'zgartirmaydi |
 
----
+Bir xodimga bir nechta rol berish mumkin (masalan, klinika rahbari: Shifokor + Administrator). Huquqlar **serverda** tekshiriladi.
 
-## 📁 Hujjatlar
+## Asosiy qoidalar
 
-Loyihaning to'liq logikasi va texnik topshirig'i quyidagi fayllarda:
+- Bemor kartasi bitta, qabullar alohida. Yangi qabul eskisini ustidan yozmaydi.
+- LOR STATUSda tanlanmagan maydon "norma" deb to'ldirilmaydi va hujjatga chiqmaydi.
+- Qabul va hisoblar o'chirilmaydi, sabab ko'rsatilib **bekor qilinadi**. Har bir o'zgarish (kim, qachon, nima o'zgardi) audit jurnaliga yoziladi. Tibbiy yozuvni ko'rish va chop etish ham qayd etiladi.
+- Jami = Σ(narx × miqdor) − chegirma. Summani server qayta hisoblaydi.
+- Uzcard yoki Humo tanlash pul bankka tushganini tasdiqlamaydi. Bank integratsiyasi yo'q.
+- Chek klinikaning ichki cheki, fiskal chek emas.
 
-| Fayl | Tavsif |
-|------|--------|
-| [`SPEC.md`](SPEC.md) | Asosiy texnik topshiriq — barcha ekranlar, oqimlar, qoidalar |
-| [`docs/architecture.md`](docs/architecture.md) | Loyiha strukturasi, texnologiyalar, modullar |
-| [`docs/database_schema.md`](docs/database_schema.md) | Ma'lumotlar bazasi jadvallari va bog'lanishlari |
-| [`docs/complaints_catalog.md`](docs/complaints_catalog.md) | Shikoyatlar katalogi (30+ element, uz/ru) |
-| [`docs/lor_status_catalog.md`](docs/lor_status_catalog.md) | LOR STATUS katalogi (4 ko'rik metodi) |
-| [`docs/web_usage.md`](docs/web_usage.md) | 🌐 Web versiyasini ishga tushirish (local / ichki tarmoq / bulut) |
-| [`docs/template_placeholders.md`](docs/template_placeholders.md) | Word shabloni uchun placeholder'lar |
+## Zaxira nusxasi va tiklash
 
----
+- Server har 24 soatda `data/backups/` papkasiga bazaning to'liq nusxasini oladi. Administrator "Sozlamalar → Zaxira nusxalari" bo'limida qo'lda nusxa olishi va yuklab olishi mumkin.
+- Nusxalarni muntazam **boshqa qurilmaga** (tashqi disk, ikkinchi kompyuter) ko'chiring.
+- **Tiklash:** serverni to'xtating, `data/nurmed.db` faylini (va bo'lsa `nurmed.db-wal`, `nurmed.db-shm` fayllarini) boshqa joyga olib qo'ying, kerakli nusxani `data/nurmed.db` nomi bilan joylashtiring va serverni qayta ishga tushiring.
+- Tiklashni oyiga kamida bir marta boshqa kompyuterda sinab ko'ring.
 
-## 🚦 Loyiha holati
+## Haqiqiy bemorlar bilan ishlashdan oldin
 
-**Bosqich: To'liq ishlaydi** — barcha 4 milestone tugagan (134 avtomatik test o'tadi).
+- Server kompyuterga parol qo'ying, diskni shifrlang (BitLocker), unga faqat administrator kirsin.
+- Portni internetga ochmang. Tizim faqat lokal tarmoq uchun mo'ljallangan.
+- Lokal tarmoqda ham HTTPS yoqish tavsiya etiladi (`NURMED_TLS_CERT` / `NURMED_TLS_KEY`).
+- Zaxira nusxasini boshqa qurilmaga ko'chirish va tiklash tartibini sinab ko'ring.
+- Shaxsiy va tibbiy ma'lumotlarni saqlash bo'yicha O'zbekiston qonunchiligi talablarini yurist bilan tekshiring.
 
-- ✅ **M1** — Skelet, ma'lumotlar bazasi, Sozlamalar (klinika/shifokorlar/xizmatlar)
-- ✅ **M2** — Qabul oynasi (bemor + shikoyat + LOR STATUS + tashxis)
-- ✅ **M3** — Bemorlar tarixi + Kassa + Statistika (grafiklar bilan)
-- ✅ **M4** — Chop etish (Word) + Backup tizimi + PyInstaller
-- ⏳ Klinika Word shabloni (ixtiyoriy — hozircha default layout ishlaydi)
+## Tuzilishi
 
-## 🚀 Tez boshlash
-
-```bash
-git clone https://github.com/arislanars06-design/klinika.git
-cd klinika
-pip install -e ".[dev]"
-
-python scripts/seed_data.py --reset      # test ma'lumotlarni yuklash
-python -m clinic.main                    # dasturni ishga tushirish
+```
+nurmed/
+├── server/
+│   ├── server.js      HTTP server, sessiya, CSRF himoyasi
+│   ├── routes.js      API: bemorlar, qabullar, kassa, hisobotlar, xodimlar, audit
+│   ├── db.js          Baza sxemasi: users, sessions, patients, visits, services,
+│   │                  invoices, invoice_items, payments, audit_logs, settings
+│   ├── security.js    Parollar (scrypt), sessiyalar, rollar, kirishga urinishlarni cheklash
+│   ├── backup.js      Zaxira nusxalari
+│   └── http.js        Router, xavfsizlik sarlavhalari, statik fayllar
+└── public/
+    ├── index.html, css/app.css
+    └── js/
+        ├── lor-template.js   Shikoyatlar, LOR STATUS va tashxislar shabloni (uz/ru)
+        ├── i18n.js           Interfeys matnlari (uz/ru)
+        ├── core.js, main.js
+        └── views/            Bosh oyna, qabul, tarix, kassa, hisobotlar, sozlamalar
 ```
 
-Manual sinov uchun to'liq yo'l-yo'riq: [`docs/testing_checklist.md`](docs/testing_checklist.md).
+LOR shablonidagi variantlarni `public/js/lor-template.js` faylida o'zgartirish mumkin. Server saqlashdan oldin ma'lumotni shu shablon bo'yicha tekshiradi.
 
-Windows uchun `.exe` yig'ish: [`docs/build_instructions.md`](docs/build_instructions.md).
+## Hali yo'q (keyingi bosqichlar)
 
----
-
-## 📅 Yakunlangan yo'l xaritasi
-
-| Faza | Holat | PR |
-|------|-------|-----|
-| **Faza 1** — Skelet + DB + Sozlamalar | ✅ Tugatildi | [#1](https://github.com/arislanars06-design/klinika/pull/1) + [#3](https://github.com/arislanars06-design/klinika/pull/3) |
-| **Faza 2** — Qabul oynasi + bemor + shikoyat + LOR STATUS | ✅ Tugatildi | [#3](https://github.com/arislanars06-design/klinika/pull/3) |
-| **Faza 3** — Tarix + Kassa + Statistika (matplotlib) | ✅ Tugatildi | [#4](https://github.com/arislanars06-design/klinika/pull/4) |
-| **Faza 4** — Word chop etish + Backup + PyInstaller | ✅ Tugatildi | [#5](https://github.com/arislanars06-design/klinika/pull/5) |
-
-Kelajakdagi (v2) kengaytmalari [`SPEC.md`](SPEC.md) §14 da: login/parol, ICD-10, qabul jadvali, SMS eslatma, bulut backup.
-
----
-
-## 👥 Foydalanuvchilar
-
-- **Shifokor** — bemor qabul qilish, ko'rik, tashxis, tavsiya berish
-- **Klinika administratori** — bemorlar, to'lovlar, statistika bilan ishlash
-
-*Birinchi versiyada rol/parol yo'q — bir kompyuterda ishlaydi.*
-
----
-
-## 🔒 Ma'lumotlar xavfsizligi
-
-- Barcha ma'lumotlar **lokal SQLite** faylida saqlanadi (bulut yo'q)
-- Har kuni avtomatik **backup** yaratiladi (`data/backups/`)
-- 30 kundan eski backup'lar avtomatik o'chiriladi
-
----
-
-## 📞 Aloqa
-
-Loyiha egasi: *(to'ldiriladi)*
-
----
-
-*Bu hujjat SPEC yozish jarayonida yaratilgan.*
+- Bank yoki to'lov provayderi integratsiyasi, fiskal chek.
+- Kassa smenasini ochish va yopish (hozir kunlik hisobot bor).
+- Telegram bildirishnomalari.
+- Avtomatik testlar to'plami.
