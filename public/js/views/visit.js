@@ -617,7 +617,7 @@ export function visitDocBody(v) {
   const p = (s) => (s ? html`<p class="pre">${s}</p>` : '');
   return html`
     <div class="doc__block doc__patient">
-      <div><b>${t('f.full_name')}:</b> ${v.patient_name} <span class="muted">(${v.patient_code})</span></div>
+      <div class="doc__wide"><b>${t('f.full_name')}:</b> ${v.patient_name} <span class="muted">(${v.patient_code})</span></div>
       <div><b>${t('f.birth_date')}:</b> ${fmtDate(v.birth_date) || '—'}${v.birth_date ? ` (${age(v.birth_date)} ${t('years')})` : ''}
         ${v.gender ? html` &nbsp; <b>${t('f.gender')}:</b> ${genderText(v.gender)}` : ''}</div>
       ${v.patient_phone ? html`<div><b>${t('f.phone')}:</b> ${v.patient_phone}</div>` : ''}
@@ -629,8 +629,7 @@ export function visitDocBody(v) {
     ${block(t('f.anamnesis'), p(v.anamnesis))}
     ${block(t('doc.lor_status'), lor.length ? html`${lor.map((s) => html`
       <div class="doc__lor"><h4>${s.title}</h4>
-        ${s.groups.map((g) => html`${g.sub ? html`<div class="doc__ear">${g.sub}</div>` : ''}
-          ${g.lines.map((l) => html`<div><b>${l.label}:</b> ${l.text}</div>`)}`)}
+        ${s.groups.map((g) => html`<div class="doc__grp">${g.sub ? html`<span class="doc__ear">${g.sub}</span> ` : ''}${g.lines.map((l) => html`<span class="doc__ln"><b>${l.label}:</b> ${l.text}</span>`)}</div>`)}
         ${s.note ? html`<p class="pre">${s.note}</p>` : ''}
       </div>`)}` : '')}
     ${block(t('doc.diagnosis'), v.diagnosis_main || v.diagnosis_extra ? html`
@@ -651,8 +650,10 @@ export async function printVisit(id) {
         <h2 class="doc__title">${t('doc.title')}</h2>
         ${visitDocBody(v)}
         <footer class="doc__foot">
-          <div><b>${t('doc.doctor')}:</b> ${v.doctor_name || ''}${v.doctor_phone ? ` · ${v.doctor_phone}` : ''}</div>
-          <div class="doc__sign">${t('doc.signature')}: ____________________</div>
+          <div class="doc__foot-row">
+            <div><b>${t('doc.doctor')}:</b> ${v.doctor_name || ''}${v.doctor_phone ? ` · ${v.doctor_phone}` : ''}</div>
+            <div class="doc__sign">${t('doc.signature')}: ______________</div>
+          </div>
           <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
         </footer>
       </article>`);
