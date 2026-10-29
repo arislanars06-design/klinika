@@ -1,9 +1,9 @@
 // Bosh oyna, Bemorlar tarixi (qidiruv, filtr, eksport) va bemor kartasi.
 import {
-  html, raw, render, $, t, state, GET, PUT, can, qs, toast, errorText, money, fmtDate, fmtDateTime, age,
+  html, raw, render, $, $$, t, state, GET, POST, PUT, can, qs, toast, confirmDialog, modal, printDoc, docHeader, errorText, money, fmtDate, fmtDateTime, age,
   genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go,
 } from '../core.js';
-import { patientForm, bindPatientForm } from './visit.js';
+import { patientForm, bindPatientForm, printVisit } from './visit.js';
 
 /* ================= Bosh oyna ================= */
 export async function dashboardView(el, query) {
@@ -29,11 +29,6 @@ export async function dashboardView(el, query) {
       ${d.revenue !== undefined ? html`<div class="stat"><div class="stat__label">${isToday ? t('dash.today_revenue') : t('dash.revenue_on')}</div>
         <div class="stat__value">${money(d.revenue)}</div><div class="muted small">${t('dash.revenue_note')}</div></div>` : ''}
       ${can('visit.clinical.write') ? html`<div class="stat"><div class="stat__label">${t('dash.my_queue')}</div><div class="stat__value">${mine.length}</div></div>` : ''}
-    </div>
-    <div class="quick">
-      ${can('visit.create') ? html`<a class="btn btn--lg" href="#/visit/new">+ ${t('dash.new_visit')}</a>` : ''}
-      ${can('visit.list') ? html`<a class="btn btn--lg btn--ghost" href="#/history">${t('nav.history')}</a>` : ''}
-      ${can('billing.read') ? html`<a class="btn btn--lg btn--ghost" href="#/cash">${t('dash.open_cash')}</a>` : ''}
     </div>
     <section class="card">
       <h2>${t('dash.visits_list')}</h2>
@@ -118,11 +113,17 @@ export async function historyView(el, query) {
         const d = await GET('/api/patients' + qs({ q: o.q, page: o.page }));
         render(box, d.rows.length ? html`
           <table class="table"><thead><tr><th>ID</th><th>${t('f.full_name')}</th><th>${t('f.birth_date')}</th><th>${t('f.phone')}</th>
-            <th>${t('hist.visits_count')}</th><th>${t('patient.last_visit')}</th></tr></thead>
+            <th>${t('hist.visits_count')}</th><th>${t('patient.last_visit')}</th><th></th></tr></thead>
           <tbody>${d.rows.map((p) => html`<tr><td>${p.code}</td><td><a href="#/patient/${p.id}">${p.full_name}</a></td>
-            <td>${fmtDate(p.birth_date)}</td><td>${p.phone}</td><td>${p.visits_count}</td><td>${fmtDate(p.last_visit)}</td></tr>`)}</tbody></table>`
+            <td>${fmtDate(p.birth_date)}</td><td>${p.phone}</td><td>${p.visits_count}</td><td>${fmtDate(p.last_visit)}</td>
+            <td class="row-actions">
+              ${can('patient.write') ? html`<button type="button" class="btn btn--ghost btn--sm" data-p-edit="${p.id}">${t('edit')}</button>` : ''}
+              <button type="button" class="btn btn--ghost btn--sm" data-p-print="${p.id}">${t('print')}</button>
+              ${can('admin') ? html`<button type="button" class="btn btn--danger btn--sm" data-p-del="${p.id}">${t('delete')}</button>` : ''}
+            </td></tr>`)}</tbody></table>`
           : html`<p class="muted">${t('empty')}</p>`);
         box.appendChild(pager(d, (pg) => load({ ...o, page: pg })));
+        bindPatientActions(box, d.rows, () => load(o));
         return;
       }
       const r = periodRange(o.period, o.from, o.to);
@@ -133,17 +134,81 @@ export async function historyView(el, query) {
       const clinical = can('visit.clinical.read');
       render(box, d.rows.length ? html`
         <table class="table"><thead><tr><th>${t('date')}</th><th>ID</th><th>${t('f.full_name')}</th><th>${t('f.phone')}</th>
-          <th>${t('f.doctor_id')}</th>${clinical ? html`<th>${t('f.diagnosis_main')}</th>` : ''}<th>${t('status')}</th></tr></thead>
+          <th>${t('f.doctor_id')}</th>${clinical ? html`<th>${t('f.diagnosis_main')}</th>` : ''}<th>${t('status')}</th><th></th></tr></thead>
         <tbody>${d.rows.map((v) => html`<tr>
           <td><a href="#/visit/${v.id}">${fmtDateTime(v.visit_at)}</a></td><td>${v.patient_code}</td>
           <td><a href="#/patient/${v.patient_id}">${v.patient_name}</a></td><td>${v.patient_phone}</td><td>${v.doctor_name || '—'}</td>
-          ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${statusBadge(v.status)}</td></tr>`)}</tbody></table>`
+          ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${statusBadge(v.status)}</td>
+          <td class="row-actions">
+            <a class="btn btn--ghost btn--sm" href="#/visit/${v.id}">${t('edit')}</a>
+            ${clinical ? html`<button type="button" class="btn btn--ghost btn--sm" data-v-print="${v.id}">${t('print')}</button>` : ''}
+            ${can('visit.cancel') && v.status !== 'cancelled' ? html`<button type="button" class="btn btn--danger btn--sm" data-v-del="${v.id}">${t('delete')}</button>` : ''}
+          </td></tr>`)}</tbody></table>`
         : html`<p class="muted">${t('empty')}</p>`);
       box.appendChild(pager(d, (pg) => load({ ...o, page: pg })));
+      $$('[data-v-print]', box).forEach((b) => { b.onclick = () => printVisit(Number(b.dataset.vPrint)); });
+      $$('[data-v-del]', box).forEach((b) => {
+        b.onclick = async () => {
+          const reason = await confirmDialog(t('hist.delete_visit_confirm'), { input: true, danger: true, okText: t('delete') });
+          if (!reason) return;
+          try { await POST(`/api/visits/${b.dataset.vDel}/cancel`, { reason }); toast(t('hist.deleted')); load(o); } catch (e) { toast(errorText(e), 'err'); }
+        };
+      });
     } catch (e) { render(box, html`<p class="alert alert--err">${errorText(e)}</p>`); }
   };
   form.onsubmit = (e) => { e.preventDefault(); load(readForm()); };
   load(f);
+}
+
+/* ---------- Bemorlar ro'yxatidagi amallar: tahrirlash, chop etish, o'chirish (arxivlash) ---------- */
+function bindPatientActions(box, rows, reload) {
+  $$('[data-p-edit]', box).forEach((b) => {
+    b.onclick = () => {
+      const p = rows.find((x) => x.id === Number(b.dataset.pEdit));
+      modal(html`<div class="dialog__body"><div class="card-head"><h2>${p.full_name}</h2>
+        <button type="button" class="btn btn--ghost btn--sm" data-close>×</button></div>${patientForm(p)}</div>`, (dlg, close) => {
+        bindPatientForm($('form.patient-form', dlg), p.id, () => { close(); reload(); });
+      });
+    };
+  });
+  $$('[data-p-print]', box).forEach((b) => { b.onclick = () => printPatientCard(Number(b.dataset.pPrint)); });
+  $$('[data-p-del]', box).forEach((b) => {
+    b.onclick = async () => {
+      const p = rows.find((x) => x.id === Number(b.dataset.pDel));
+      if (!(await confirmDialog(t('hist.delete_patient_confirm', { name: p.full_name }), { danger: true, okText: t('delete') }))) return;
+      try {
+        await PUT(`/api/patients/${p.id}`, { full_name: p.full_name, birth_date: p.birth_date, gender: p.gender, phone: p.phone, address: p.address, archived: true });
+        toast(t('hist.deleted'));
+        reload();
+      } catch (e) { toast(errorText(e), 'err'); }
+    };
+  });
+}
+
+/** Bemor kartasi va qabullar ro'yxatini chop etish */
+export async function printPatientCard(id) {
+  try {
+    const d = await GET(`/api/patients/${id}`);
+    const p = d.patient;
+    const clinical = can('visit.clinical.read');
+    printDoc(html`<article class="doc">${docHeader()}
+      <h2 class="doc__title">${t('patient.card')}</h2>
+      <div class="doc__block doc__patient">
+        <div><b>${t('f.full_name')}:</b> ${p.full_name} <span class="muted">(${p.code})</span></div>
+        <div><b>${t('f.birth_date')}:</b> ${fmtDate(p.birth_date) || '—'}${p.birth_date ? ` (${age(p.birth_date)} ${t('years')})` : ''}
+          ${p.gender ? html` &nbsp; <b>${t('f.gender')}:</b> ${genderText(p.gender)}` : ''}</div>
+        ${p.phone ? html`<div><b>${t('f.phone')}:</b> ${p.phone}</div>` : ''}
+        ${p.address ? html`<div><b>${t('f.address')}:</b> ${p.address}</div>` : ''}
+      </div>
+      <div class="doc__block"><h3>${t('hist.visits')} (${d.visits.length})</h3>
+        ${d.visits.length ? html`<table class="doc__table"><thead><tr><th>${t('date')}</th><th>${t('f.doctor_id')}</th>
+          ${clinical ? html`<th>${t('f.diagnosis_main')}</th>` : ''}<th>${t('status')}</th></tr></thead>
+          <tbody>${d.visits.map((v) => html`<tr><td>${fmtDateTime(v.visit_at)}</td><td>${v.doctor_name || ''}</td>
+          ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${t('status.' + v.status)}</td></tr>`)}</tbody></table>` : html`<p>—</p>`}
+      </div>
+      <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
+    </article>`);
+  } catch (e) { toast(errorText(e), 'err'); }
 }
 
 /* ================= Bemor kartasi ================= */
@@ -157,7 +222,7 @@ export async function patientView(el, id) {
       <h1>${p.full_name} <span class="muted">${p.code}</span></h1>
       <div class="actions">
         ${can('visit.create') && !p.archived ? html`<a class="btn" href="#/visit/new?patient=${p.id}">+ ${t('dash.new_visit')}</a>` : ''}
-        ${can('billing.write') ? html`<a class="btn btn--ghost" href="#/cash/new?patient=${p.id}">${t('cash.new_invoice')}</a>` : ''}
+        ${can('billing.write') ? html`<a class="btn btn--ghost" href="#/cash/new?patient=${p.id}">${t('cash.create')}</a>` : ''}
       </div>
     </div>
     ${p.archived ? html`<div class="alert alert--warn">${t('patient.archived')}</div>` : ''}

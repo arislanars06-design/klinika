@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS visits (
   diagnosis_main TEXT NOT NULL DEFAULT '',
   diagnosis_extra TEXT NOT NULL DEFAULT '',
   treatment TEXT NOT NULL DEFAULT '',
+  recommendation TEXT NOT NULL DEFAULT '',
   prescriptions TEXT NOT NULL DEFAULT '[]',
   exams TEXT NOT NULL DEFAULT '',
   followup_date TEXT NOT NULL DEFAULT '',
@@ -150,6 +151,13 @@ CREATE TABLE IF NOT EXISTS settings (
 `;
 
 db.exec(SCHEMA);
+
+// Migratsiyalar: eski bazalarga yangi ustunlarni qo'shish
+function addColumn(table, column, ddl) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+}
+addColumn('visits', 'recommendation', "TEXT NOT NULL DEFAULT ''");
 
 const TZ = process.env.NURMED_TZ || 'Asia/Tashkent';
 const fmt = new Intl.DateTimeFormat('en-CA', {
