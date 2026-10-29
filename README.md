@@ -38,12 +38,19 @@ Klinikaning lokal tarmog'ida ishlaydigan web-tizim: qabul (elektron LOR karta), 
 
 | Rol | Nima qila oladi |
 |---|---|
-| Shifokor | Bemor kartasi, qabul yaratish, shikoyat, LOR STATUS, tashxis, tavsiya, chop etish, tarixda tashxis bo'yicha qidirish, CSV eksport, qabul statistikasi |
+| Administrator | **Barcha huquqlar**: qabul o'tkazish (shifokor sifatida), bemorni ro'yxatga olish, kassa, hisobotlar, hamda xodimlar, narxlar, rekvizitlar, audit va zaxira nusxalari |
+| Shifokor | Bemor kartasi, qabul, shikoyat, LOR STATUS, tashxis, tavsiya, chop etish, CSV eksport, **kassa (hisob, to'lov, qaytarish, kunlik hisobot)** va qabul hamda moliyaviy statistika |
 | Registrator | Bemorni ro'yxatga olish, shifokor navbatiga yozish, qidiruv. Tibbiy yozuvlarni ko'rmaydi |
 | Kassir | Hisob, to'lov, qisman to'lov, qaytarish, bekor qilish, chek, kunlik hisobot, moliyaviy statistika. Tibbiy yozuvlarni ko'rmaydi |
-| Administrator | Xodimlar va rollar, xizmatlar narxi, klinika rekvizitlari va logosi, audit jurnali, zaxira nusxalari. Tibbiy yozuvlarni o'qiydi, lekin o'zgartirmaydi |
 
-Bir xodimga bir nechta rol berish mumkin (masalan, klinika rahbari: Shifokor + Administrator). Huquqlar **serverda** tekshiriladi.
+Huquqlar **serverda** tekshiriladi.
+
+## Interfeys
+
+- Interfeys tili: o'zbekcha (kirill yozuvida) va ruscha. Tepadagi "Ўзб / Рус" tugmasi bilan almashtiriladi.
+- Kunduzgi va tungi rejim: tepadagi quyosh/oy tugmasi. Tanlov brauzerda saqlanadi. Birinchi ochilganda kompyuterning o'z rejimi olinadi.
+- Yangi qabul bitta oynada: **Паспорт маълумотлари** → shikoyatlar → LOR STATUS (metodlar tablarda) → tashxis va tavsiya. Bemor F.I.Sh. yoki telefoni yozilganda bazadagi mos bemorlar taklif qilinadi; tanlanmasa, saqlashda yangi bemor kartasi avtomatik ochiladi.
+- Pastdagi amallar paneli: Сақлаш, Якунлаш, Сақлаш ва чоп этиш, **Касса** (qabulni saqlab, shu bemor va qabul bilan yangi hisob ochadi).
 
 ## Asosiy qoidalar
 

@@ -1,6 +1,6 @@
 // NURMED — ilovaning kirish nuqtasi: login, bosh menyu, til, soat va sahifalar marshruti.
 import {
-  html, render, $, t, state, GET, POST, can, toast, errorText, parseHash, setUnauthorizedHandler, setRefresh,
+  html, raw, render, $, t, state, GET, POST, can, toast, errorText, parseHash, setUnauthorizedHandler, setRefresh,
   localDate, fmtDate, busy, modal, ApiError,
 } from './core.js';
 import { dashboardView, historyView, patientView } from './views/main-views.js';
@@ -35,18 +35,31 @@ const NAV = [
 ];
 const allowed = (r) => (r.perm ? can(r.perm) : r.any ? r.any.some(can) : true);
 
-/* ---------- Til ---------- */
+/* ---------- Til va rejim ---------- */
 function setLang(lang) {
   state.lang = lang;
   localStorage.setItem('nurmed_lang', lang);
-  document.documentElement.lang = lang;
+  document.documentElement.lang = lang === 'uz' ? 'uz-Cyrl' : 'ru';
   start();
 }
+const ICON_SUN = raw('<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>');
+const ICON_MOON = raw('<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>');
+const isDark = () => document.documentElement.dataset.theme === 'dark';
+const themeButton = () => html`<button type="button" class="icon-btn" id="theme-toggle"
+  title="${isDark() ? t('theme.light') : t('theme.dark')}" aria-label="${isDark() ? t('theme.light') : t('theme.dark')}">${isDark() ? ICON_SUN : ICON_MOON}</button>`;
 const langSwitch = () => html`<div class="lang">
-  <button type="button" class="${state.lang === 'uz' ? 'active' : ''}" data-lang="uz">UZ</button>
-  <button type="button" class="${state.lang === 'ru' ? 'active' : ''}" data-lang="ru">RU</button></div>`;
+  <button type="button" class="${state.lang === 'uz' ? 'active' : ''}" data-lang="uz">Ўзб</button>
+  <button type="button" class="${state.lang === 'ru' ? 'active' : ''}" data-lang="ru">Рус</button></div>`;
 function bindLang(root) {
   root.querySelectorAll('[data-lang]').forEach((b) => { b.onclick = () => setLang(b.dataset.lang); });
+  const tb = root.querySelector('#theme-toggle');
+  if (tb) tb.onclick = () => {
+    const next = isDark() ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('nurmed_theme', next);
+    render(tb, isDark() ? ICON_SUN : ICON_MOON);
+    tb.title = isDark() ? t('theme.light') : t('theme.dark');
+  };
 }
 
 /* ---------- Kirish ---------- */
@@ -55,13 +68,13 @@ function loginScreen(msg) {
   render(app, html`
     <div class="login">
       <form class="login__box card" id="login">
-        <div class="login__brand"><span class="brand__mark">+</span> NURMED</div>
+        <div class="login__brand"><span class="brand__mark">N</span> NURMED</div>
         <div class="muted">${t('login.subtitle')}</div>
         ${msg ? html`<div class="alert alert--warn">${msg}</div>` : ''}
         <label class="field"><span>${t('f.username')}</span><input name="username" autocomplete="username" required autofocus></label>
         <label class="field"><span>${t('f.password')}</span><input name="password" type="password" autocomplete="current-password" required></label>
         <button class="btn btn--lg">${t('login.submit')}</button>
-        ${langSwitch()}
+        <div class="login__tools">${langSwitch()}${themeButton()}</div>
       </form>
     </div>`);
   bindLang(app);
@@ -132,12 +145,12 @@ function shell() {
   render(app, html`
     <header class="topbar">
       <a class="brand" href="#/">
-        ${s.clinic_logo ? html`<img class="brand__logo" src="${s.clinic_logo}" alt="">` : html`<span class="brand__mark">+</span>`}
+        ${s.clinic_logo ? html`<img class="brand__logo" src="${s.clinic_logo}" alt="">` : html`<span class="brand__mark">N</span>`}
         <span class="brand__name">${s.clinic_name || 'NURMED'}</span></a>
       <nav class="nav" id="nav">${NAV.filter(allowed).map((n) => html`<a href="${n.href}" data-match="${n.match.source}">${t(n.key)}</a>`)}</nav>
       <div class="topbar__right">
         <span class="clock" id="clock"></span>
-        ${langSwitch()}
+        ${langSwitch()}${themeButton()}
         <details class="user-menu">
           <summary>${state.user.full_name}</summary>
           <div class="user-menu__body">
@@ -202,7 +215,7 @@ setRefresh(() => route());
 document.addEventListener('nurmed:settings', () => { shell(); route(); });
 
 async function start() {
-  document.documentElement.lang = state.lang;
+  document.documentElement.lang = state.lang === 'uz' ? 'uz-Cyrl' : 'ru';
   document.title = 'NURMED';
   try {
     const me = await GET('/api/me');

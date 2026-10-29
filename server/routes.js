@@ -170,7 +170,7 @@ router.put('/api/settings', async (ctx) => {
 router.get('/api/doctors', async (ctx) => {
   need(ctx);
   const rows = db.prepare(`SELECT id, full_name, phone, roles FROM users WHERE active = 1 ORDER BY full_name`).all();
-  return rows.filter((r) => JSON.parse(r.roles).includes('doctor')).map(({ id, full_name, phone }) => ({ id, full_name, phone }));
+  return rows.filter((r) => sec.isClinician(JSON.parse(r.roles))).map(({ id, full_name, phone }) => ({ id, full_name, phone }));
 });
 
 /* ================= Bosh oyna ================= */
@@ -312,7 +312,7 @@ function clinicalInput(body) {
 function doctorId(v) {
   const id = int(v, 'doctor_id', 1);
   const u = db.prepare('SELECT roles, active FROM users WHERE id = ?').get(id);
-  if (!u || !u.active || !JSON.parse(u.roles).includes('doctor')) throw new HttpError(400, 'invalid', { field: 'doctor_id' });
+  if (!u || !u.active || !sec.isClinician(JSON.parse(u.roles))) throw new HttpError(400, 'invalid', { field: 'doctor_id' });
   return id;
 }
 
@@ -353,7 +353,7 @@ router.post('/api/visits', async (ctx) => {
   const isDoctor = sec.can(ctx.user, 'visit.clinical.write');
   let did;
   if (body.doctor_id !== undefined && body.doctor_id !== null && body.doctor_id !== '') did = doctorId(body.doctor_id);
-  else if (ctx.user.roles.includes('doctor')) did = ctx.user.id;
+  else if (sec.isClinician(ctx.user.roles)) did = ctx.user.id;
   else throw new HttpError(400, 'required', { field: 'doctor_id' });
 
   const c = isDoctor ? clinicalInput(body) : clinicalInput({});
@@ -426,7 +426,7 @@ router.get('/api/visits/export.csv', async (ctx) => {
   const lang = ctx.query.get('lang') === 'ru' ? 'ru' : 'uz';
   const head = lang === 'ru'
     ? ['Дата', 'ID пациента', 'Ф.И.О.', 'Дата рождения', 'Телефон', 'Адрес', 'Врач', 'Статус', 'Диагноз', 'Сопутствующий диагноз']
-    : ['Sana', 'Bemor ID', 'F.I.O.', 'Tug‘ilgan sana', 'Telefon', 'Manzil', 'Shifokor', 'Holat', 'Tashxis', 'Qo‘shimcha tashxis'];
+    : ['Сана', 'Бемор ID', 'Ф.И.Ш.', 'Туғилган сана', 'Телефон', 'Манзил', 'Шифокор', 'Ҳолат', 'Ташхис', 'Қўшимча ташхис'];
   const lines = [head.map(csvCell).join(';')];
   for (const r of rows) {
     lines.push([r.visit_at, r.patient_code, r.patient_name, r.birth_date, r.patient_phone, r.patient_address, r.doctor_name,
