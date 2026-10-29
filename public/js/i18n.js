@@ -70,6 +70,8 @@ const uz = {
   'visit.history': 'Oldingi qabullar', 'visit.first_visit': 'Birinchi qabul', 'visit.no_dx': 'tashxis yozilmagan',
   'visit.to_cash': 'Kassaga o‘tish', 'visit.discharge_type': 'Ajralma turi', 'visit.discharge_other': 'Qanday ajralma?',
   'lor.note': 'Izoh', 'lor.section_note': 'Bo‘lim bo‘yicha qo‘shimcha izoh', 'lor.clear': 'Bo‘limni tozalash',
+  'lor.norm': 'Norma (bo‘sh maydonlarga)', 'lor.norm_done': '{n} ta bo‘sh maydon norma bilan to‘ldirildi. Tekshiring va kerak bo‘lsa o‘zgartiring.',
+  'lor.norm_none': 'To‘ldiriladigan bo‘sh maydon qolmadi',
   'lor.recorded': 'Qayd etildi', 'lor.not_recorded': 'Qayd etilmagan',
   'rx.name': 'Dori / muolaja', 'rx.dose': 'Doza', 'rx.usage': 'Qabul qilish usuli', 'rx.duration': 'Muddati', 'rx.add': 'Qator qo‘shish',
 
@@ -214,6 +216,8 @@ const ru = {
   'visit.history': 'Предыдущие приёмы', 'visit.first_visit': 'Первичный приём', 'visit.no_dx': 'диагноз не указан',
   'visit.to_cash': 'Перейти в кассу', 'visit.discharge_type': 'Характер отделяемого', 'visit.discharge_other': 'Какое отделяемое?',
   'lor.note': 'Примечание', 'lor.section_note': 'Дополнительное примечание по разделу', 'lor.clear': 'Очистить раздел',
+  'lor.norm': 'Норма (в пустые поля)', 'lor.norm_done': 'Заполнено нормой пустых полей: {n}. Проверьте и при необходимости измените.',
+  'lor.norm_none': 'Не осталось пустых полей для заполнения',
   'lor.recorded': 'Отмечено', 'lor.not_recorded': 'Не зафиксировано',
   'rx.name': 'Препарат / процедура', 'rx.dose': 'Доза', 'rx.usage': 'Способ применения', 'rx.duration': 'Длительность', 'rx.add': 'Добавить строку',
 
