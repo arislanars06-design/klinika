@@ -311,35 +311,84 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
   .bars__row { grid-template-columns: 100px 1fr 90px; }
 }
 
-/* ---------- Chop etish (har doim oq fonda) ---------- */
+/* ---------- Chop etish: A5 qog'oz, ixcham matn, har doim oq fonda ---------- */
 .print-root { display: none; }
-@media print {
-  @page { size: A4; margin: 14mm 14mm 16mm; }
-  :root { color-scheme: light; }
-  body { background: #fff; color: #000; font-size: 11.5pt; }
-  body > *:not(.print-root) { display: none !important; }
-  .print-root { display: block; }
-  .muted { color: #555; }
-}
 .doc { color: #000; background: #fff; }
 .doc__head { display: flex; gap: 16px; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px; }
 .doc__logo { max-height: 64px; max-width: 160px; object-fit: contain; }
 .doc__clinic { font-size: 1.3em; font-weight: 800; }
 .doc__req { font-size: .9em; }
 .doc__title { text-align: center; font-size: 1.2em; margin: 6px 0 14px; text-transform: uppercase; letter-spacing: .03em; }
-.doc__block { margin-bottom: 12px; break-inside: avoid; }
+.doc__block { margin-bottom: 12px; }
 .doc__block h3 { font-size: 1em; margin: 0 0 4px; border-bottom: 1px solid #999; padding-bottom: 2px; }
 .doc__block p { margin: 2px 0; }
 .doc__lor { margin: 4px 0 8px; }
 .doc__lor h4 { margin: 4px 0 2px; font-size: .95em; text-decoration: underline; }
-.doc__ear { font-weight: 700; font-style: italic; margin-top: 4px; }
+.doc__ln { display: block; }
+.doc__ear { display: block; font-weight: 700; font-style: italic; margin-top: 4px; }
 .doc__patient { display: grid; gap: 2px; }
 .doc__table { width: 100%; border-collapse: collapse; font-size: .95em; }
 .doc__table th, .doc__table td { border: 1px solid #777; padding: 4px 6px; text-align: left; }
 .doc__foot { margin-top: 26px; display: grid; gap: 8px; break-inside: avoid; }
-.doc__sign { margin-top: 18px; }
+.doc__foot-row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .doc--receipt { max-width: 520px; }
 .doc-preview .doc__table th, .doc-preview .doc__table td { border-color: var(--line-strong); }
+
+@media print {
+  @page { size: A5 portrait; margin: 8mm 9mm 9mm; }
+  :root { color-scheme: light; }
+  html, body { background: #fff; color: #000; }
+  body { font: 8.6pt/1.3 "Segoe UI", Arial, sans-serif; }
+  body > *:not(.print-root) { display: none !important; }
+  .print-root { display: block; }
+  .muted { color: #444; }
+  .small { font-size: 7.5pt; }
+
+  .doc { max-width: none; }
+  .doc__head { gap: 8px; padding-bottom: 4px; margin-bottom: 5px; border-bottom-width: 1.5px; }
+  .doc__logo { max-height: 30px; max-width: 80px; }
+  .doc__clinic { font-size: 10.5pt; line-height: 1.15; }
+  .doc__req { font-size: 7.3pt; line-height: 1.2; }
+  .doc__title { font-size: 9.5pt; margin: 2px 0 5px; }
+
+  .doc__block { margin-bottom: 4px; }
+  .doc__block h3 { font-size: 8.6pt; margin: 0 0 1px; padding-bottom: 0; border-bottom: .5pt solid #888; text-transform: uppercase; letter-spacing: .02em; }
+  .doc__block p { margin: 0; }
+  .pre { margin: 0; }
+  /* Sarlavha matn bilan bir qatorda: "АНАМНЕЗ: ..." */
+  .doc__block > h3 { display: inline; border: 0; margin: 0; }
+  .doc__block > h3::after { content: ': '; }
+  .doc__block > h3 + p { display: inline; }
+  .doc__block > h3 + p + p, .doc__block > h3 + p + .pre { display: block; }
+  .doc__block > h3 + .doc__lor { margin-top: 0; }
+  .doc__block > h3 + .doc__lor, .doc__block > h3 ~ .doc__table { display: block; }
+
+  /* Bemor ma'lumotlari ikki ustunda */
+  .doc__patient { grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  .doc__patient .doc__wide { grid-column: 1 / -1; }
+
+  /* LOR STATUS: har bir metod bitta ixcham paragraf, qismlar nuqtali vergul bilan */
+  .doc__lor { margin: 0 0 2px; }
+  .doc__lor h4 { display: inline; margin: 0; font-size: 8.6pt; text-decoration: none; }
+  .doc__lor h4::after { content: ': '; }
+  .doc__grp { display: inline; }
+  .doc__grp + .doc__grp::before { content: ' '; }
+  .doc__ear { display: inline; margin: 0; }
+  .doc__ln { display: inline; }
+  .doc__ln b { font-weight: 600; }
+  .doc__ln:not(:last-child)::after { content: '; '; }
+  .doc__grp:not(:last-of-type) .doc__ln:last-child::after { content: '. '; }
+  .doc__lor .pre { display: block; }
+
+  .doc__table { font-size: 8pt; }
+  .doc__table th, .doc__table td { padding: 1px 4px; border-color: #888; }
+  .doc__foot { margin-top: 8px; gap: 2px; }
+  .doc__sign { margin-top: 0; }
+  .doc--receipt { max-width: none; }
+  .totals { margin: 4px 0 0 auto; gap: 1px 12px; }
+  .totals__big { font-size: 9.5pt; }
+  h2, h3, h4 { break-after: avoid; }
+}
 
 /* Jadval qatoridagi amallar */
 .row-actions { white-space: nowrap; text-align: right !important; }
