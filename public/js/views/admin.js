@@ -1,6 +1,6 @@
 // Administrator: klinika rekvizitlari, xodimlar va rollar, xizmatlar narxi, audit jurnali, zaxira nusxalari.
 import {
-  html, raw, render, $, $$, t, state, GET, POST, PUT, qs, toast, busy, fmtDateTime, pager, modal, refresh,
+  html, raw, render, $, $$, t, state, GET, POST, PUT, qs, toast, busy, fmtDateTime, pager, modal, refresh, confirmDialog,
 } from '../core.js';
 
 const TABS = ['settings', 'users', 'services', 'audit', 'backup'];
@@ -68,11 +68,19 @@ async function users(el) {
       <tbody>${list.map((u) => html`<tr class="${u.active ? '' : 'row--voided'}"><td>${u.full_name}</td><td>${u.username}</td>
         <td>${u.roles.map((r) => t('role.' + r)).join(', ')}</td><td>${u.phone}</td>
         <td>${u.active ? t('admin.active') : t('admin.inactive')}${u.must_change_password ? html`<div class="muted small">${t('admin.must_change')}</div>` : ''}</td>
-        <td><button class="btn btn--ghost btn--sm" data-edit="${u.id}">${t('edit')}</button></td></tr>`)}</tbody></table>
+        <td class="row-actions"><button class="btn btn--ghost btn--sm" data-edit="${u.id}">${t('edit')}</button>
+          ${u.id !== state.user.id ? html`<button class="btn btn--danger btn--sm" data-del="${u.id}">${t('delete')}</button>` : ''}</td></tr>`)}</tbody></table>
       <p class="hint">${t('admin.roles_hint')}</p>
     </section>`);
   $('#add', el).onclick = () => userDialog(null);
   $$('[data-edit]', el).forEach((b) => { b.onclick = () => userDialog(list.find((u) => u.id === Number(b.dataset.edit))); });
+  $$('[data-del]', el).forEach((b) => {
+    b.onclick = async () => {
+      const u = list.find((x) => x.id === Number(b.dataset.del));
+      if (!(await confirmDialog(t('admin.delete_user_confirm', { name: u.full_name }), { danger: true, okText: t('delete') }))) return;
+      await busy(b, async () => { await POST(`/api/users/${u.id}/delete`); toast(t('hist.deleted')); refresh(); });
+    };
+  });
 }
 
 function userDialog(u) {
@@ -114,27 +122,55 @@ function userDialog(u) {
 /* ---------- Xizmatlar katalogi ---------- */
 async function services(el) {
   const list = await GET('/api/services?all=1');
-  const row = (s) => html`<tr data-id="${s.id || ''}">
-    <td><input name="name" maxlength="200" value="${s.name || ''}" required></td>
-    <td class="num"><input name="price" class="num-input" inputmode="numeric" value="${s.price ?? ''}" required></td>
-    <td><label class="inline"><input type="checkbox" name="active" ${s.active !== 0 ? raw('checked') : ''}> ${t('admin.active')}</label></td>
-    <td><button class="btn btn--sm" data-save>${t('save')}</button></td></tr>`;
+  const row = (s) => html`<tr data-id="${s.id}">
+    <td><input name="name" maxlength="200" value="${s.name}" required></td>
+    <td class="num"><input name="price" class="num-input" inputmode="numeric" value="${s.price}" required></td>
+    <td><label class="inline"><input type="checkbox" name="active" ${s.active ? raw('checked') : ''}> ${t('admin.active')}</label></td>
+    <td class="row-actions"><button class="btn btn--sm" data-save>${t('save')}</button>
+      <button class="btn btn--danger btn--sm" data-del>${t('delete')}</button></td></tr>`;
   render(el, html`
     <section class="card">
-      <table class="table"><thead><tr><th>${t('cash.service')}</th><th class="num">${t('cash.price')} (${t('sum')})</th><th>${t('status')}</th><th></th></tr></thead>
-        <tbody id="svc">${list.map(row)}${row({})}</tbody></table>
+      <div class="actions"><button class="btn" id="add-svc">+ ${t('cash.add_service')}</button></div>
+      ${list.length ? html`<table class="table"><thead><tr><th>${t('cash.service')}</th><th class="num">${t('cash.price')} (${t('sum')})</th><th>${t('status')}</th><th></th></tr></thead>
+        <tbody id="svc">${list.map(row)}</tbody></table>` : html`<p class="muted">${t('empty')}</p>`}
       <p class="hint">${t('admin.services_hint')}</p>
     </section>`);
-  $('#svc', el).addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-save]');
+  const readPrice = (v) => Number(String(v).replace(/\s/g, ''));
+  $('#add-svc', el).onclick = () => modal(html`
+    <form class="form dialog__body">
+      <h2>${t('cash.add_service')}</h2>
+      <label class="field"><span>${t('cash.service')} *</span><input name="name" required maxlength="200"></label>
+      <label class="field"><span>${t('cash.price')} (${t('sum')}) *</span><input name="price" required inputmode="numeric" class="num-input"></label>
+      <div class="dialog__actions"><button type="button" class="btn btn--ghost" data-close>${t('cancel')}</button><button class="btn">${t('save')}</button></div>
+    </form>`, (dlg, close) => {
+    const f = $('form', dlg);
+    setTimeout(() => f.elements.name.focus(), 0);
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const price = readPrice(f.elements.price.value);
+      if (!f.elements.name.value.trim() || !Number.isInteger(price) || price < 0) { toast(t('err.invalid'), 'err'); return; }
+      await busy(e.submitter, async () => {
+        await POST('/api/services', { name: f.elements.name.value.trim(), price, active: true });
+        toast(t('saved')); close(); refresh();
+      });
+    };
+  });
+  const tbody = $('#svc', el);
+  if (!tbody) return;
+  tbody.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-save], [data-del]');
     if (!b) return;
     const tr = b.closest('tr');
     const get = (n) => $(`[name=${n}]`, tr);
-    const price = Number(get('price').value.replace(/\s/g, ''));
+    if (b.hasAttribute('data-del')) {
+      if (!(await confirmDialog(t('admin.delete_service_confirm', { name: get('name').value }), { danger: true, okText: t('delete') }))) return;
+      await busy(b, async () => { await POST(`/api/services/${tr.dataset.id}/delete`); toast(t('hist.deleted')); refresh(); });
+      return;
+    }
+    const price = readPrice(get('price').value);
     if (!get('name').value.trim() || !Number.isInteger(price) || price < 0) { toast(t('err.invalid'), 'err'); return; }
-    const body = { name: get('name').value.trim(), price, active: get('active').checked };
     await busy(b, async () => {
-      if (tr.dataset.id) await PUT(`/api/services/${tr.dataset.id}`, body); else await POST('/api/services', body);
+      await PUT(`/api/services/${tr.dataset.id}`, { name: get('name').value.trim(), price, active: get('active').checked });
       toast(t('saved'));
       refresh();
     });
@@ -174,8 +210,15 @@ async function backup(el) {
       <div class="actions"><button class="btn" id="mk">${t('admin.backup_now')}</button></div>
       <table class="table"><thead><tr><th>${t('admin.file')}</th><th>${t('date')}</th><th class="num">${t('admin.size')}</th><th></th></tr></thead>
         <tbody>${list.map((b) => html`<tr><td><code>${b.name}</code></td><td>${fmtDateTime(b.created)}</td><td class="num">${size(b.size)}</td>
-          <td><a class="btn btn--ghost btn--sm" href="/api/backups/${encodeURIComponent(b.name)}" download>${t('admin.download')}</a></td></tr>`)}</tbody></table>
+          <td class="row-actions"><a class="btn btn--ghost btn--sm" href="/api/backups/${encodeURIComponent(b.name)}" download>${t('admin.download')}</a>
+            <button class="btn btn--danger btn--sm" data-del="${b.name}">${t('delete')}</button></td></tr>`)}</tbody></table>
       <div class="alert alert--warn">${t('admin.backup_warn')}</div>
     </section>`);
   $('#mk', el).onclick = (e) => busy(e.target, async () => { await POST('/api/backups'); toast(t('saved')); refresh(); });
+  $$('[data-del]', el).forEach((b) => {
+    b.onclick = async () => {
+      if (!(await confirmDialog(t('admin.delete_backup_confirm', { name: b.dataset.del }), { danger: true, okText: t('delete') }))) return;
+      await busy(b, async () => { await POST(`/api/backups/${encodeURIComponent(b.dataset.del)}/delete`); toast(t('hist.deleted')); refresh(); });
+    };
+  });
 }

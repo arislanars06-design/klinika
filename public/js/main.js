@@ -175,7 +175,10 @@ async function route() {
   if (!state.user) return;
   const { path, query } = parseHash();
   $$nav(path);
-  const view = $('#view');
+  // Har bir sahifa yangi idishga chiziladi: oldingi sahifa kechikib yuklansa, u ekrandan uzilgan
+  // idishga yoziladi va yangi sahifaning ustiga chiqmaydi.
+  const view = document.createElement('div');
+  $('#view').replaceChildren(view);
   const r = ROUTES.find((x) => x.re.test(path));
   const my = ++renderSeq;
   state.leaveGuard = null;

@@ -65,4 +65,8 @@ function schedule(log = console) {
   t.unref();
 }
 
-module.exports = { create, list, resolve, stream, schedule, DIR };
+function remove(name) {
+  fs.unlinkSync(resolve(name));
+}
+
+module.exports = { create, list, resolve, stream, schedule, remove, DIR };
