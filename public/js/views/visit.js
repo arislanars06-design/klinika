@@ -495,7 +495,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
   const loadHistory = async (p) => {
     const box = $('#history', el);
     if (!p) { render(box, html`<p class="muted small">—</p>`); return; }
-    try { render(box, historyList((await GET(`/api/patients/${p.id}`)).visits.filter((x) => x.id !== v.id))); } catch { /* ixtiyoriy */ }
+    try { render(box, historyList((await GET(`/api/patients/${p.id}`)).visits.filter((x) => x.id !== v.id && x.status !== 'cancelled'))); } catch { /* ixtiyoriy */ }
   };
   const pas = pasportController($('[data-pasport]', el), patient, { canChange: isNew, onPatient: loadHistory });
   loadHistory(patient);
