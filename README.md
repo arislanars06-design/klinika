@@ -90,7 +90,9 @@ nurmed/
         └── views/            Bosh oyna, qabul, tarix, kassa, hisobotlar, sozlamalar
 ```
 
-LOR shablonidagi variantlarni `public/js/lor-template.js` faylida o'zgartirish mumkin. Server saqlashdan oldin ma'lumotni shu shablon bo'yicha tekshiradi.
+Shikoyatlar, ajralma turlari va LOR STATUS katalogi eski "Clinic LOR Desktop" dasturidan (`src/clinic/catalogs/*.json`) ko'chirilgan. O'zbekcha matnlar lotin yozuviga o'girilgan. LOR STATUS 4 ta metoddan iborat: rinoskopiya, faringoskopiya, otoskopiya (AD va AS alohida) va laringoskopiya. Shartli maydonlar saqlangan: masalan, deformatsiya turi faqat "Deformatsiya" tanlanganda chiqadi, baraban bo'shlig'i esa faqat perforatsiya bo'lsa ko'rinadi. Eski dasturdagi "Norma" tugmasi qo'shilmagan: tekshirilmagan maydon avtomatik "norma" deb yozilmaydi.
+
+Variantlarni `public/js/lor-template.js` faylida o'zgartirish mumkin. Server saqlashdan oldin ma'lumotni shu shablon bo'yicha tekshiradi.
 
 ## Hali yo'q (keyingi bosqichlar)
 
