@@ -401,3 +401,13 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .files-help { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 .text-ok { color: var(--ok); }
 .alert--ok { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
+
+/* LOR STATUS (klinika shabloni) */
+.lor__title { margin: 4px 0 6px; font-size: .95rem; }
+.lor__field-text { padding: 2px 8px; font-size: .8rem; width: 190px; }
+.lor-same { margin: 6px 0 8px; font-weight: 600; }
+.lor-tabs .tab { padding: 8px 10px; }
+.doc__lor-table { margin: 2px 0 4px; }
+.doc__lor-table td:nth-child(2) { width: 60%; }
+.doc__lor-table td:first-child, .doc__lor-table td:last-child, .doc__lor-table th:first-child, .doc__lor-table th:last-child { text-align: center; }
+@media print { .doc__lor .doc__lor-table { display: table; width: 100%; } }

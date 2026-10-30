@@ -316,13 +316,14 @@ function complaintsBlock(v) {
     </section>`;
 }
 
-/* Input nomi: lor|<metod>|<quloq yoki ->|<qism>|<maydon>. Radio, tomon va daraja ham checkbox
+/* Input nomi: lor|<metod>|<tomon yoki ->|<qism>|<maydon>. Radio, tomon va daraja ham checkbox
    ko‘rinishida chiziladi (data-single): bittasi tanlanadi, qayta bosilsa tanlov olib tashlanadi. */
 const lorName = (m, ear, p, f) => `lor|${m}|${ear || '-'}|${p}|${f}`;
 const methodBox = (form, code) => $(`.lor[data-method="${code}"]`, form);
+const fieldLabel = (f) => (f.uz ? L(f) : LOR.FIELD_LABELS[f.code] ? L(LOR.FIELD_LABELS[f.code]) : '');
 
-function lorParts(m, ear, parts) {
-  return html`${m.parts.map((p) => {
+function lorParts(m, ear, parts, list) {
+  return html`${list.map((p) => {
     const pv = parts[p.code] || {};
     return html`<div class="lor-part ${LOR.partVisible(p, parts) ? '' : 'hidden'}" data-part="${p.code}" data-ear="${ear || ''}">
       <div class="lor-part__title">${L(p)}</div>
@@ -332,13 +333,19 @@ function lorParts(m, ear, parts) {
           const cur = pv[f.code];
           const has = (c) => (Array.isArray(cur) ? cur.includes(c) : cur === c);
           const single = ['radio', 'side', 'degree'].includes(f.type);
-          const body = f.type === 'checkbox'
-            ? html`<label class="chip"><input type="checkbox" name="${n}" value="1" ${cur ? raw('checked') : ''}><span>${L(f)}</span></label>`
-            : LOR.choicesOf(f).map((c) => html`<label class="chip"><input type="checkbox" name="${n}" value="${c.code}"
+          let body;
+          if (f.type === 'checkbox') {
+            body = html`<label class="chip"><input type="checkbox" name="${n}" value="1" ${cur ? raw('checked') : ''}><span>${L(f)}</span></label>`;
+          } else if (f.type === 'text') {
+            body = html`<input class="lor__field-text" name="${n}" maxlength="300" placeholder="${f.ph ? L(f.ph) : ''}" value="${cur || ''}">`;
+          } else {
+            body = LOR.choicesOf(f).map((c) => html`<label class="chip"><input type="checkbox" name="${n}" value="${c.code}"
                 ${single ? raw('data-single') : ''} ${c.is_norm ? raw('data-norm') : ''} ${has(c.code) ? raw('checked') : ''}><span>${L(c)}</span></label>`);
+          }
+          const label = f.type !== 'checkbox' && p.fields.length > 1 ? fieldLabel(f) : '';
           return html`<div class="lor-field ${LOR.fieldVisible(f, pv) ? '' : 'hidden'}" data-field="${f.code}">
-            ${f.type !== 'checkbox' && LOR.FIELD_LABELS[f.code] && p.fields.length > 1 ? html`<span class="lor-field__label">${L(LOR.FIELD_LABELS[f.code])}:</span>` : ''}
-            <div class="chips chips--sm">${body}</div></div>`;
+            ${label ? html`<span class="lor-field__label">${label}:</span>` : ''}
+            ${f.type === 'text' ? body : html`<div class="chips chips--sm">${body}</div>`}</div>`;
         })}
         <input class="lor__text" name="${lorName(m.code, ear, p.code, '_text')}" maxlength="500" placeholder="${t('lor.note')}" value="${pv._text || ''}">
       </div>
@@ -346,23 +353,35 @@ function lorParts(m, ear, parts) {
   })}`;
 }
 
+function lorMethodBody(m, mv) {
+  if (!m.ears) return lorParts(m, '', mv.parts || {}, m.parts);
+  const common = LOR.commonParts(m);
+  const same = !!(m.same_toggle && mv.same);
+  return html`
+    ${lorParts(m, '', mv.parts || {}, common.filter((p) => p.common === 'before'))}
+    ${m.same_toggle ? html`<label class="inline lor-same"><input type="checkbox" name="lorsame|${m.code}" ${same ? raw('checked') : ''}> ${L(m.same_label)}</label>` : ''}
+    <div class="lor-ears">${m.ears.map((e, i) => html`<div class="lor-ear ${same && i > 0 ? 'hidden' : ''}" data-ear-box="${e.code}">
+      <h4 class="lor-ear__title">${L(e)}</h4>${lorParts(m, e.code, (mv.ears || {})[e.code] || {}, LOR.sideParts(m))}</div>`)}</div>
+    ${lorParts(m, '', mv.parts || {}, common.filter((p) => p.common !== 'before'))}`;
+}
+
 function lorBlock(v) {
   const data = v.lor_status || {};
+  const legacy = Object.keys(data).some((k) => LOR.LEGACY_CODES.has(k));
   return html`
     <section class="card">
       <div class="card-head"><h2>${t('visit.step_lor')}</h2></div>
+      ${legacy ? html`<p class="alert alert--warn">${t('lor.legacy_note')}</p>` : ''}
       <div class="tabs lor-tabs" role="tablist">
-        ${LOR.METHODS.map((m, i) => html`<button type="button" class="tab ${i === 0 ? 'tab--active' : ''}" data-lor-tab="${m.code}">
-          ${L(m)}<span class="tab__count hidden" data-count-for="${m.code}"></span></button>`)}
+        ${LOR.METHODS.map((m, i) => html`<button type="button" class="tab ${i === 0 ? 'tab--active' : ''}" data-lor-tab="${m.code}" title="${L(m)}">
+          ${L(m.tab || m)}<span class="tab__count hidden" data-count-for="${m.code}"></span></button>`)}
       </div>
       ${LOR.METHODS.map((m, i) => {
         const mv = data[m.code] || {};
         return html`
         <div class="lor ${i === 0 ? '' : 'hidden'}" data-method="${m.code}">
-          ${m.ears
-            ? html`<div class="lor-ears">${m.ears.map((e) => html`<div class="lor-ear" data-ear-box="${e.code}">
-                <h4 class="lor-ear__title">${L(e)}</h4>${lorParts(m, e.code, (mv.ears || {})[e.code] || {})}</div>`)}</div>`
-            : lorParts(m, '', mv.parts || {})}
+          <h3 class="lor__title">${L(m)}</h3>
+          ${lorMethodBody(m, mv)}
           <div class="lor__foot">
             <label class="field"><span>${t('lor.section_note')}</span>
               <textarea name="lornote|${m.code}" rows="1" maxlength="2000">${mv.note || ''}</textarea></label>
@@ -376,12 +395,17 @@ function lorBlock(v) {
 }
 
 /** Formadagi tanlovlardan qism qiymatlarini o‘qish */
-function readParts(form, m, ear) {
+function readParts(form, m, ear, list) {
   const parts = {};
-  for (const p of m.parts) {
+  for (const p of list) {
     const pv = {};
     for (const f of p.fields) {
       const n = lorName(m.code, ear, p.code, f.code);
+      if (f.type === 'text') {
+        const inp = form.elements[n];
+        if (inp && inp.value.trim()) pv[f.code] = inp.value.trim();
+        continue;
+      }
       const vals = $$(`input[name="${CSS.escape(n)}"]:checked`, form).map((i) => i.value);
       if (!vals.length) continue;
       if (f.type === 'checkbox') pv[f.code] = true;
@@ -395,22 +419,43 @@ function readParts(form, m, ear) {
   return parts;
 }
 
+const sameChecked = (form, m) => !!(m.same_toggle && form.elements[`lorsame|${m.code}`] && form.elements[`lorsame|${m.code}`].checked);
+
+/** Bitta metodning qiymati (forma → ma'lumot) */
+function readMethod(form, m) {
+  const res = {};
+  const common = readParts(form, m, '', LOR.commonParts(m));
+  if (Object.keys(common).length) res.parts = common;
+  if (m.ears) {
+    const same = sameChecked(form, m);
+    const ears = {};
+    m.ears.forEach((e, i) => {
+      if (same && i > 0) return;
+      const p = readParts(form, m, e.code, LOR.sideParts(m));
+      if (Object.keys(p).length) ears[e.code] = p;
+    });
+    if (Object.keys(ears).length) res.ears = ears;
+    if (same && Object.keys(res).length) res.same = true;
+  }
+  return res;
+}
+
 /**
- * "Norma" tugmasi: shifokor o‘zi bosganda, shu metoddagi faqat BO‘SH maydonlarga norma variantini qo‘yadi.
+ * "Норма" tugmasi: shifokor o‘zi bosganda, shu metoddagi faqat BO‘SH maydonlarga norma variantini qo‘yadi.
  * Shifokor allaqachon tanlagan qiymatlar o‘zgarmaydi. Shartli maydonlar (masalan, gipertrofiya darajasi)
  * to‘ldirilmaydi, chunki ular faqat patologiya tanlanganda ma’noga ega. Natija: to‘ldirilgan maydonlar soni.
  */
 function fillNorm(form, m) {
   let n = 0;
-  for (const ear of m.ears ? m.ears.map((e) => e.code) : ['']) {
-    for (const p of m.parts) {
-      const box = $(`.lor-part[data-part="${p.code}"][data-ear="${ear}"]`, methodBox(form, m.code));
-      if (!box || box.classList.contains('hidden')) continue;
+  for (const set of LOR.partSets(m)) {
+    for (const p of set.parts) {
+      const box = $(`.lor-part[data-part="${p.code}"][data-ear="${set.ear}"]`, methodBox(form, m.code));
+      if (!box || box.classList.contains('hidden') || box.closest('.lor-ear.hidden')) continue;
       for (const f of p.fields) {
         if (f.when) continue;
         const norm = LOR.choicesOf(f).find((c) => c.is_norm);
         if (!norm) continue;
-        const inputs = $$(`input[name="${CSS.escape(lorName(m.code, ear, p.code, f.code))}"]`, box);
+        const inputs = $$(`input[name="${CSS.escape(lorName(m.code, set.ear, p.code, f.code))}"]`, box);
         if (inputs.some((i) => i.checked)) continue;
         const target = inputs.find((i) => i.value === norm.code);
         if (target) { target.checked = true; n += 1; }
@@ -420,13 +465,22 @@ function fillNorm(form, m) {
   return n;
 }
 
-/** Shartli maydon va qismlarni ko‘rsatish/yashirish. Yashiringan maydon tanlovlari tozalanadi. */
+/** Shartli maydon va qismlarni ko‘rsatish/yashirish. Yashiringan maydon qiymatlari tozalanadi. */
 function applyLorVisibility(form) {
+  const clear = (root) => {
+    $$('input[type=checkbox]:checked', root).forEach((i) => { i.checked = false; });
+    $$('input.lor__field-text', root).forEach((i) => { i.value = ''; });
+  };
   for (const m of LOR.METHODS) {
-    for (const ear of m.ears ? m.ears.map((e) => e.code) : ['']) {
-      const parts = readParts(form, m, ear);
-      for (const p of m.parts) {
-        const box = $(`.lor-part[data-part="${p.code}"][data-ear="${ear}"]`, methodBox(form, m.code));
+    const mb = methodBox(form, m.code);
+    if (m.same_toggle) {
+      const same = sameChecked(form, m);
+      m.ears.forEach((e, i) => { if (i > 0) $(`[data-ear-box="${e.code}"]`, mb).classList.toggle('hidden', same); });
+    }
+    for (const set of LOR.partSets(m)) {
+      const parts = readParts(form, m, set.ear, set.parts);
+      for (const p of set.parts) {
+        const box = $(`.lor-part[data-part="${p.code}"][data-ear="${set.ear}"]`, mb);
         if (!box) continue;
         const pvis = LOR.partVisible(p, parts);
         box.classList.toggle('hidden', !pvis);
@@ -434,9 +488,9 @@ function applyLorVisibility(form) {
           const fbox = $(`.lor-field[data-field="${f.code}"]`, box);
           const vis = pvis && LOR.fieldVisible(f, parts[p.code] || {});
           fbox.classList.toggle('hidden', !vis);
-          if (!vis) $$('input:checked', fbox).forEach((i) => { i.checked = false; });
+          if (!vis) clear(fbox);
         }
-        if (!pvis) $$('input:checked', box).forEach((i) => { i.checked = false; });
+        if (!pvis) clear(box);
       }
     }
   }
@@ -471,22 +525,12 @@ function diagnosisBlock(v) {
     </section>`;
 }
 
-function collect(form) {
+function collect(form, legacyLor = {}) {
   const fd = new FormData(form);
-  const lor = {};
+  // Eski shablondagi LOR STATUS (formada ko'rsatilmaydi) o'zgarmasdan saqlanadi
+  const lor = { ...legacyLor };
   for (const m of LOR.METHODS) {
-    const res = {};
-    if (m.ears) {
-      const ears = {};
-      for (const e of m.ears) {
-        const p = readParts(form, m, e.code);
-        if (Object.keys(p).length) ears[e.code] = p;
-      }
-      if (Object.keys(ears).length) res.ears = ears;
-    } else {
-      const p = readParts(form, m, '');
-      if (Object.keys(p).length) res.parts = p;
-    }
+    const res = readMethod(form, m);
     const note = (fd.get(`lornote|${m.code}`) || '').trim();
     if (note) res.note = note;
     if (Object.keys(res).length) lor[m.code] = res;
@@ -547,6 +591,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
     </div>`);
 
   const form = $('#clinical', el);
+  const legacyLor = Object.fromEntries(Object.entries(v.lor_status || {}).filter(([k]) => LOR.LEGACY_CODES.has(k)));
   const loadHistory = async (p) => {
     const box = $('#history', el);
     if (!p) { render(box, html`<p class="muted small">—</p>`); return; }
@@ -568,7 +613,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
       else if (i.hasAttribute('data-norm')) group.forEach((x) => { x.checked = false; });
       else group.filter((x) => x.hasAttribute('data-norm')).forEach((x) => { x.checked = false; });
     }
-    if (i.name.startsWith('lor|')) applyLorVisibility(form);
+    if (i.name.startsWith('lor|') || i.name.startsWith('lorsame|')) applyLorVisibility(form);
     if (i.name === 'complaint') {
       const box = $(`[data-discharge-for="${CSS.escape(i.value)}"]`, form);
       if (box) {
@@ -590,7 +635,8 @@ async function renderVisitForm(el, v, patient, { isNew }) {
   });
   function updateCounts() {
     $$('.lor[data-method]', form).forEach((d) => {
-      const n = $$('.lor-part', d).filter((p) => $$('input[type=checkbox]:checked', p).length || $('.lor__text', p).value.trim()).length;
+      const n = $$('.lor-part', d).filter((p) => $$('input[type=checkbox]:checked', p).length
+        || $$('.lor__text, .lor__field-text', p).some((i) => i.value.trim())).length;
       const c = $(`[data-count-for="${d.dataset.method}"]`, form);
       c.textContent = n || '';
       c.classList.toggle('hidden', !n);
@@ -611,7 +657,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
     b.onclick = () => {
       const d = methodBox(form, b.dataset.clear);
       $$('input[type=checkbox]', d).forEach((c) => { c.checked = false; });
-      $$('input.lor__text, textarea', d).forEach((i) => { i.value = ''; });
+      $$('input.lor__text, input.lor__field-text, textarea', d).forEach((i) => { i.value = ''; });
       applyLorVisibility(form);
       markDirty();
     };
@@ -622,7 +668,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
   form.onsubmit = async (e) => {
     e.preventDefault();
     const mode = e.submitter ? e.submitter.dataset.mode : 'save';
-    const body = collect(form);
+    const body = collect(form, legacyLor);
     if (mode === 'done') {
       if (!body.diagnosis_main) { toast(t('visit.need_dx'), 'err'); form.elements.diagnosis_main.focus(); return; }
       body.status = 'done';
@@ -685,7 +731,9 @@ export function visitDocBody(v) {
     ${block(t('f.anamnesis'), p(v.anamnesis))}
     ${block(t('doc.lor_status'), lor.length ? html`${lor.map((s) => html`
       <div class="doc__lor"><h4>${s.title}</h4>
-        ${s.groups.map((g) => html`<div class="doc__grp">${g.sub ? html`<span class="doc__ear">${g.sub}</span> ` : ''}${g.lines.map((l) => html`<span class="doc__ln"><b>${l.label}:</b> ${l.text}</span>`)}</div>`)}
+        ${s.groups.map((g) => (g.table ? html`<table class="doc__table doc__lor-table"><thead><tr><th>${g.table.head[0]}</th><th>${g.table.test}</th><th>${g.table.head[1]}</th></tr></thead>
+          <tbody>${g.table.rows.map((r) => html`<tr><td>${r.vals[0]}</td><td>${r.label}</td><td>${r.vals[1]}</td></tr>`)}</tbody></table>`
+          : html`<div class="doc__grp">${g.sub ? html`<span class="doc__ear">${g.sub}</span> ` : ''}${g.lines.map((l) => html`<span class="doc__ln"><b>${l.label}:</b> ${l.text}</span>`)}</div>`))}
         ${s.note ? html`<p class="pre">${s.note}</p>` : ''}
       </div>`)}` : '')}
     ${block(t('doc.diagnosis'), v.diagnosis_main || v.diagnosis_extra ? html`
