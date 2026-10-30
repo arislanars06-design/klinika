@@ -1,6 +1,6 @@
 // Kassa: hisoblar, hisob yaratish sahifasi (xizmatlar × miqdor), to'lov, qaytarish, bekor qilish, chek va kunlik hisobot.
 import {
-  html, raw, render, $, $$, t, GET, POST, qs, can, go, toast, errorText, busy, confirmDialog, money, fmtDate,
+  html, raw, render, $, $$, t, L, GET, POST, qs, can, go, toast, errorText, busy, confirmDialog, money, fmtDate,
   fmtDateTime, payBadge, pager, setQuery, localDate, printDoc, docHeader, METHODS, refresh, showWordButton, ApiError,
 } from '../core.js';
 import { invoiceTable, bindInvoiceDelete } from './main-views.js';
@@ -15,6 +15,19 @@ function cashTabs(active) {
 const methodOptions = (sel) => METHODS.map((m) => html`<option value="${m}" ${m === sel ? raw('selected') : ''}>${t('method.' + m)}</option>`);
 const toInt = (v) => { const n = Number(String(v).replace(/\s/g, '')); return Number.isFinite(n) ? Math.round(n) : NaN; };
 
+/** Chegirma qatorlari (hisob sahifasi va chek) */
+function discountRows(inv) {
+  if (!inv.discount) return '';
+  const lines = inv.discount_lines && inv.discount_lines.length ? inv.discount_lines : [{ uz: t('cash.discount'), ru: t('cash.discount'), amount: inv.discount }];
+  return html`${lines.map((l) => html`<dt>${t('cash.discount')}: ${L(l)}</dt><dd>− ${money(l.amount)}</dd>`)}`;
+}
+/** Hisob yaratish sahifasidagi jami blok */
+function discountTotals(subtotal, lines, total) {
+  return html`${lines.length ? html`<dt>${t('cash.subtotal')}</dt><dd>${money(subtotal)}</dd>
+    ${lines.map((l) => html`<dt class="text-ok">${t('cash.discount')}: ${L(l)}</dt><dd class="text-ok">− ${money(l.amount)}</dd>`)}` : ''}
+    <dt class="totals__big">${t('cash.total')}</dt><dd class="totals__big" id="total">${money(total)}</dd>`;
+}
+
 /* ================= Hisoblar ro'yxati ================= */
 export async function cashListView(el, query) {
   const f = { date: query.get('date') ?? localDate(), q: query.get('q') || '', debt: query.get('debt') === '1', page: Number(query.get('page')) || 1 };
@@ -27,10 +40,14 @@ export async function cashListView(el, query) {
       <input type="search" name="q" value="${f.q}" placeholder="${t('cash.search_ph')}" class="field--grow">
       <label class="inline"><input type="checkbox" name="debt" ${f.debt ? raw('checked') : ''}> ${t('cash.only_debt')}</label>
       <button class="btn">${t('search')}</button>
+      <button type="button" class="btn btn--ghost" id="inv-word">${t('word')}</button>
     </form>
     <section class="card" id="res"></section>`);
   const form = $('#f', el);
+  let cur = f;
+  $('#inv-word', el).onclick = (e) => busy(e.target, () => invoicesWord(cur));
   const load = async (o) => {
+    cur = o;
     setQuery('/cash', { date: o.date === localDate() ? '' : o.date || 'all', q: o.q, debt: o.debt ? 1 : '', page: o.page > 1 ? o.page : '' });
     const d = await GET('/api/invoices' + qs({ date: o.date, q: o.q, status: o.debt ? 'debt' : '', page: o.page }));
     const box = $('#res', el);
@@ -45,6 +62,27 @@ export async function cashListView(el, query) {
   if (f.date === 'all') f.date = '';
   form.elements.date.value = f.date;
   load(f).catch((e) => toast(errorText(e), 'err'));
+}
+
+/** Hisoblar ro'yxati (joriy filtr bo'yicha) — Word jadvali, A4 yotiq varaq */
+async function invoicesWord(o) {
+  const d = await GET('/api/invoices' + qs({ date: o.date, q: o.q, status: o.debt ? 'debt' : '', all: 1 }));
+  const sum = (k) => d.rows.reduce((a, r) => a + (r[k] || 0), 0);
+  const title = `${t('nav.cash')}: ${o.date ? fmtDate(o.date) : t('period.all')}${o.debt ? ' · ' + t('cash.only_debt') : ''}`;
+  await printDoc(html`<article class="doc">${docHeader()}
+    <h2 class="doc__title">${title}</h2>
+    ${o.q ? html`<p>${t('search')}: ${o.q}</p>` : ''}
+    <table class="doc__table"><thead><tr><th>№</th><th>${t('cash.invoice')}</th><th>${t('date')}</th><th>${t('f.full_name')}</th><th>${t('f.services')}</th>
+      <th class="num">${t('cash.subtotal')}</th><th class="num">${t('cash.discount')}</th><th class="num">${t('cash.total')}</th>
+      <th class="num">${t('cash.paid')}</th><th class="num">${t('cash.debt')}</th><th>${t('status')}</th></tr></thead>
+    <tbody>${d.rows.map((r, i) => html`<tr><td>${i + 1}</td><td>${r.number}</td><td>${fmtDateTime(r.created_at)}</td><td>${r.patient_name}</td><td>${r.services}</td>
+      <td class="num">${money(r.subtotal)}</td><td class="num">${r.discount ? money(r.discount) : '—'}</td><td class="num">${money(r.total)}</td>
+      <td class="num">${money(r.paid)}</td><td class="num">${r.debt ? money(r.debt) : '—'}</td><td>${t('pay.' + r.pay_status)}</td></tr>`)}
+      <tr><th></th><th>${t('total')}</th><th></th><th>${d.rows.length}</th><th></th><th class="num">${money(sum('subtotal'))}</th><th class="num">${money(sum('discount'))}</th>
+        <th class="num">${money(sum('total'))}</th><th class="num">${money(sum('paid'))}</th><th class="num">${money(sum('debt'))}</th><th></th></tr></tbody></table>
+    ${d.total > d.rows.length ? html`<p>${t('word.limited', { n: d.rows.length })}</p>` : ''}
+    <div class="doc__sign">${t('cash.cashier')}: ____________________</div>
+  </article>`, { word: true, page: 'a4l', name: title });
 }
 
 /* ================= Hisob yaratish (kassa sahifasi) ================= */
@@ -74,7 +112,7 @@ export async function newInvoiceView(el, query) {
         </table>
         <button type="button" class="btn btn--ghost btn--sm" id="add">+ ${t('cash.add_service')}</button>
         ${services.length ? '' : html`<p class="alert alert--warn">${t('cash.no_services')}</p>`}
-        <dl class="totals"><dt class="totals__big">${t('cash.total')}</dt><dd class="totals__big" id="total"></dd></dl>
+        <dl class="totals" id="totals"></dl>
         <div class="row">
           <label class="field"><span>${t('cash.pay_amount')}</span><input name="pay_amount" inputmode="numeric" class="num-input"></label>
           <label class="field"><span>${t('cash.method')}</span><select name="method">${methodOptions('cash')}</select></label>
@@ -90,18 +128,20 @@ export async function newInvoiceView(el, query) {
     const patBox = $('#inv-pat', dlg);
     let payTouched = false;
 
+    // Jami summa va avtomatik paket chegirmasi (server ham xuddi shu qoidalar bilan qayta hisoblaydi)
     const recalc = () => {
-      let total = 0;
+      const lines = [];
       $$('tr.item', tbody).forEach((tr) => {
         const s = services.find((x) => x.id === Number($('select', tr).value));
         const qty = toInt($('[data-k=qty]', tr).value);
         const amount = s && qty >= 1 ? s.price * qty : 0;
         $('[data-k=amount]', tr).textContent = money(amount);
-        total += amount;
+        if (s && qty >= 1) lines.push({ price_group: s.price_group, unit_price: s.price, qty, name: s.name });
       });
-      $('#total', dlg).textContent = money(total);
-      if (!payTouched) form.elements.pay_amount.value = total;
-      return total;
+      const c = window.PRICING.calculate(lines);
+      render($('#totals', dlg), discountTotals(c.subtotal, c.lines, c.total));
+      if (!payTouched) form.elements.pay_amount.value = c.total;
+      return c.total;
     };
     const addRow = () => {
       if (!services.length) return;
@@ -237,7 +277,7 @@ export async function invoiceView(el, id) {
         </table>
         <dl class="totals">
           <dt>${t('cash.subtotal')}</dt><dd>${money(inv.subtotal)}</dd>
-          ${inv.discount ? html`<dt>${t('cash.discount')}</dt><dd>− ${money(inv.discount)}</dd>` : ''}
+          ${discountRows(inv)}
           <dt class="totals__big">${t('cash.total')}</dt><dd class="totals__big">${money(inv.total)}</dd>
           <dt>${t('cash.paid')}</dt><dd>${money(inv.paid)}</dd>
           <dt>${t('cash.debt')}</dt><dd class="${inv.debt ? 'text-err' : ''}">${money(inv.debt)}</dd>
@@ -327,7 +367,8 @@ function printReceipt(inv, mode = 'print') {
       <table class="doc__table"><thead><tr><th>${t('cash.service')}</th><th class="num">${t('cash.price')}</th><th class="num">${t('cash.qty')}</th><th class="num">${t('cash.amount')}</th></tr></thead>
         <tbody>${inv.items.map((i) => html`<tr><td>${i.name}</td><td class="num">${money(i.unit_price)}</td><td class="num">${i.qty}</td><td class="num">${money(i.amount)}</td></tr>`)}</tbody></table>
       <dl class="totals">
-        ${inv.discount ? html`<dt>${t('cash.discount')}</dt><dd>− ${money(inv.discount)}</dd>` : ''}
+        ${inv.discount ? html`<dt>${t('cash.subtotal')}</dt><dd>${money(inv.subtotal)}</dd>` : ''}
+        ${discountRows(inv)}
         <dt><b>${t('cash.total')}</b></dt><dd><b>${money(inv.total)}</b></dd>
         <dt>${t('cash.paid')}</dt><dd>${money(inv.paid)}</dd>
         ${inv.debt ? html`<dt>${t('cash.debt')}</dt><dd>${money(inv.debt)}</dd>` : ''}

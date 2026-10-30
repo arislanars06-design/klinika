@@ -164,6 +164,8 @@ addColumn('visits', 'recommendation', "TEXT NOT NULL DEFAULT ''");
 addColumn('users', 'deleted', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('services', 'deleted', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('services', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('services', 'price_group', "TEXT NOT NULL DEFAULT ''"); // paket chegirmasi guruhi (public/js/pricing.js)
+addColumn('invoices', 'discount_note', "TEXT NOT NULL DEFAULT '[]'"); // avtomatik chegirma qatorlari (JSON)
 
 const TZ = process.env.NURMED_TZ || 'Asia/Tashkent';
 const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -197,6 +199,7 @@ const DEFAULT_SETTINGS = {
   clinic_phone: '',
   clinic_requisites: '',
   clinic_logo: '', // data:image/... (ixtiyoriy)
+  word_save_dir: '', // bo'sh bo'lmasa, Word fayllarning nusxasi server kompyuterdagi shu papkaga yoziladi
   print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
 };
 
@@ -253,10 +256,30 @@ function applyPriceList() {
   });
 }
 
+// Klinika narx ro'yxatidagi xizmatlarning chegirma guruhlari (bir marta o'rnatiladi; keyin admin o'zgartiradi)
+const PRICE_GROUPS = [
+  ['ЛОР врач бирламчи куриги ва консультацияси', 'lor_exam'],
+  ['Бурун бушлигини ювиш (Проетц усулида)', 'lor_proc'],
+  ['Бодомча безлари лакуналарини ювиш', 'lor_proc'],
+  ['Ташки кулок йулини тозалаш (бир томон)', 'lor_proc'],
+  ['Лимфотроп блокада 1 сеанс', 'lor_proc'],
+  ['Вена ичига дори моддасини томчилатиб юбориш (1 фл)', 'inj_drip'],
+  ['Вена ичига дори юбориш', 'inj_iv'],
+  ['Мушак орасига дори юбориш', 'inj_im'],
+];
+function applyPriceGroups() {
+  const done = db.prepare('SELECT value FROM settings WHERE key = ?').get('price_groups_version');
+  if (done) return;
+  const upd = db.prepare("UPDATE services SET price_group = ? WHERE name = ? AND deleted = 0 AND price_group = ''");
+  for (const [name, g] of PRICE_GROUPS) upd.run(g, name);
+  db.prepare('INSERT INTO settings(key, value) VALUES (?, ?)').run('price_groups_version', '1');
+}
+
 function seed() {
   const ins = db.prepare('INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)');
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) ins.run(k, v);
   applyPriceList();
+  applyPriceGroups();
 }
 seed();
 

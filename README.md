@@ -59,6 +59,18 @@ Huquqlar **serverda** tekshiriladi.
   - **Brauzer**: "Чоп этиш" brauzerning chop etish oynasini ochadi (A5). Bu rejimda yonida alohida "Word" tugmasi ham bo'ladi.
 - Word fayl o'zi ochilishi uchun har bir kompyuterda bir marta sozlang: Chrome yoki Edge'da yuklab olingan fayl yonidagi «⋯» (yoki strelka) → **«Всегда открывать файлы этого типа»**.
 
+## Kassa chegirmalari
+
+Har bir xizmatga "Чегирма гуруҳи" belgilanadi ("Созламалар → Хизматлар ва нархлар"). Chegirma kassada avtomatik hisoblanadi, server ham qayta hisoblaydi. Qoidalar `public/js/pricing.js` faylida:
+
+- **ЛОР кўриги + муолажалар** (томоқ/бурун ювиш, қулоқ тозалаш, лимфотроп блокада): 1 ta → 70 000, 2 ta → 100 000, keyingi har biri +35 000.
+- **Капельница**: 1 ta → 25 000, 2 ta va ko'p → har biri 20 000.
+- **Венадан секин**: yolg'iz bitta → 15 000; 2 ta va ko'p yoki капельница / мушак орасига bilan birga → har biri 10 000.
+
+## Word fayllar papkasi
+
+"Созламалар → Клиника → Word файллар сақланадиган папка" maydoniga server kompyuterdagi to'liq yo'lni yozing (masalan, `D:\NURMED\Ҳужжатлар`). Shunda har bir Word faylning nusxasi shu papkaga oy bo'yicha ichki papkalarga (`2026-10`, `2026-11` …) yoziladi. Brauzer boshqa kompyuterlarda faylni baribir o'sha kompyuterning "Загрузки" papkasiga yuklaydi.
+
 ## Asosiy qoidalar
 
 - Bemor kartasi bitta, qabullar alohida. Yangi qabul eskisini ustidan yozmaydi.

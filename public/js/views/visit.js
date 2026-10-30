@@ -37,9 +37,60 @@ function pasportFields(p, locked) {
         </select></label>
       <label class="field"><span>${t('f.phone')}</span>
         <input name="phone" type="tel" maxlength="30" placeholder="+998 90 123 45 67" autocomplete="off" value="${p.phone || ''}" ${dis}></label>
-      <label class="field field--wide"><span>${t('f.address')}</span>
-        <input name="address" maxlength="300" value="${p.address || ''}" ${dis}></label>
+      ${addressFields(p.address || '', locked)}
     </div>`;
+}
+
+/* ---------- Manzil: hudud → tuman → ko'cha/uy (O'zbekiston bo'yicha) ---------- */
+const REGIONS = window.ADDRESS_UZ || [];
+/** Saqlangan manzil matnidan hudud, tuman va qolgan qismni ajratish */
+function parseAddress(a) {
+  const s = String(a || '').trim();
+  for (const [ri, r] of REGIONS.entries()) {
+    if (!s.startsWith(r[0])) continue;
+    let rest = s.slice(r[0].length).replace(/^[,\s]+/, '');
+    for (const [di, dname] of r[2].entries()) {
+      if (rest.startsWith(dname[0])) return { ri, di, rest: rest.slice(dname[0].length).replace(/^[,\s]+/, '') };
+    }
+    return { ri, di: -1, rest };
+  }
+  return { ri: -1, di: -1, rest: s };
+}
+function addressFields(addr, locked) {
+  const a = parseAddress(addr);
+  const dis = locked ? raw('disabled') : '';
+  const districts = a.ri >= 0 ? REGIONS[a.ri][2] : [];
+  return html`
+    <label class="field"><span>${t('addr.region')}</span>
+      <select name="addr_region" ${dis}><option value="">—</option>
+        ${REGIONS.map((r, i) => html`<option value="${i}" ${i === a.ri ? raw('selected') : ''}>${L({ uz: r[0], ru: r[1] })}</option>`)}</select></label>
+    <label class="field"><span>${t('addr.district')}</span>
+      <select name="addr_district" ${dis} ${a.ri < 0 ? raw('disabled') : ''}><option value="">—</option>
+        ${districts.map((d, i) => html`<option value="${i}" ${i === a.di ? raw('selected') : ''}>${L({ uz: d[0], ru: d[1] })}</option>`)}</select></label>
+    <label class="field field--wide"><span>${t('addr.street')}</span>
+      <input name="addr_rest" maxlength="200" placeholder="${t('addr.street_ph')}" value="${a.rest}" ${dis}></label>
+    <input type="hidden" name="address" value="${addr}">`;
+}
+/** Manzil maydonlarini bog'lash: hudud tanlanganda tumanlar to'ladi, yashirin "address" yangilanadi */
+export function bindAddress(root) {
+  const reg = $('[name=addr_region]', root);
+  if (!reg) return;
+  const dist = $('[name=addr_district]', root);
+  const rest = $('[name=addr_rest]', root);
+  const out = $('input[name=address]', root);
+  const compose = () => {
+    const r = REGIONS[Number(reg.value)];
+    const d = r && dist.value !== '' ? r[2][Number(dist.value)] : null;
+    out.value = [r ? r[0] : '', d ? d[0] : '', rest.value.trim()].filter(Boolean).join(', ');
+  };
+  reg.addEventListener('change', () => {
+    const r = REGIONS[Number(reg.value)];
+    render(dist, html`<option value="">—</option>${(r ? r[2] : []).map((d, i) => html`<option value="${i}">${L({ uz: d[0], ru: d[1] })}</option>`)}`);
+    dist.disabled = !r;
+    compose();
+  });
+  dist.addEventListener('change', compose);
+  rest.addEventListener('input', compose);
 }
 
 /**
@@ -56,6 +107,7 @@ function pasportController(box, initial, { canChange, onPatient }) {
           : html`<a class="btn btn--ghost btn--sm" href="#/patient/${patient.id}">${t('patient.card')}</a>`}</span></div>` : ''}
       ${pasportFields(p || {}, !!patient)}
       <div class="suggest" data-suggest></div>`);
+    bindAddress(body);
     const ch = $('[data-change]', body);
     if (ch) ch.onclick = () => { patient = null; draw({}); onPatient(null); $('input[name=full_name]', body).focus(); };
     if (!patient) bindSuggest();
@@ -399,12 +451,12 @@ function diagnosisBlock(v) {
   return html`
     <section class="card">
       <h2>${t('visit.step_diagnosis')}</h2>
-      <datalist id="dx-list">${LOR.DIAGNOSES.map((d) => html`<option value="${d.code} — ${L(d)}"></option>`)}</datalist>
+      <datalist id="dx-list">${(window.ICD10_LOR || LOR.DIAGNOSES).map((d) => html`<option value="${d.code} — ${L(d)}"></option>`)}</datalist>
       <div class="grid-fields">
         <label class="field field--wide"><span>${t('f.diagnosis_main')}</span>
           <input name="diagnosis_main" list="dx-list" maxlength="500" value="${v.diagnosis_main || ''}" placeholder="${t('visit.dx_ph')}"></label>
         <label class="field field--wide"><span>${t('f.diagnosis_extra')}</span>
-          <input name="diagnosis_extra" maxlength="1000" value="${v.diagnosis_extra || ''}"></label>
+          <input name="diagnosis_extra" list="dx-list" maxlength="1000" value="${v.diagnosis_extra || ''}" placeholder="${t('visit.dx_ph')}"></label>
         <label class="field field--wide"><span>${t('f.treatment')}</span>
           <textarea name="treatment" rows="2" maxlength="4000">${v.treatment || ''}</textarea></label>
         <label class="field field--wide"><span>${t('f.exams')}</span>
@@ -600,6 +652,7 @@ export function patientForm(p) {
 }
 
 export function bindPatientForm(f, id, onSaved) {
+  bindAddress(f);
   const read = () => Object.fromEntries(PATIENT_FIELDS.map((k) => [k, f.elements[k].value.trim()]));
   f.onsubmit = async (e) => {
     e.preventDefault();

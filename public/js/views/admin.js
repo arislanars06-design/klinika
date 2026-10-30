@@ -25,6 +25,9 @@ async function settings(el) {
       <label class="field"><span>${t('f.address')}</span><input name="clinic_address" maxlength="300" value="${s.clinic_address}"></label>
       <label class="field"><span>${t('f.phone')}</span><input name="clinic_phone" maxlength="100" value="${s.clinic_phone}"></label>
       <label class="field"><span>${t('admin.requisites')}</span><textarea name="clinic_requisites" rows="2" maxlength="500">${s.clinic_requisites}</textarea></label>
+      <label class="field"><span>${t('admin.word_save_dir')}</span>
+        <input name="word_save_dir" maxlength="400" placeholder="D:\\NURMED\\Ҳужжатлар" value="${s.word_save_dir || ''}">
+        <span class="hint">${t('admin.word_save_dir_hint')}</span></label>
       <label class="field"><span>${t('admin.print_mode')}</span>
         <select name="print_mode">
           <option value="word" ${s.print_mode !== 'browser' ? raw('selected') : ''}>${t('admin.print_word')}</option>
@@ -57,7 +60,7 @@ async function settings(el) {
     e.preventDefault();
     await busy(e.submitter, async () => {
       const body = Object.fromEntries(['clinic_name', 'clinic_address', 'clinic_phone', 'clinic_requisites'].map((k) => [k, f.elements[k].value.trim()]));
-      state.settings = await PUT('/api/settings', { ...body, print_mode: f.elements.print_mode.value, clinic_logo: logo });
+      state.settings = await PUT('/api/settings', { ...body, word_save_dir: f.elements.word_save_dir.value.trim(), print_mode: f.elements.print_mode.value, clinic_logo: logo });
       document.dispatchEvent(new Event('nurmed:settings'));
       toast(t('saved'));
     });
@@ -126,20 +129,24 @@ function userDialog(u) {
 }
 
 /* ---------- Xizmatlar katalogi ---------- */
+const groupOptions = (sel) => ['', ...window.PRICING.GROUPS].map((g) => html`<option value="${g}" ${g === (sel || '') ? raw('selected') : ''}>${t('pg.' + (g || 'none'))}</option>`);
+
 async function services(el) {
   const list = await GET('/api/services?all=1');
   const row = (s) => html`<tr data-id="${s.id}">
     <td><input name="name" maxlength="200" value="${s.name}" required></td>
     <td class="num"><input name="price" class="num-input" inputmode="numeric" value="${s.price}" required></td>
+    <td><select name="price_group">${groupOptions(s.price_group)}</select></td>
     <td><label class="inline"><input type="checkbox" name="active" ${s.active ? raw('checked') : ''}> ${t('admin.active')}</label></td>
     <td class="row-actions"><button class="btn btn--sm" data-save>${t('save')}</button>
       <button class="btn btn--danger btn--sm" data-del>${t('delete')}</button></td></tr>`;
   render(el, html`
     <section class="card">
       <div class="actions"><button class="btn" id="add-svc">+ ${t('cash.add_service')}</button></div>
-      ${list.length ? html`<table class="table"><thead><tr><th>${t('cash.service')}</th><th class="num">${t('cash.price')} (${t('sum')})</th><th>${t('status')}</th><th></th></tr></thead>
+      ${list.length ? html`<table class="table"><thead><tr><th>${t('cash.service')}</th><th class="num">${t('cash.price')} (${t('sum')})</th><th>${t('admin.price_group')}</th><th>${t('status')}</th><th></th></tr></thead>
         <tbody id="svc">${list.map(row)}</tbody></table>` : html`<p class="muted">${t('empty')}</p>`}
       <p class="hint">${t('admin.services_hint')}</p>
+      <p class="hint">${t('admin.price_group_hint')}</p>
     </section>`);
   const readPrice = (v) => Number(String(v).replace(/\s/g, ''));
   $('#add-svc', el).onclick = () => modal(html`
@@ -147,6 +154,7 @@ async function services(el) {
       <h2>${t('cash.add_service')}</h2>
       <label class="field"><span>${t('cash.service')} *</span><input name="name" required maxlength="200"></label>
       <label class="field"><span>${t('cash.price')} (${t('sum')}) *</span><input name="price" required inputmode="numeric" class="num-input"></label>
+      <label class="field"><span>${t('admin.price_group')}</span><select name="price_group">${groupOptions('')}</select></label>
       <div class="dialog__actions"><button type="button" class="btn btn--ghost" data-close>${t('cancel')}</button><button class="btn">${t('save')}</button></div>
     </form>`, (dlg, close) => {
     const f = $('form', dlg);
@@ -156,7 +164,7 @@ async function services(el) {
       const price = readPrice(f.elements.price.value);
       if (!f.elements.name.value.trim() || !Number.isInteger(price) || price < 0) { toast(t('err.invalid'), 'err'); return; }
       await busy(e.submitter, async () => {
-        await POST('/api/services', { name: f.elements.name.value.trim(), price, active: true });
+        await POST('/api/services', { name: f.elements.name.value.trim(), price, active: true, price_group: f.elements.price_group.value });
         toast(t('saved')); close(); refresh();
       });
     };
@@ -176,7 +184,7 @@ async function services(el) {
     const price = readPrice(get('price').value);
     if (!get('name').value.trim() || !Number.isInteger(price) || price < 0) { toast(t('err.invalid'), 'err'); return; }
     await busy(b, async () => {
-      await PUT(`/api/services/${tr.dataset.id}`, { name: get('name').value.trim(), price, active: get('active').checked });
+      await PUT(`/api/services/${tr.dataset.id}`, { name: get('name').value.trim(), price, active: get('active').checked, price_group: get('price_group').value });
       toast(t('saved'));
       refresh();
     });

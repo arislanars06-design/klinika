@@ -399,3 +399,5 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .invoice-page .totals { margin-top: 8px; }
 .files-where code { display: block; margin-top: 4px; font-size: .9rem; }
 .files-help { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.text-ok { color: var(--ok); }
+.alert--ok { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }

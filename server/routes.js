@@ -1,12 +1,16 @@
 'use strict';
 const { db, nowLocal, todayLocal, tx } = require('./db');
 const sec = require('./security');
-const { HttpError, Router, json, send, readJson } = require('./http');
+const fs = require('node:fs');
+const path = require('node:path');
+const { HttpError, Router, json, send, readJson, readRaw } = require('./http');
 const backup = require('./backup');
 const LOR = require('../public/js/lor-template.js');
+const PRICING = require('../public/js/pricing.js');
 
 const router = new Router();
 const PAGE_SIZE = 20;
+const EXPORT_LIMIT = 5000;
 const PAY_METHODS = ['cash', 'uzcard', 'humo', 'card_other', 'transfer', 'other'];
 
 /* ================= Yordamchilar ================= */
@@ -154,6 +158,12 @@ router.put('/api/settings', async (ctx) => {
   for (const [k, max] of Object.entries(SETTING_KEYS)) {
     if (k in body) { upd.run(k, str(body[k], max, k, k === 'clinic_name')); changed.push(k); }
   }
+  if ('word_save_dir' in body) {
+    const dir = str(body.word_save_dir, 400, 'word_save_dir');
+    if (dir) checkSaveDir(dir);
+    upd.run('word_save_dir', dir);
+    changed.push('word_save_dir');
+  }
   if ('print_mode' in body) {
     if (!['word', 'browser'].includes(body.print_mode)) throw new HttpError(400, 'invalid', { field: 'print_mode' });
     upd.run('print_mode', body.print_mode);
@@ -169,6 +179,39 @@ router.put('/api/settings', async (ctx) => {
   }
   sec.audit(ctx.user, 'settings.update', 'settings', null, { changed }, ctx.ip);
   return getSettings();
+});
+
+/* ================= Word fayllarni server papkasiga saqlash ================= */
+// Papka server kompyuterda bo'ladi (masalan, D:\NURMED\Hujjatlar). Fayllar oy bo'yicha ichki papkalarga yoziladi.
+function checkSaveDir(dir) {
+  if (!path.isAbsolute(dir)) throw new HttpError(400, 'dir_not_absolute');
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const probe = path.join(dir, `.nurmed-${process.pid}.tmp`);
+    fs.writeFileSync(probe, '');
+    fs.unlinkSync(probe);
+  } catch { throw new HttpError(400, 'dir_not_writable'); }
+}
+
+const safeFileName = (s) => String(s || '').normalize('NFC').replace(/[\\/:*?"<>|\u0000-\u001F]/g, '').replace(/^\.+/, '')
+  .trim().replace(/\s+/g, '_').slice(0, 150);
+
+router.post('/api/files', async (ctx) => {
+  need(ctx, 'patient.read');
+  const dir = (db.prepare("SELECT value FROM settings WHERE key = 'word_save_dir'").get() || {}).value || '';
+  if (!dir) throw new HttpError(400, 'save_dir_not_set');
+  const base = safeFileName(ctx.query.get('name')).replace(/\.docx$/i, '');
+  if (!base) throw new HttpError(400, 'invalid', { field: 'name' });
+  const data = await readRaw(ctx.req, 5 * 1024 * 1024);
+  if (data.length < 4 || data[0] !== 0x50 || data[1] !== 0x4B) throw new HttpError(400, 'invalid', { field: 'file' }); // .docx = ZIP
+  const sub = path.join(dir, todayLocal().slice(0, 7));
+  try { fs.mkdirSync(sub, { recursive: true }); } catch { throw new HttpError(500, 'dir_not_writable'); }
+  let file = path.join(sub, base + '.docx');
+  for (let n = 2; fs.existsSync(file) && n < 1000; n++) file = path.join(sub, `${base}_(${n}).docx`);
+  if (path.dirname(file) !== sub) throw new HttpError(400, 'invalid', { field: 'name' });
+  try { fs.writeFileSync(file, data, { flag: 'wx' }); } catch { throw new HttpError(500, 'dir_not_writable'); }
+  sec.audit(ctx.user, 'file.save', 'file', null, { file, size: data.length }, ctx.ip);
+  return { path: file };
 });
 
 /* ================= Shifokorlar ro'yxati ================= */
@@ -414,7 +457,13 @@ router.get('/api/visits', async (ctx) => {
   const { page: p, offset } = page(ctx.query);
   const total = db.prepare(`SELECT COUNT(*) AS c FROM visits v JOIN patients p ON p.id = v.patient_id ${where}`).get(...params).c;
   const clinical = sec.can(ctx.user, 'visit.clinical.read');
-  const rows = db.prepare(`${VISIT_LIST_SQL} ${where} ORDER BY v.visit_at DESC LIMIT ? OFFSET ?`).all(...params, PAGE_SIZE, offset)
+  // all=1 — Word jadvali uchun barcha qatorlar (eksport huquqi kerak, ko'pi bilan 5000)
+  const all = ctx.query.get('all') === '1';
+  if (all) need(ctx, 'export');
+  const lim = all ? EXPORT_LIMIT : PAGE_SIZE;
+  const off = all ? 0 : offset;
+  if (all) sec.audit(ctx.user, 'visits.export_word', 'visit', null, { rows: Math.min(total, lim), query: ctx.url.search }, ctx.ip);
+  const rows = db.prepare(`${VISIT_LIST_SQL} ${where} ORDER BY v.visit_at DESC LIMIT ? OFFSET ?`).all(...params, lim, off)
     .map((r) => { if (!clinical) { delete r.diagnosis_main; delete r.diagnosis_extra; } return r; });
   return { total, page: p, page_size: PAGE_SIZE, rows };
 });
@@ -512,6 +561,9 @@ function serviceInput(body) {
     name: str(body.name, 200, 'name', true),
     price: int(body.price, 'price', 0, 1e12),
     active: body.active === false || body.active === 0 ? 0 : 1,
+    price_group: body.price_group === undefined || body.price_group === '' ? ''
+      : PRICING.GROUPS.includes(body.price_group) ? body.price_group
+        : (() => { throw new HttpError(400, 'invalid', { field: 'price_group' }); })(),
   };
 }
 
@@ -519,7 +571,7 @@ router.post('/api/services', async (ctx) => {
   need(ctx, 'admin');
   const d = serviceInput(await readJson(ctx.req));
   const next = db.prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM services').get().n;
-  const r = db.prepare('INSERT INTO services(name, price, active, sort_order, created_at) VALUES (?, ?, ?, ?, ?)').run(d.name, d.price, d.active, next, nowLocal());
+  const r = db.prepare('INSERT INTO services(name, price, active, sort_order, price_group, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(d.name, d.price, d.active, next, d.price_group, nowLocal());
   const id = Number(r.lastInsertRowid);
   sec.audit(ctx.user, 'service.create', 'service', id, d, ctx.ip);
   return db.prepare('SELECT * FROM services WHERE id = ?').get(id);
@@ -531,7 +583,7 @@ router.put('/api/services/:id', async (ctx) => {
   const old = db.prepare('SELECT * FROM services WHERE id = ? AND deleted = 0').get(id);
   if (!old) throw new HttpError(404, 'not_found');
   const d = serviceInput(await readJson(ctx.req));
-  db.prepare('UPDATE services SET name = ?, price = ?, active = ? WHERE id = ?').run(d.name, d.price, d.active, id);
+  db.prepare('UPDATE services SET name = ?, price = ?, active = ?, price_group = ? WHERE id = ?').run(d.name, d.price, d.active, d.price_group, id);
   sec.audit(ctx.user, 'service.update', 'service', id, { from: { name: old.name, price: old.price, active: old.active }, to: d }, ctx.ip);
   return db.prepare('SELECT * FROM services WHERE id = ?').get(id);
 });
@@ -573,6 +625,7 @@ function invoiceFull(id) {
   const [inv] = invoiceRows('i.id = ?', [id], 1, 0);
   if (!inv) throw new HttpError(404, 'invoice_not_found');
   inv.items = db.prepare('SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id').all(id);
+  try { inv.discount_lines = JSON.parse(inv.discount_note || '[]'); } catch { inv.discount_lines = []; }
   inv.payments = db.prepare(`SELECT pm.*, u.full_name AS created_by_name, vu.full_name AS voided_by_name
     FROM payments pm LEFT JOIN users u ON u.id = pm.created_by LEFT JOIN users vu ON vu.id = pm.voided_by
     WHERE pm.invoice_id = ? ORDER BY pm.id`).all(id);
@@ -606,6 +659,14 @@ router.get('/api/invoices', async (ctx) => {
   const { page: p, offset } = page(ctx.query);
   const w = where.join(' AND ');
   const total = db.prepare(`SELECT COUNT(*) AS c FROM invoices i JOIN patients p ON p.id = i.patient_id WHERE ${w}`).get(...params).c;
+  if (ctx.query.get('all') === '1') {
+    // Word jadvali uchun: barcha qatorlar, xizmatlar ro'yxati bilan
+    const rows = invoiceRows(w, params, EXPORT_LIMIT, 0);
+    const itemsStmt = db.prepare('SELECT name, qty FROM invoice_items WHERE invoice_id = ? ORDER BY id');
+    for (const r of rows) r.services = itemsStmt.all(r.id).map((x) => (x.qty > 1 ? `${x.name} ×${x.qty}` : x.name)).join('; ');
+    sec.audit(ctx.user, 'invoices.export_word', 'invoice', null, { rows: rows.length, query: ctx.url.search }, ctx.ip);
+    return { total, rows };
+  }
   return { total, page: p, page_size: PAGE_SIZE, rows: invoiceRows(w, params, PAGE_SIZE, offset) };
 });
 
@@ -627,19 +688,22 @@ router.post('/api/invoices', async (ctx) => {
     if (!s) throw new HttpError(400, 'invalid', { field: `items.${i}.service_id` });
     const qty = int(it.qty, `items.${i}.qty`, 1, 1000);
     const unit = it.unit_price === undefined ? s.price : int(it.unit_price, `items.${i}.unit_price`, 0, 1e12);
-    return { service_id: s.id, name: s.name, unit_price: unit, qty, amount: unit * qty };
+    return { service_id: s.id, name: s.name, unit_price: unit, qty, amount: unit * qty, price_group: s.price_group };
   });
-  // Jami = Σ (narx × miqdor) − chegirma. Server qayta hisoblaydi, brauzerdagi summaga ishonilmaydi.
-  const subtotal = items.reduce((a, x) => a + x.amount, 0);
-  const discount = body.discount ? int(body.discount, 'discount', 0, subtotal) : 0;
+  // Jami = Σ (narx × miqdor) − avtomatik paket chegirmasi − qo'lda chegirma. Server qayta hisoblaydi.
+  const calc = PRICING.calculate(items);
+  const subtotal = calc.subtotal;
+  const manual = body.discount ? int(body.discount, 'discount', 0, calc.total) : 0;
+  const discount = calc.discount + manual;
   const total = subtotal - discount;
+  const discountNote = JSON.stringify([...calc.lines, ...(manual ? [{ uz: 'Қўлда чегирма', ru: 'Ручная скидка', amount: manual }] : [])]);
   const pay = body.payment && body.payment.amount ? paymentInput(body.payment) : null;
   if (pay && pay.amount > total) throw new HttpError(400, 'overpayment');
 
   const now = nowLocal();
   const id = tx(() => {
-    const r = db.prepare(`INSERT INTO invoices(patient_id, visit_id, subtotal, discount, total, created_at, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`).run(patient.id, visitId, subtotal, discount, total, now, ctx.user.id);
+    const r = db.prepare(`INSERT INTO invoices(patient_id, visit_id, subtotal, discount, discount_note, total, created_at, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(patient.id, visitId, subtotal, discount, discountNote, total, now, ctx.user.id);
     const iid = Number(r.lastInsertRowid);
     db.prepare('UPDATE invoices SET number = ? WHERE id = ?').run('H-' + pad(iid), iid);
     const insItem = db.prepare('INSERT INTO invoice_items(invoice_id, service_id, name, unit_price, qty, amount) VALUES (?, ?, ?, ?, ?, ?)');

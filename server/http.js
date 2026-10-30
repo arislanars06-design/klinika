@@ -66,6 +66,21 @@ function readJson(req) {
   });
 }
 
+/** Ikkilik (binary) so'rov tanasi, masalan .docx fayl */
+function readRaw(req, max) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > max) { reject(new HttpError(413, 'too_large')); req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
 /* Oddiy router: "/api/visits/:id" ko'rinishidagi yo'llar */
 class Router {
   constructor() { this.routes = []; }
@@ -111,4 +126,4 @@ function serveStatic(root, req, res, pathname) {
   });
 }
 
-module.exports = { HttpError, Router, send, json, parseCookies, readJson, serveStatic, SECURITY_HEADERS };
+module.exports = { HttpError, Router, send, json, parseCookies, readJson, readRaw, serveStatic, SECURITY_HEADERS };
