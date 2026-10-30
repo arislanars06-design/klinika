@@ -171,21 +171,33 @@ function table(t) {
     + P([], { after: 30, sz: 6 });
 }
 
-/** LOR STATUS metodi bitta paragraf: "Риноскопия: Ташқи бурун: …; Шиллиқ қават: … " */
+/** LOR STATUS metodi: "Риноскопия: Ташқи бурун: …; Шиллиқ қават: …". Jadval (эшитиш, вестибуляр паспорт) alohida. */
 function lor(el, out) {
   const h = el.querySelector(':scope > h4');
-  const runs = [{ t: (h ? h.textContent : '') + ': ', b: true }];
-  [...el.querySelectorAll(':scope > .doc__grp')].forEach((g, gi) => {
-    if (gi) runs.push({ t: '. ' });
-    const ear = g.querySelector(':scope > .doc__ear');
-    if (ear) runs.push({ t: ear.textContent.trim() + ' ', b: true, i: true });
-    [...g.querySelectorAll(':scope > .doc__ln')].forEach((ln, li) => {
-      if (li) runs.push({ t: '; ' });
-      runs.push(...inline(ln));
-    });
-  });
-  out.push(P(runs));
-  el.querySelectorAll(':scope > .pre').forEach((pre) => out.push(P(preRuns(pre))));
+  let runs = h ? [{ t: h.textContent + ': ', b: true }] : [];
+  let groups = 0;
+  let titled = false; // sarlavha allaqachon chiqarildimi
+  const flush = (keepNext) => {
+    if (runs.length) out.push(P(runs, keepNext ? { keepNext: true } : {}));
+    titled = true; runs = []; groups = 0;
+  };
+  for (const c of el.children) {
+    if (c === h) continue;
+    if (c.tagName === 'TABLE') { flush(!groups); out.push(table(c)); continue; }
+    if (c.classList.contains('doc__grp')) {
+      if (groups) runs.push({ t: '. ' });
+      const ear = c.querySelector(':scope > .doc__ear');
+      if (ear) runs.push({ t: ear.textContent.trim() + ' ', b: true, i: true });
+      [...c.querySelectorAll(':scope > .doc__ln')].forEach((ln, li) => {
+        if (li) runs.push({ t: '; ' });
+        runs.push(...inline(ln));
+      });
+      groups += 1;
+      continue;
+    }
+    if (c.classList.contains('pre')) { flush(false); out.push(P(preRuns(c))); }
+  }
+  if (groups || !titled) flush(false);
 }
 
 /** Bo'lim: sarlavha birinchi matn bilan bir qatorda ("АНАМНЕЗ: …"), qolganlari alohida paragraf */
