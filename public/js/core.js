@@ -273,6 +273,17 @@ export function patientSummary(p) {
 }
 
 /* ---------- Chop etish ---------- */
+/* ---------- Shu kompyuterda yuklab olingan fayllar ro'yxati ---------- */
+const DL_KEY = 'nurmed_downloads';
+export function downloadsList() {
+  try { const a = JSON.parse(localStorage.getItem(DL_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch { return []; }
+}
+function rememberDownload(name) {
+  const list = [{ name, at: Date.now() }, ...downloadsList()].slice(0, 50);
+  try { localStorage.setItem(DL_KEY, JSON.stringify(list)); } catch { /* xotira to'la */ }
+}
+export function clearDownloads() { localStorage.removeItem(DL_KEY); }
+
 /** "Чоп этиш" tugmasi Word fayl ochadimi (Созламалар → Клиника → Чоп этиш усули) */
 export const printsToWord = () => state.settings.print_mode !== 'browser';
 /** Alohida "Word" tugmasi faqat chop etish brauzer orqali bo'lganda ko'rsatiladi */
@@ -289,8 +300,10 @@ export function printDoc(content, opts = {}) {
   return Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))).then(() => {
     if (!(opts.word || printsToWord())) { window.print(); return; }
     const doc = $('.doc', root) || root;
-    downloadBlob(docToDocx(doc), safeName(opts.name || 'hujjat') + '.docx');
-    toast(t('word.ready'));
+    const filename = safeName(opts.name || 'hujjat') + '.docx';
+    downloadBlob(docToDocx(doc), filename);
+    rememberDownload(filename);
+    toast(t('word.saved_to', { name: filename }));
   });
 }
 

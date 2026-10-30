@@ -1,7 +1,7 @@
 // NURMED — ilovaning kirish nuqtasi: login, bosh menyu, til, soat va sahifalar marshruti.
 import {
   html, raw, render, $, t, state, GET, POST, can, toast, errorText, parseHash, setUnauthorizedHandler, setRefresh,
-  localDate, fmtDate, busy, modal, ApiError,
+  localDate, fmtDate, busy, modal, ApiError, downloadsList, clearDownloads,
 } from './core.js';
 import { dashboardView, historyView, patientView } from './views/main-views.js';
 import { newVisitView, visitView } from './views/visit.js';
@@ -124,6 +124,36 @@ function passwordScreen(forced) {
   } else modal(content, bind);
 }
 
+/** Saqlangan (yuklab olingan) fayllar: qaysi papkaga tushgani, ro'yxati va papkani qanday ochish/o'zgartirish */
+function filesDialog() {
+  const list = downloadsList();
+  const when = (ms) => { const d = new Date(ms); return `${fmtDate(localDate(d))} ${d.toTimeString().slice(0, 5)}`; };
+  modal(html`
+    <div class="dialog__body">
+      <div class="card-head"><h2>${t('files.title')}</h2><button type="button" class="btn btn--ghost btn--sm" data-close>×</button></div>
+      <div class="alert alert--warn files-where">
+        <div>${t('files.where')}</div>
+        <code>C:\Users\&lt;${t('files.user')}&gt;\Downloads</code>
+      </div>
+      <ol class="files-help">
+        <li>${raw(t('files.open'))}</li>
+        <li>${raw(t('files.change'))}</li>
+      </ol>
+      <h3>${t('files.recent')} (${list.length})</h3>
+      ${list.length ? html`<table class="table table--compact"><thead><tr><th>${t('files.name')}</th><th>${t('time')}</th></tr></thead>
+        <tbody>${list.map((f) => html`<tr><td><code>${f.name}</code></td><td>${when(f.at)}</td></tr>`)}</tbody></table>`
+        : html`<p class="muted">${t('empty')}</p>`}
+      <p class="hint">${t('files.note')}</p>
+      <div class="dialog__actions">
+        ${list.length ? html`<button type="button" class="btn btn--ghost" id="files-clear">${t('files.clear')}</button>` : ''}
+        <button type="button" class="btn" data-close>${t('confirm')}</button>
+      </div>
+    </div>`, (dlg, close) => {
+    const c = $('#files-clear', dlg);
+    if (c) c.onclick = () => { clearDownloads(); close(); filesDialog(); };
+  });
+}
+
 async function logout() {
   try { await POST('/api/logout'); } catch { /* baribir chiqamiz */ }
   state.user = null;
@@ -155,6 +185,7 @@ function shell() {
           <summary>${state.user.full_name}</summary>
           <div class="user-menu__body">
             <div class="muted small">${state.user.roles.map((r) => t('role.' + r)).join(', ')}</div>
+            <button type="button" class="btn btn--ghost btn--sm" id="files">${t('files.title')}</button>
             <button type="button" class="btn btn--ghost btn--sm" id="chpw">${t('pw.title')}</button>
             <button type="button" class="btn btn--ghost btn--sm" id="logout">${t('logout')}</button>
           </div>
@@ -165,6 +196,7 @@ function shell() {
   bindLang(app);
   $('#logout').onclick = logout;
   $('#chpw').onclick = () => { $('.user-menu').open = false; passwordScreen(false); };
+  $('#files').onclick = () => { $('.user-menu').open = false; filesDialog(); };
   stopClock();
   tickClock();
   clockTimer = setInterval(tickClock, 1000);

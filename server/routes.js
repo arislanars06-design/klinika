@@ -220,7 +220,7 @@ router.get('/api/patients', async (ctx) => {
   const params = [];
   if (q) {
     const digits = q.replace(/\D/g, '');
-    const cond = ["full_name LIKE ? ESCAPE '\\'", "code LIKE ? ESCAPE '\\'"];
+    const cond = ["ulower(full_name) LIKE ulower(?) ESCAPE '\\'", "ulower(code) LIKE ulower(?) ESCAPE '\\'"];
     params.push(likeEsc(q), likeEsc(q));
     if (digits.length >= 3) { cond.push("phone LIKE ? ESCAPE '\\'"); params.push(likeEsc(digits)); }
     where.push('(' + cond.join(' OR ') + ')');
@@ -240,7 +240,7 @@ router.post('/api/patients', async (ctx) => {
   const d = patientInput(body);
   if (!body.force) {
     const dup = db.prepare(`SELECT id, code, full_name, birth_date, phone FROM patients
-      WHERE archived = 0 AND (full_name = ? COLLATE NOCASE AND (birth_date = ? OR ? = '') OR (phone != '' AND phone = ?))
+      WHERE archived = 0 AND (ulower(full_name) = ulower(?) AND (birth_date = ? OR ? = '') OR (phone != '' AND phone = ?))
       LIMIT 5`).all(d.full_name, d.birth_date, d.birth_date, d.phone);
     if (dup.length) throw new HttpError(409, 'possible_duplicate', { matches: dup });
   }
@@ -389,12 +389,12 @@ function visitFilters(ctx) {
   if (doctor) { where.push('v.doctor_id = ?'); params.push(int(doctor, 'doctor', 1)); }
   if (patient) { where.push('v.patient_id = ?'); params.push(int(patient, 'patient', 1)); }
   if (q) {
-    const cond = ["p.full_name LIKE ? ESCAPE '\\'", "p.code LIKE ? ESCAPE '\\'"];
+    const cond = ["ulower(p.full_name) LIKE ulower(?) ESCAPE '\\'", "ulower(p.code) LIKE ulower(?) ESCAPE '\\'"];
     params.push(likeEsc(q), likeEsc(q));
     const digits = q.replace(/\D/g, '');
     if (digits.length >= 3) { cond.push("p.phone LIKE ? ESCAPE '\\'"); params.push(likeEsc(digits)); }
     if (sec.can(ctx.user, 'visit.clinical.read')) {
-      cond.push("v.diagnosis_main LIKE ? ESCAPE '\\'", "v.diagnosis_extra LIKE ? ESCAPE '\\'");
+      cond.push("ulower(v.diagnosis_main) LIKE ulower(?) ESCAPE '\\'", "ulower(v.diagnosis_extra) LIKE ulower(?) ESCAPE '\\'");
       params.push(likeEsc(q), likeEsc(q));
     }
     where.push('(' + cond.join(' OR ') + ')');
@@ -504,7 +504,7 @@ router.get('/api/services', async (ctx) => {
   need(ctx);
   if (!sec.can(ctx.user, 'billing.read') && !sec.can(ctx.user, 'admin')) throw new HttpError(403, 'forbidden');
   const all = ctx.query.get('all') === '1' && sec.can(ctx.user, 'admin');
-  return db.prepare(`SELECT * FROM services WHERE deleted = 0 ${all ? '' : 'AND active = 1'} ORDER BY name COLLATE NOCASE`).all();
+  return db.prepare(`SELECT * FROM services WHERE deleted = 0 ${all ? '' : 'AND active = 1'} ORDER BY sort_order, name COLLATE NOCASE`).all();
 });
 
 function serviceInput(body) {
@@ -518,7 +518,8 @@ function serviceInput(body) {
 router.post('/api/services', async (ctx) => {
   need(ctx, 'admin');
   const d = serviceInput(await readJson(ctx.req));
-  const r = db.prepare('INSERT INTO services(name, price, active, created_at) VALUES (?, ?, ?, ?)').run(d.name, d.price, d.active, nowLocal());
+  const next = db.prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM services').get().n;
+  const r = db.prepare('INSERT INTO services(name, price, active, sort_order, created_at) VALUES (?, ?, ?, ?, ?)').run(d.name, d.price, d.active, next, nowLocal());
   const id = Number(r.lastInsertRowid);
   sec.audit(ctx.user, 'service.create', 'service', id, d, ctx.ip);
   return db.prepare('SELECT * FROM services WHERE id = ?').get(id);
@@ -597,7 +598,7 @@ router.get('/api/invoices', async (ctx) => {
   if (date) { where.push('substr(i.created_at, 1, 10) = ?'); params.push(date); }
   const q = str(ctx.query.get('q') || '', 100, 'q');
   if (q) {
-    where.push("(p.full_name LIKE ? ESCAPE '\\' OR p.code LIKE ? ESCAPE '\\' OR i.number LIKE ? ESCAPE '\\')");
+    where.push("(ulower(p.full_name) LIKE ulower(?) ESCAPE '\\' OR ulower(p.code) LIKE ulower(?) ESCAPE '\\' OR ulower(i.number) LIKE ulower(?) ESCAPE '\\')");
     params.push(likeEsc(q), likeEsc(q), likeEsc(q));
   }
   const st = ctx.query.get('status') || '';
