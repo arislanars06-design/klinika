@@ -191,7 +191,8 @@ export function modal(content, build) {
 /** Tugmani so'rov davomida bloklaydi va xatoni ko'rsatadi */
 export async function busy(btn, fn) {
   if (btn) btn.disabled = true;
-  try { return await fn(); } catch (e) { toast(errorText(e), 'err'); throw e; } finally { if (btn) btn.disabled = false; }
+  // Xato foydalanuvchiga ko'rsatiladi; qayta otilmaydi (aks holda brauzerda "ushlanmagan xato" bo'ladi)
+  try { return await fn(); } catch (e) { toast(errorText(e), 'err'); return undefined; } finally { if (btn) btn.disabled = false; }
 }
 
 /* ---------- Sahifalash ---------- */
@@ -284,6 +285,21 @@ function rememberDownload(name) {
 }
 export function clearDownloads() { localStorage.removeItem(DL_KEY); }
 
+/** Sozlamada server papkasi berilgan bo'lsa, Word faylning nusxasi o'sha papkaga yoziladi */
+export async function saveCopyOnServer(blob, filename) {
+  if (!state.settings.word_save_dir) return null;
+  try {
+    const r = await fetch('/api/files' + qs({ name: filename }), {
+      method: 'POST', body: blob, credentials: 'same-origin',
+      headers: { 'X-Nurmed': '1', 'Content-Type': 'application/octet-stream' },
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new ApiError(r.status, d);
+    toast(t('word.saved_server', { path: d.path }));
+    return d.path;
+  } catch (e) { toast(t('word.save_failed') + ': ' + errorText(e), 'err'); return null; }
+}
+
 /** "Чоп этиш" tugmasi Word fayl ochadimi (Созламалар → Клиника → Чоп этиш усули) */
 export const printsToWord = () => state.settings.print_mode !== 'browser';
 /** Alohida "Word" tugmasi faqat chop etish brauzer orqali bo'lganda ko'rsatiladi */
@@ -301,9 +317,11 @@ export function printDoc(content, opts = {}) {
     if (!(opts.word || printsToWord())) { window.print(); return; }
     const doc = $('.doc', root) || root;
     const filename = safeName(opts.name || 'hujjat') + '.docx';
-    downloadBlob(docToDocx(doc), filename);
+    const blob = docToDocx(doc, opts.page);
+    downloadBlob(blob, filename);
     rememberDownload(filename);
     toast(t('word.saved_to', { name: filename }));
+    return saveCopyOnServer(blob, filename);
   });
 }
 

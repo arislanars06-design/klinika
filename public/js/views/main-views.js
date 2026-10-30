@@ -1,7 +1,7 @@
 // Bosh oyna, Bemorlar tarixi (qidiruv, filtr, eksport) va bemor kartasi.
 import {
   html, raw, render, $, $$, t, state, GET, POST, PUT, can, qs, toast, confirmDialog, modal, printDoc, docHeader, errorText, money, fmtDate, fmtDateTime, age,
-  genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go, showWordButton,
+  genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go, showWordButton, busy,
 } from '../core.js';
 import { patientForm, bindPatientForm, printVisit } from './visit.js';
 
@@ -83,7 +83,8 @@ export async function historyView(el, query) {
         <select name="doctor"><option value="">${t('hist.all_doctors')}</option>
           ${doctors.map((d) => html`<option value="${d.id}" ${String(d.id) === f.doctor ? raw('selected') : ''}>${d.full_name}</option>`)}</select>` : ''}
       <button class="btn">${t('search')}</button>
-      ${tab === 'visits' && can('export') ? html`<a class="btn btn--ghost" id="csv" href="#">CSV</a>` : ''}
+      ${tab === 'visits' && can('export') ? html`<a class="btn btn--ghost" id="csv" href="#">CSV</a>
+        <button type="button" class="btn btn--ghost" id="visits-word">${t('word')}</button>` : ''}
     </form>
     <section class="card" id="results"><p class="muted">${t('loading')}</p></section>`);
 
@@ -129,6 +130,8 @@ export async function historyView(el, query) {
       const params = { q: o.q, from: r.from, to: r.to, status: o.status, doctor: o.doctor };
       const csv = $('#csv', el);
       if (csv) csv.href = '/api/visits/export.csv' + qs({ ...params, lang: state.lang });
+      const wb = $('#visits-word', el);
+      if (wb) wb.onclick = () => busy(wb, () => visitsWord(params, r, o));
       const d = await GET('/api/visits' + qs({ ...params, page: o.page }));
       const clinical = can('visit.clinical.read');
       render(box, d.rows.length ? html`
@@ -159,6 +162,24 @@ export async function historyView(el, query) {
   };
   form.onsubmit = (e) => { e.preventDefault(); load(readForm()); };
   load(f);
+}
+
+/** Qabullar ro'yxati (joriy filtr bo'yicha) — Word jadvali, A4 yotiq varaq */
+async function visitsWord(params, range, o) {
+  const d = await GET('/api/visits' + qs({ ...params, all: 1 }));
+  const clinical = can('visit.clinical.read');
+  const period = range.from || range.to ? `${fmtDate(range.from) || '…'} — ${fmtDate(range.to) || '…'}` : t('period.all');
+  await printDoc(html`<article class="doc">${docHeader()}
+    <h2 class="doc__title">${t('hist.visits')}: ${period}</h2>
+    ${o.q ? html`<p>${t('search')}: ${o.q}</p>` : ''}
+    <table class="doc__table"><thead><tr><th>№</th><th>${t('date')}</th><th>ID</th><th>${t('f.full_name')}</th><th>${t('f.birth_year')}</th>
+      <th>${t('f.phone')}</th><th>${t('f.address')}</th><th>${t('f.doctor_id')}</th>${clinical ? html`<th>${t('f.diagnosis_main')}</th>` : ''}<th>${t('status')}</th></tr></thead>
+    <tbody>${d.rows.map((v, i) => html`<tr><td>${i + 1}</td><td>${fmtDateTime(v.visit_at)}</td><td>${v.patient_code}</td><td>${v.patient_name}</td>
+      <td>${v.birth_date ? v.birth_date.slice(0, 4) : ''}</td><td>${v.patient_phone}</td><td>${v.patient_address}</td><td>${v.doctor_name || ''}</td>
+      ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${t('status.' + v.status)}</td></tr>`)}</tbody></table>
+    <p>${t('total')}: ${d.total}${d.total > d.rows.length ? ` (${t('word.limited', { n: d.rows.length })})` : ''}</p>
+    <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
+  </article>`, { word: true, page: 'a4l', name: `${t('hist.visits')} ${period}` });
 }
 
 /* ---------- Bemorlar ro'yxatidagi amallar: tahrirlash, chop etish, o'chirish (arxivlash) ---------- */

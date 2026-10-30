@@ -131,6 +131,9 @@ function filesDialog() {
   modal(html`
     <div class="dialog__body">
       <div class="card-head"><h2>${t('files.title')}</h2><button type="button" class="btn btn--ghost btn--sm" data-close>×</button></div>
+      ${state.settings.word_save_dir ? html`<div class="alert alert--ok files-where">
+        <div>${t('files.server_dir')}</div><code>${state.settings.word_save_dir}</code>
+        <div class="small">${t('files.server_dir_note')}</div></div>` : ''}
       <div class="alert alert--warn files-where">
         <div>${t('files.where')}</div>
         <code>C:\Users\&lt;${t('files.user')}&gt;\Downloads</code>

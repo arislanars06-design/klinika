@@ -5,11 +5,13 @@
 const MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const enc = new TextEncoder();
 
-// A5: 148 × 210 mm (twip = 1/1440 dyuym). Chetlari ≈ 9 mm.
-const PAGE_W = 8391;
-const PAGE_H = 11906;
-const MARGIN = 510;
-const CONTENT_W = PAGE_W - 2 * MARGIN;
+// Sahifa o'lchamlari (twip = 1/1440 dyuym). A5 — hujjatlar, A4 yotiq — jadval ko'rinishidagi ro'yxatlar.
+const PAGES = {
+  a5: { w: 8391, h: 11906, margin: 510, top: 454, font: 17 },          // 148 × 210 mm, chetlari ≈ 9 mm, 8.5 pt
+  a4l: { w: 16838, h: 11906, margin: 567, top: 567, font: 16, landscape: true }, // 297 × 210 mm, 8 pt
+};
+let TABLE_SZ = 16;
+let CONTENT_W = PAGES.a5.w - 2 * PAGES.a5.margin;
 
 /* ---------------- ZIP (siqmasdan, "stored") ---------------- */
 const CRC_TABLE = (() => {
@@ -77,7 +79,7 @@ function P(runs, opts = {}) {
     opts.keepNext ? '<w:keepNext/>' : '',
     opts.border ? '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="2" w:color="000000"/></w:pBdr>' : '',
     opts.tabRight ? `<w:tabs><w:tab w:val="right" w:pos="${CONTENT_W}"/></w:tabs>` : '',
-    `<w:spacing w:before="${opts.before || 0}" w:after="${opts.after ?? 20}"/>`,
+    `<w:spacing w:before="${opts.before || 0}" w:after="${opts.after ?? 10}"/>`,
     opts.align ? `<w:jc w:val="${opts.align}"/>` : '',
   ].join('');
   return `<w:p><w:pPr>${ppr}</w:pPr>${tidy(runs).map((r) => runXml(r, opts)).join('')}</w:p>`;
@@ -138,6 +140,22 @@ const hasBlocks = (el) => [...el.children].some((x) => BLOCK_TAGS.has(x.tagName)
 const contentRuns = (el) => (el.classList.contains('pre') ? preRuns(el) : inline(el));
 
 /* ---------------- Hujjat qismlari ---------------- */
+/** Bemor ma'lumotlari: chegarasiz ikki ustunli ixcham jadval (Ф.И.Ш. to'liq qatorda) */
+function patientTable(cells) {
+  const half = Math.floor(CONTENT_W / 2);
+  const cell = (c, span) => `<w:tc><w:tcPr><w:tcW w:w="${span ? CONTENT_W : half}" w:type="dxa"/>${span ? '<w:gridSpan w:val="2"/>' : ''}</w:tcPr>${P(c ? inline(c) : [], { after: 0 })}</w:tc>`;
+  const rows = [];
+  const rest = [];
+  for (const c of cells) {
+    if (c.classList.contains('doc__wide')) rows.push(`<w:tr>${cell(c, true)}</w:tr>`);
+    else rest.push(c);
+  }
+  for (let i = 0; i < rest.length; i += 2) rows.push(`<w:tr>${cell(rest[i])}${cell(rest[i + 1])}</w:tr>`);
+  return `<w:tbl><w:tblPr><w:tblW w:w="${CONTENT_W}" w:type="dxa"/><w:tblLayout w:type="fixed"/>`
+    + '<w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="57" w:type="dxa"/></w:tblCellMar></w:tblPr>'
+    + `<w:tblGrid><w:gridCol w:w="${half}"/><w:gridCol w:w="${half}"/></w:tblGrid>${rows.join('')}</w:tbl>${P([], { after: 30, sz: 6 })}`;
+}
+
 function table(t) {
   const rows = [...t.rows];
   const n = Math.max(...rows.map((r) => r.cells.length));
@@ -146,11 +164,11 @@ function table(t) {
     + '<w:bottom w:val="single" w:sz="4" w:color="777777"/><w:right w:val="single" w:sz="4" w:color="777777"/>'
     + '<w:insideH w:val="single" w:sz="4" w:color="777777"/><w:insideV w:val="single" w:sz="4" w:color="777777"/>';
   const body = rows.map((r) => `<w:tr>${[...r.cells].map((c) => `<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/></w:tcPr>${
-    P(inline(c), { after: 0, sz: 16, b: c.tagName === 'TH', align: c.classList.contains('num') ? 'right' : undefined })}</w:tc>`).join('')}</w:tr>`).join('');
+    P(inline(c), { after: 0, sz: TABLE_SZ, b: c.tagName === 'TH', align: c.classList.contains('num') ? 'right' : undefined })}</w:tc>`).join('')}</w:tr>`).join('');
   return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>${border}</w:tblBorders>`
     + '<w:tblCellMar><w:left w:w="57" w:type="dxa"/><w:right w:w="57" w:type="dxa"/></w:tblCellMar></w:tblPr>'
     + `<w:tblGrid>${Array.from({ length: n }, () => `<w:gridCol w:w="${colW}"/>`).join('')}</w:tblGrid>${body}</w:tbl>`
-    + P([], { after: 40 });
+    + P([], { after: 30, sz: 6 });
 }
 
 /** LOR STATUS metodi bitta paragraf: "Риноскопия: Ташқи бурун: …; Шиллиқ қават: … " */
@@ -173,8 +191,7 @@ function lor(el, out) {
 /** Bo'lim: sarlavha birinchi matn bilan bir qatorda ("АНАМНЕЗ: …"), qolganlari alohida paragraf */
 function block(el, out) {
   if (el.classList.contains('doc__patient')) {
-    [...el.children].forEach((c) => out.push(P(inline(c))));
-    out.push(P([], { after: 20 }));
+    out.push(patientTable([...el.children]));
     return;
   }
   const h = el.querySelector(':scope > h3');
@@ -196,9 +213,9 @@ function header(el, out, media) {
   const name = el.querySelector('.doc__clinic');
   const reqs = [...el.querySelectorAll('.doc__req')].filter((r) => r.textContent.trim());
   const logo = img ? logoRun(img, media) : null;
-  out.push(P([...(logo ? [logo, { t: '  ' }] : []), ...(name ? inline(name) : [])], { b: true, sz: 22, after: 0, border: !reqs.length }));
-  reqs.forEach((r, i) => out.push(P(inline(r), { sz: 15, after: 0, border: i === reqs.length - 1 })));
-  out.push(P([], { after: 40 }));
+  out.push(P([...(logo ? [logo, { t: '  ' }] : []), ...(name ? inline(name) : [])], { b: true, sz: 21, after: 0, border: !reqs.length }));
+  reqs.forEach((r, i) => out.push(P(inline(r), { sz: 14, after: 0, border: i === reqs.length - 1 })));
+  out.push(P([], { after: 20, sz: 6 }));
 }
 
 function logoRun(img, media) {
@@ -236,7 +253,7 @@ function totals(dl, out) {
 function footer(el, out) {
   let first = true;
   for (const c of el.children) {
-    const before = first ? 200 : 0;
+    const before = first ? 140 : 0;
     first = false;
     if (c.classList.contains('doc__foot-row')) {
       const [a, b] = c.children;
@@ -250,7 +267,7 @@ function blocks(el, out, media) {
     const cl = c.classList;
     if (cl.contains('hidden')) continue;
     if (cl.contains('doc__head')) header(c, out, media);
-    else if (cl.contains('doc__title')) out.push(P(inline(c), { align: 'center', b: true, sz: 21, after: 80 }));
+    else if (cl.contains('doc__title')) out.push(P(inline(c).map((r) => ({ ...r, t: r.t && r.t.toUpperCase() })), { align: 'center', b: true, sz: 19, after: 60 }));
     else if (cl.contains('doc__block')) block(c, out);
     else if (c.tagName === 'TABLE') out.push(table(c));
     else if (c.tagName === 'DL') totals(c, out);
@@ -262,7 +279,10 @@ function blocks(el, out, media) {
 }
 
 /** Chop etish uchun tayyorlangan hujjat elementidan (.doc) Word fayli (Blob) */
-export function docToDocx(docEl) {
+export function docToDocx(docEl, pageName = 'a5') {
+  const pg = PAGES[pageName] || PAGES.a5;
+  CONTENT_W = pg.w - 2 * pg.margin;
+  TABLE_SZ = pg.landscape ? pg.font : 16;
   const media = [];
   const body = [];
   blocks(docEl, body, media);
@@ -271,12 +291,12 @@ export function docToDocx(docEl) {
     + ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
     + ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>'
     + body.join('')
-    + `<w:sectPr><w:pgSz w:w="${PAGE_W}" w:h="${PAGE_H}"/><w:pgMar w:top="454" w:right="${MARGIN}" w:bottom="${MARGIN}" w:left="${MARGIN}" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`
+    + `<w:sectPr><w:pgSz w:w="${pg.w}" w:h="${pg.h}"${pg.landscape ? ' w:orient="landscape"' : ''}/><w:pgMar w:top="${pg.top}" w:right="${pg.margin}" w:bottom="${pg.margin}" w:left="${pg.margin}" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`
     + '</w:body></w:document>';
   const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults>'
-    + '<w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="18"/><w:szCs w:val="18"/><w:lang w:val="uz-Cyrl-UZ"/></w:rPr></w:rPrDefault>'
-    + '<w:pPrDefault><w:pPr><w:spacing w:after="20" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
+    + `<w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="${pg.font}"/><w:szCs w:val="${pg.font}"/><w:lang w:val="uz-Cyrl-UZ"/></w:rPr></w:rPrDefault>`
+    + '<w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="228" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
     + '</w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>';
   const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
