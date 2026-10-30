@@ -1,7 +1,7 @@
 // Kassa: hisoblar, hisob yaratish sahifasi (xizmatlar × miqdor), to'lov, qaytarish, bekor qilish, chek va kunlik hisobot.
 import {
   html, raw, render, $, $$, t, GET, POST, qs, can, go, toast, errorText, busy, confirmDialog, money, fmtDate,
-  fmtDateTime, payBadge, pager, setQuery, localDate, patientPicker, printDoc, docHeader, METHODS, refresh, showWordButton,
+  fmtDateTime, payBadge, pager, setQuery, localDate, printDoc, docHeader, METHODS, refresh, showWordButton, ApiError,
 } from '../core.js';
 import { invoiceTable, bindInvoiceDelete } from './main-views.js';
 
@@ -67,7 +67,7 @@ export async function newInvoiceView(el, query) {
     ${cashTabs('')}
     <form class="card form invoice-page" id="invf" autocomplete="off">
       <div id="inv-pat"></div>
-      <div id="inv-body" class="hidden">
+      <div id="inv-body">
         <table class="table items">
           <thead><tr><th>${t('cash.service_type')}</th><th class="num">${t('cash.qty')}</th><th class="num">${t('cash.amount')}</th><th></th></tr></thead>
           <tbody id="items"></tbody>
@@ -120,31 +120,82 @@ export async function newInvoiceView(el, query) {
     $('#add', dlg).onclick = addRow;
     form.elements.pay_amount.oninput = () => { payTouched = true; };
 
+    /* Bemor: Ф.И.Ш. va tug'ilgan yili darhol yoziladi. Bazada mos bemor bo'lsa, taklif qilinadi;
+       tanlanmasa, saqlashda yangi bemor kartasi ochiladi. */
+    const drawPatient = (p) => {
+      render(patBox, html`
+        <div class="grid-fields inv-patient">
+          <label class="field field--wide"><span>${t('f.full_name')} *</span>
+            <input name="pat_name" maxlength="200" required value="${p ? p.full_name : ''}" ${p ? raw('disabled') : ''}></label>
+          <label class="field"><span>${t('f.birth_year')}</span>
+            <input name="pat_year" inputmode="numeric" maxlength="4" pattern="\\d{4}" placeholder="1985"
+              value="${p && p.birth_date ? p.birth_date.slice(0, 4) : ''}" ${p ? raw('disabled') : ''}></label>
+          ${p ? html`<div class="field"><span>${p.code}</span><button type="button" class="btn btn--ghost btn--sm" id="chg">${t('visit.change_patient')}</button></div>` : ''}
+        </div>
+        ${linkVisit ? html`<div class="muted small">${t('cash.visit_link')}: ${fmtDateTime(linkVisit.visit_at)}</div>` : ''}
+        <div class="suggest" id="suggest"></div>`);
+      const chg = $('#chg', patBox);
+      if (chg) chg.onclick = () => { patient = null; linkVisit = null; drawPatient(null); $('[name=pat_name]', patBox).focus(); };
+      if (!p) bindSuggest();
+    };
     const choose = async (p) => {
       patient = p;
       let visits = [];
       try { visits = (await GET(`/api/patients/${p.id}`)).visits.filter((v) => v.status !== 'cancelled'); } catch { /* ixtiyoriy */ }
       linkVisit = (visitId && visits.find((v) => v.id === visitId)) || visits.find((v) => v.visit_at.slice(0, 10) === localDate()) || null;
-      render(patBox, html`
-        <div class="grid-fields inv-patient">
-          <div class="field field--wide"><span>${t('f.full_name')}</span><b>${p.full_name}</b> <span class="muted small">${p.code}</span></div>
-          <div class="field"><span>${t('f.birth_year')}</span><b>${p.birth_date ? p.birth_date.slice(0, 4) : '—'}</b></div>
-          <div class="field"><span></span><button type="button" class="btn btn--ghost btn--sm" id="chg">${t('visit.change_patient')}</button></div>
-        </div>
-        ${linkVisit ? html`<div class="muted small">${t('cash.visit_link')}: ${fmtDateTime(linkVisit.visit_at)}</div>` : ''}`);
-      $('#chg', patBox).onclick = () => { patient = null; $('#inv-body', dlg).classList.add('hidden'); showPicker(); };
-      $('#inv-body', dlg).classList.remove('hidden');
-      if (!tbody.children.length) addRow();
+      drawPatient(p);
     };
-    const showPicker = () => patientPicker(patBox, choose);
+    const showMatches = (rows, title) => {
+      const sb = $('#suggest', patBox);
+      render(sb, rows.length ? html`<div class="suggest__title">${title}</div>
+        ${rows.map((m) => html`<button type="button" class="picker__item" data-use="${m.id}">
+          <span><b>${m.full_name}</b> <span class="muted">${m.code} · ${m.birth_date ? m.birth_date.slice(0, 4) : '—'} · ${m.phone}</span></span></button>`)}` : '');
+      $$('[data-use]', sb).forEach((b) => { b.onclick = () => choose(rows.find((r) => r.id === Number(b.dataset.use))); });
+    };
+    let timer; let seq = 0;
+    function bindSuggest() {
+      const inp = $('[name=pat_name]', patBox);
+      inp.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          const q = inp.value.trim();
+          if (q.length < 3) { showMatches([], ''); return; }
+          const my = ++seq;
+          try { const d = await GET('/api/patients' + qs({ q })); if (my === seq && !patient) showMatches(d.rows.slice(0, 5), t('visit.suggest')); } catch { /* ixtiyoriy */ }
+        }, 300);
+      });
+    }
+    /** Tanlangan bemor yoki yangi karta (ism + tug'ilgan yil). Takroriy bo'lishi mumkin bo'lsa, tanlash uchun ko'rsatiladi. */
+    async function ensurePatient(force = false) {
+      if (patient) return patient;
+      const name = $('[name=pat_name]', patBox).value.trim();
+      const year = $('[name=pat_year]', patBox).value.trim();
+      if (!name) { toast(t('visit.need_name'), 'err'); $('[name=pat_name]', patBox).focus(); return null; }
+      if (year && !/^\d{4}$/.test(year)) { toast(t('err.invalid') + ` (${t('f.birth_year')})`, 'err'); return null; }
+      try {
+        patient = await POST('/api/patients', { full_name: name, birth_date: year, force });
+        return patient;
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'possible_duplicate') {
+          showMatches(e.data.matches, t('cash.dup_choose'));
+          const sb = $('#suggest', patBox);
+          const f = document.createElement('div');
+          render(f, html`<button type="button" class="btn btn--ghost btn--sm">${t('patient.create_anyway')}</button>`);
+          $('button', f).onclick = () => ensurePatient(true).then((p) => { if (p) { drawPatient(p); toast(t('visit.patient_created')); } });
+          sb.appendChild(f);
+          toast(t('err.possible_duplicate'), 'err');
+        } else toast(errorText(e), 'err');
+        return null;
+      }
+    }
 
+    addRow();
     if (patientId) {
-      GET(`/api/patients/${patientId}`).then((d) => choose(d.patient)).catch((e) => { toast(errorText(e), 'err'); showPicker(); });
-    } else showPicker();
+      GET(`/api/patients/${patientId}`).then((d) => choose(d.patient)).catch((e) => { toast(errorText(e), 'err'); drawPatient(null); });
+    } else { drawPatient(null); setTimeout(() => $('[name=pat_name]', patBox)?.focus(), 0); }
 
     form.onsubmit = async (e) => {
       e.preventDefault();
-      if (!patient) return;
       const total = recalc();
       const items = $$('tr.item', tbody).map((tr) => ({ service_id: Number($('select', tr).value), qty: toInt($('[data-k=qty]', tr).value) }));
       if (!items.length) { toast(t('cash.need_items'), 'err'); return; }
@@ -152,6 +203,7 @@ export async function newInvoiceView(el, query) {
       const payAmount = toInt(form.elements.pay_amount.value) || 0;
       if (payAmount > total) { toast(t('err.overpayment'), 'err'); return; }
       await busy(e.submitter, async () => {
+        if (!(await ensurePatient())) return;
         const inv = await POST('/api/invoices', {
           patient_id: patient.id, visit_id: linkVisit ? linkVisit.id : null, items,
           payment: payAmount > 0 ? { amount: payAmount, method: form.elements.method.value } : null,

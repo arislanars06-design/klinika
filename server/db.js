@@ -14,6 +14,9 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
+// SQLite'ning LIKE va NOCASE faqat lotin harflarida katta-kichik harfni farqlamaydi.
+// Kirill (Алиев = алиев) qidiruvi uchun Unicode kichik harfga o'tkazuvchi funksiya.
+db.function('ulower', { deterministic: true }, (v) => (v === null || v === undefined ? v : String(v).toLowerCase()));
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -160,6 +163,7 @@ function addColumn(table, column, ddl) {
 addColumn('visits', 'recommendation', "TEXT NOT NULL DEFAULT ''");
 addColumn('users', 'deleted', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('services', 'deleted', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('services', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
 
 const TZ = process.env.NURMED_TZ || 'Asia/Tashkent';
 const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -196,24 +200,63 @@ const DEFAULT_SETTINGS = {
   print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
 };
 
+// Klinika narx ro'yxati (Оториноларинголог хизматлари). Rasmdagi tartib va matn saqlangan.
+const PRICE_LIST_VERSION = '2026-10-30';
+const PRICE_LIST = [
+  ['ЛОР врач бирламчи куриги ва консультацияси', 60000],
+  ['Ревматолог врач бирламчи куриги ва консультацияси', 100000],
+  ['Ревматолог врачни кайта куриги ва консультацияси', 50000],
+  ['Эндоскопик текширув', 40000],
+  ['Бурун бушлигини ювиш (Проетц усулида)', 35000],
+  ['Бодомча безлари лакуналарини ювиш', 35000],
+  ['Ташки кулок йулини тозалаш (бир томон)', 35000],
+  ['Лимфотроп блокада 1 сеанс', 35000],
+  ['Томокдан ёт жисмларни олиб ташлаш', 70000],
+  ['Кулок, бурун ёт жисмларни олиб ташлаш', 60000],
+  ['Политцер буйича кулокларни пуфлаш', 35000],
+  ['Юкори жаг бушлигини (бир томон) пункция килиш', 200000],
+  ['Юкори жаг бушлигини (икки томон) пункция килиш', 300000],
+  ['Паратонзилляр абцессни кесиб очиш', 200000],
+  ['Бурун, ташки кулок фурункулини кесиб очиш', 100000],
+  ['Бурун суяги репозицияси', 300000],
+  ['Бурунни олдинги тампонадаси', 100000],
+  ['Тил ости пардасини кесиш', 200000],
+  ['Тубус кварц (бурун, томок)', 20000],
+  ['Дори воситалар ингаляцияси', 20000],
+  ['Дарсонвал', 20000],
+  ['Вена ичига дори моддасини томчилатиб юбориш (1 фл)', 25000],
+  ['Вена ичига дори юбориш', 15000],
+  ['Мушак орасига дори юбориш', 10000],
+];
+
+/**
+ * Narx ro'yxatini bir marta o'rnatish. Eski xizmatlar katalogdan olib tashlanadi:
+ * hisoblarda ishlatilmaganlari o'chiriladi, ishlatilganlari yashiriladi (eski hisoblar o'zgarmaydi).
+ */
+function applyPriceList() {
+  const done = db.prepare('SELECT value FROM settings WHERE key = ?').get('price_list_version');
+  if (done && done.value === PRICE_LIST_VERSION) return;
+  tx(() => {
+    const now = nowLocal();
+    const old = db.prepare('SELECT id FROM services WHERE deleted = 0').all();
+    const used = db.prepare('SELECT 1 FROM invoice_items WHERE service_id = ? LIMIT 1');
+    for (const { id } of old) {
+      if (used.get(id)) db.prepare('UPDATE services SET deleted = 1, active = 0 WHERE id = ?').run(id);
+      else db.prepare('DELETE FROM services WHERE id = ?').run(id);
+    }
+    const ins = db.prepare('INSERT INTO services(name, price, active, sort_order, created_at) VALUES (?, ?, 1, ?, ?)');
+    PRICE_LIST.forEach(([n, p], i) => ins.run(n, p, i + 1, now));
+    db.prepare('INSERT INTO settings(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
+      .run('price_list_version', PRICE_LIST_VERSION);
+    db.prepare('INSERT INTO audit_logs(at, user_id, action, entity, details) VALUES (?, NULL, ?, ?, ?)')
+      .run(now, 'service.price_list', 'service', JSON.stringify({ version: PRICE_LIST_VERSION, items: PRICE_LIST.length, replaced: old.length }));
+  });
+}
+
 function seed() {
   const ins = db.prepare('INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)');
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) ins.run(k, v);
-
-  const cnt = db.prepare('SELECT COUNT(*) AS c FROM services').get().c;
-  if (cnt === 0) {
-    // Namuna xizmatlar. Narxlarni administrator "Sozlamalar → Xizmatlar" bo'limida o'zgartiradi.
-    const s = db.prepare('INSERT INTO services(name, price, active, created_at) VALUES (?, ?, 1, ?)');
-    const now = nowLocal();
-    [
-      ['ЛОР кўриги (бирламчи)', 100000],
-      ['ЛОР кўриги (такрорий)', 70000],
-      ['Эндоскопия', 80000],
-      ['Муолажа', 30000],
-      ['Қулоқни ювиш', 50000],
-      ['Аудиометрия', 60000],
-    ].forEach(([n, p]) => s.run(n, p, now));
-  }
+  applyPriceList();
 }
 seed();
 
