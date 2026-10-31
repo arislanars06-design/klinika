@@ -33,6 +33,21 @@
   const { complaints: COMPLAINTS, discharge: DISCHARGE, sides: SIDES, degrees: DEGREES } = BASE;
   const LEGACY_METHODS = BASE.legacy.map((m) => ({ ...m, legacy: true }));
 
+  /* Shikoyatlar kimning so'zidan yozilgan (bola yoki og'ir bemor uchun): tugma va hujjatdagi matn */
+  const REL = (code, uz, ru, from_uz, from_ru) => ({ code, uz, ru, from: { uz: from_uz, ru: from_ru } });
+  const RELATIVES = [
+    REL('mother', 'Онаси', 'Мать', 'онасининг сўзидан', 'со слов матери'),
+    REL('father', 'Отаси', 'Отец', 'отасининг сўзидан', 'со слов отца'),
+    REL('sister', 'Опаси', 'Старшая сестра', 'опасининг сўзидан', 'со слов старшей сестры'),
+    REL('brother', 'Акаси', 'Старший брат', 'акасининг сўзидан', 'со слов старшего брата'),
+    REL('grandfather', 'Бобоси', 'Дедушка', 'бобосининг сўзидан', 'со слов дедушки'),
+    REL('grandmother', 'Бувиси', 'Бабушка', 'бувисининг сўзидан', 'со слов бабушки'),
+    REL('uncle', 'Амакиси', 'Дядя', 'амакисининг сўзидан', 'со слов дяди'),
+    REL('aunt_maternal', 'Холаси', 'Тётя (по матери)', 'холасининг сўзидан', 'со слов тёти (по матери)'),
+    REL('aunt_paternal', 'Аммаси', 'Тётя (по отцу)', 'аммасининг сўзидан', 'со слов тёти (по отцу)'),
+  ];
+  const relative = (code) => RELATIVES.find((r) => r.code === code) || null;
+
   /* ================= LOR STATUS shabloni (8 bo'lim) ================= */
   const o = (code, uz, ru) => ({ code, uz, ru });
   const n = (code, uz, ru) => ({ code, uz, ru, is_norm: true });
@@ -64,10 +79,10 @@
 
   const DISCH_NASAL = ['mucous', 'mucopurulent', 'purulent', 'serous', 'bloody'];
 
-  const METHODS = [
+  const RAW_METHODS = [
     /* ---------- 1. Бурун ва бурун ёндош бўшлиқлари ---------- */
     {
-      code: 'nose', uz: 'Бурун ва бурун ёндош бўшлиқлари', ru: 'Нос и околоносовые пазухи', tab: { uz: 'Бурун', ru: 'Нос' },
+      code: 'nose', uz: 'Риноскопия (бурун ва бурун ёндош бўшлиқлари)', ru: 'Риноскопия (нос и околоносовые пазухи)', print: { uz: 'Риноскопия', ru: 'Риноскопия' },
       parts: [
         P('ext_shape', 'Ташқи бурун шакли', 'Форма наружного носа', [
           R('state', 'Ҳолати', 'Состояние', [n('regular', 'Тўғри', 'Правильная'), o('changed', 'Ўзгарган', 'Изменена')]),
@@ -159,7 +174,7 @@
 
     /* ---------- 2. Бурун-ҳалқум ---------- */
     {
-      code: 'nasopharynx', uz: 'Бурун-ҳалқум (орқа риноскопия, эпифарингоскопия)', ru: 'Носоглотка (задняя риноскопия, эпифарингоскопия)', tab: { uz: 'Бурун-ҳалқум', ru: 'Носоглотка' },
+      code: 'nasopharynx', uz: 'Эпифарингоскопия (бурун-ҳалқум, орқа риноскопия)', ru: 'Эпифарингоскопия (носоглотка, задняя риноскопия)', print: { uz: 'Эпифарингоскопия', ru: 'Эпифарингоскопия' },
       parts: [
         P('vault', 'Бурун-ҳалқум гумбази', 'Свод носоглотки', [
           R('state', 'Ҳолати', 'Состояние', [n('free', 'Эркин', 'Свободен'), o('adenoids', 'Лимфоид тўқима (аденоид вегетациялар) бор', 'Содержит лимфоидную ткань (аденоидные вегетации)')]),
@@ -195,7 +210,7 @@
 
     /* ---------- 3. Оғиз бўшлиғи ва оғиз-ҳалқум ---------- */
     {
-      code: 'oropharynx', uz: 'Оғиз бўшлиғи ва оғиз-ҳалқум', ru: 'Полость рта и ротоглотка', tab: { uz: 'Оғиз-ҳалқум', ru: 'Ротоглотка' },
+      code: 'oropharynx', uz: 'Мезофарингоскопия (оғиз бўшлиғи ва оғиз-ҳалқум)', ru: 'Мезофарингоскопия (полость рта и ротоглотка)', print: { uz: 'Мезофарингоскопия', ru: 'Мезофарингоскопия' },
       parts: [
         P('mouth', 'Оғиз очилиши', 'Рот открывается', [
           R('state', 'Ҳолати', 'Состояние', [n('free', 'Эркин', 'Свободно'), o('trismus', 'Чекланган (тризм)', 'С ограничением (тризм)')]),
@@ -269,7 +284,7 @@
 
     /* ---------- 4. Ҳиқилдоқ-ҳалқум ---------- */
     {
-      code: 'hypopharynx', uz: 'Ҳиқилдоқ-ҳалқум (гипофарингоскопия)', ru: 'Гортаноглотка (гипофарингоскопия)', tab: { uz: 'Гипофаринкс', ru: 'Гортаноглотка' },
+      code: 'hypopharynx', uz: 'Гипофарингоскопия (ҳиқилдоқ-ҳалқум)', ru: 'Гипофарингоскопия (гортаноглотка)', print: { uz: 'Гипофарингоскопия', ru: 'Гипофарингоскопия' },
       parts: [
         P('lingual', 'Тил илдизи, тил бодомча бези', 'Корень языка, язычная миндалина', [
           R('state', 'Ҳолати', 'Состояние', [n('normal', 'Катталашмаган', 'Не увеличена'), o('hyper', 'Гипертрофияланган', 'Гипертрофирована')]),
@@ -294,7 +309,7 @@
 
     /* ---------- 5. Ҳиқилдоқ ---------- */
     {
-      code: 'larynx', uz: 'Ҳиқилдоқ', ru: 'Гортань', tab: { uz: 'Ҳиқилдоқ', ru: 'Гортань' },
+      code: 'larynx', uz: 'Ларингоскопия (ҳиқилдоқ)', ru: 'Ларингоскопия (гортань)', print: { uz: 'Ларингоскопия', ru: 'Ларингоскопия' },
       parts: [
         P('voice', 'Овоз', 'Голос', [
           R('state', 'Ҳолати', 'Состояние', [n('clear', 'Жарангдор', 'Звучный'), o('hoarse', 'Хириллаган', 'Охриплый'), o('husky', 'Бўғиқ', 'Осиплый'),
@@ -352,7 +367,7 @@
 
     /* ---------- 6. Қулоқлар (AD / AS) ---------- */
     {
-      code: 'ears', uz: 'Қулоқлар', ru: 'Уши', tab: { uz: 'Қулоқлар', ru: 'Уши' },
+      code: 'ears', uz: 'Отоскопия (қулоқлар)', ru: 'Отоскопия (уши)', print: { uz: 'Отоскопия', ru: 'Отоскопия' },
       ears: [{ code: 'AD', uz: 'AD (ўнг қулоқ)', ru: 'AD (правое ухо)', short: { uz: 'AD', ru: 'AD' } },
         { code: 'AS', uz: 'AS (чап қулоқ)', ru: 'AS (левое ухо)', short: { uz: 'AS', ru: 'AS' } }],
       same_toggle: true,
@@ -409,7 +424,7 @@
 
     /* ---------- 7. Эшитиш паспорти ---------- */
     {
-      code: 'hearing', uz: 'Эшитиш паспорти', ru: 'Слуховой паспорт', tab: { uz: 'Эшитиш', ru: 'Слух' },
+      code: 'hearing', uz: 'Акуметрия (эшитиш паспорти)', ru: 'Акуметрия (слуховой паспорт)', print: { uz: 'Акуметрия', ru: 'Акуметрия' },
       ears: [{ code: 'AD', uz: 'AD (ўнг қулоқ)', ru: 'AD (правое ухо)', short: { uz: 'AD', ru: 'AD' } },
         { code: 'AS', uz: 'AS (чап қулоқ)', ru: 'AS (левое ухо)', short: { uz: 'AS', ru: 'AS' } }],
       print_table: true,
@@ -445,7 +460,7 @@
 
     /* ---------- 8. Вестибуляр паспорт ---------- */
     {
-      code: 'vestibular', uz: 'Вестибуляр (статокинетик) паспорт', ru: 'Вестибулярный (статокинетический) паспорт', tab: { uz: 'Вестибуляр', ru: 'Вестибуляр' },
+      code: 'vestibular', uz: 'Вестибулометрия (вестибуляр паспорт)', ru: 'Вестибулометрия (вестибулярный паспорт)', print: { uz: 'Вестибулометрия', ru: 'Вестибулометрия' },
       ears: [{ code: 'r', uz: 'Ўнгда', ru: 'Справа', short: { uz: 'Ўнгда', ru: 'Справа' } }, { code: 'l', uz: 'Чапда', ru: 'Слева', short: { uz: 'Чапда', ru: 'Слева' } }],
       print_table: true,
       parts: [
@@ -483,6 +498,18 @@
     },
   ];
 
+  /* LOR STATUS bo'limlari (formadagi tablar). Ma'lumot metod kodlari bo'yicha saqlanadi, guruhlar faqat
+     ko'rinish va tartib uchun: Фарингоскопия → Риноскопия → Отоскопия → Ларингоскопия → Акуметрия → Вестибулометрия */
+  const GROUPS = [
+    { code: 'g_pharyngoscopy', uz: 'Фарингоскопия', ru: 'Фарингоскопия', methods: ['nasopharynx', 'oropharynx', 'hypopharynx'] },
+    { code: 'g_rhinoscopy', uz: 'Риноскопия', ru: 'Риноскопия', methods: ['nose'] },
+    { code: 'g_otoscopy', uz: 'Отоскопия', ru: 'Отоскопия', methods: ['ears'] },
+    { code: 'g_laryngoscopy', uz: 'Ларингоскопия', ru: 'Ларингоскопия', methods: ['larynx'] },
+    { code: 'g_acumetry', uz: 'Акуметрия', ru: 'Акуметрия', methods: ['hearing'] },
+    { code: 'g_vestibulometry', uz: 'Вестибулометрия', ru: 'Вестибулометрия', methods: ['vestibular'] },
+  ];
+  const METHODS = GROUPS.flatMap((g) => g.methods.map((c) => RAW_METHODS.find((m) => m.code === c)));
+  if (METHODS.length !== RAW_METHODS.length || METHODS.some((m) => !m)) throw new Error('LOR GROUPS mismatch');
 
   const ALL_METHODS = [...METHODS, ...LEGACY_METHODS];
   const LEGACY_CODES = new Set(LEGACY_METHODS.map((m) => m.code));
@@ -762,7 +789,7 @@
         }
         push('', partsLines(mv.parts, lang, common.filter((p) => p.common !== 'before')));
       }
-      if (groups.length || mv.note) out.push({ title: L(m, lang), groups, note: mv.note || '' });
+      if (groups.length || mv.note) out.push({ title: L(m.print || m, lang), groups, note: mv.note || '' });
     }
     return out;
   }
@@ -787,7 +814,7 @@
   }
 
   return {
-    COMPLAINTS, DISCHARGE, SIDES, DEGREES, METHODS, LEGACY_METHODS, LEGACY_CODES, FIELD_LABELS, DIAGNOSES,
+    COMPLAINTS, DISCHARGE, SIDES, DEGREES, METHODS, GROUPS, LEGACY_METHODS, LEGACY_CODES, FIELD_LABELS, DIAGNOSES, RELATIVES, relative,
     choicesOf, fieldVisible, partVisible, commonParts, sideParts, partSets,
     sanitizeLor, sanitizeComplaints, lorStatusText, complaintLabel, complaintsText, complaintCode,
   };

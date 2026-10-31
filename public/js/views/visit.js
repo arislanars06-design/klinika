@@ -300,6 +300,8 @@ function complaintsBlock(v) {
   return html`
     <section class="card">
       <h2>${t('visit.step_complaints')}</h2>
+      <div class="complaints-from"><span class="complaints-from__label">${t('visit.complaints_from')}:</span>
+        <div class="chips chips--sm">${LOR.RELATIVES.map((r) => chip('complaints_from', r.code, L(r), v.complaints_from === r.code))}</div></div>
       <div class="complaints">
         ${LOR.COMPLAINTS.map((g) => html`
           <div class="complaints__group"><div class="complaints__title">${L(g)}</div>
@@ -373,13 +375,15 @@ function lorBlock(v) {
       <div class="card-head"><h2>${t('visit.step_lor')}</h2></div>
       ${legacy ? html`<p class="alert alert--warn">${t('lor.legacy_note')}</p>` : ''}
       <div class="tabs lor-tabs" role="tablist">
-        ${LOR.METHODS.map((m, i) => html`<button type="button" class="tab ${i === 0 ? 'tab--active' : ''}" data-lor-tab="${m.code}" title="${L(m)}">
-          ${L(m.tab || m)}<span class="tab__count hidden" data-count-for="${m.code}"></span></button>`)}
+        ${LOR.GROUPS.map((g, i) => html`<button type="button" class="tab ${i === 0 ? 'tab--active' : ''}" data-lor-tab="${g.code}">
+          ${L(g)}<span class="tab__count hidden" data-count-for="${g.code}"></span></button>`)}
       </div>
-      ${LOR.METHODS.map((m, i) => {
+      ${LOR.GROUPS.map((g, gi) => html`<div class="lor-group ${gi === 0 ? '' : 'hidden'}" data-group="${g.code}">
+      ${g.methods.map((code) => {
+        const m = LOR.METHODS.find((x) => x.code === code);
         const mv = data[m.code] || {};
         return html`
-        <div class="lor ${i === 0 ? '' : 'hidden'}" data-method="${m.code}">
+        <div class="lor" data-method="${m.code}">
           <h3 class="lor__title">${L(m)}</h3>
           ${lorMethodBody(m, mv)}
           <div class="lor__foot">
@@ -389,7 +393,7 @@ function lorBlock(v) {
             <button type="button" class="btn btn--ghost btn--sm" data-clear="${m.code}">${t('lor.clear')}</button>
           </div>
         </div>`;
-      })}
+      })}</div>`)}
       <p class="hint">${t('visit.lor_hint')}</p>
     </section>`;
 }
@@ -547,7 +551,7 @@ function collect(form, legacyLor = {}) {
   });
   const g = (k) => (fd.get(k) || '').trim();
   return {
-    complaints, complaints_text: g('complaints_text'), anamnesis: g('anamnesis'), lor_status: lor,
+    complaints, complaints_from: fd.get('complaints_from') || '', complaints_text: g('complaints_text'), anamnesis: g('anamnesis'), lor_status: lor,
     diagnosis_main: g('diagnosis_main'), diagnosis_extra: g('diagnosis_extra'), treatment: g('treatment'), recommendation: g('recommendation'), prescriptions: [],
     exams: g('exams'), followup_date: g('followup_date'), followup_note: g('followup_note'),
   };
@@ -659,6 +663,8 @@ async function renderVisitForm(el, v, patient, { isNew }) {
       }
     }
     if (i.name.startsWith('cdis|')) i.nextElementSibling.classList.toggle('hidden', i.value !== 'other');
+    // «Яқинининг сўзидан»: bittasi tanlanadi, qayta bosilsa olib tashlanadi
+    if (i.name === 'complaints_from' && i.checked) $$('input[name=complaints_from]', form).forEach((x) => { if (x !== i) x.checked = false; });
     markDirty();
   });
   state.leaveGuard = { dirty: () => dirty };
@@ -667,14 +673,15 @@ async function renderVisitForm(el, v, patient, { isNew }) {
   $$('[data-lor-tab]', form).forEach((b) => {
     b.onclick = () => {
       $$('[data-lor-tab]', form).forEach((x) => x.classList.toggle('tab--active', x === b));
-      $$('.lor[data-method]', form).forEach((p) => p.classList.toggle('hidden', p.dataset.method !== b.dataset.lorTab));
+      $$('.lor-group[data-group]', form).forEach((p) => p.classList.toggle('hidden', p.dataset.group !== b.dataset.lorTab));
     };
   });
   function updateCounts() {
-    $$('.lor[data-method]', form).forEach((d) => {
+    // Tab yonidagi son: shu bo'limda (masalan, Фарингоскопия → эпи-, мезо-, гипо-) to'ldirilgan qismlar
+    $$('.lor-group[data-group]', form).forEach((d) => {
       const n = $$('.lor-part', d).filter((p) => $$('input[type=checkbox]:checked', p).length
         || $$('.lor__text, .lor__field-text', p).some((i) => i.value.trim())).length;
-      const c = $(`[data-count-for="${d.dataset.method}"]`, form);
+      const c = $(`[data-count-for="${d.dataset.group}"]`, form);
       c.textContent = n || '';
       c.classList.toggle('hidden', !n);
     });
@@ -752,6 +759,7 @@ export function bindPatientForm(f, id, onSaved) {
 /* ================= Tibbiy hujjat (chop etish) ================= */
 export function visitDocBody(v) {
   const complaints = LOR.complaintsText(v.complaints || [], state.lang);
+  const from = LOR.relative(v.complaints_from);
   const lor = LOR.lorStatusText(v.lor_status || {}, state.lang);
   const block = (title, content) => (content ? html`<div class="doc__block"><h3>${title}</h3>${content}</div>` : '');
   const p = (s) => (s ? html`<p class="pre">${s}</p>` : '');
@@ -764,7 +772,7 @@ export function visitDocBody(v) {
       ${v.patient_address ? html`<div><b>${t('f.address')}:</b> ${v.patient_address}</div>` : ''}
       <div><b>${t('visit.date')}:</b> ${fmtDateTime(v.visit_at)}</div>
     </div>
-    ${block(t('doc.complaints'), complaints || v.complaints_text ? html`
+    ${block(t('doc.complaints') + (from ? ` (${L(from.from)})` : ''), complaints || v.complaints_text ? html`
       ${complaints ? html`<p>${complaints}.</p>` : ''}${p(v.complaints_text)}` : '')}
     ${block(t('f.anamnesis'), p(v.anamnesis))}
     ${block(t('doc.lor_status'), lor.length ? html`${lor.map((s) => html`

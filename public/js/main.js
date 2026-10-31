@@ -22,7 +22,7 @@ const ROUTES = [
   { re: /^\/cash\/invoice\/(\d+)$/, perm: 'billing.read', view: (el, q, m) => invoiceView(el, Number(m[1])) },
   { re: /^\/cash\/daily$/, perm: 'billing.read', view: (el, q) => dailyView(el, q) },
   { re: /^\/reports$/, any: ['report.visits', 'report.finance'], view: (el, q) => reportsView(el, q) },
-  { re: /^\/admin$/, perm: 'admin', view: (el, q) => adminView(el, q) },
+  { re: /^\/admin$/, perm: 'settings.clinic', view: (el, q) => adminView(el, q) },
 ];
 
 const NAV = [
@@ -31,7 +31,7 @@ const NAV = [
   { href: '#/history', key: 'nav.history', perm: 'visit.list', match: /^\/(history|patient)/ },
   { href: '#/cash', key: 'nav.cash', perm: 'billing.read', match: /^\/cash/ },
   { href: '#/reports', key: 'nav.reports', any: ['report.visits', 'report.finance'], match: /^\/reports/ },
-  { href: '#/admin', key: 'nav.admin', perm: 'admin', match: /^\/admin/ },
+  { href: '#/admin', key: 'nav.admin', perm: 'settings.clinic', match: /^\/admin/ },
 ];
 const allowed = (r) => (r.perm ? can(r.perm) : r.any ? r.any.some(can) : true);
 

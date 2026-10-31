@@ -151,8 +151,14 @@ function getSettings() {
 }
 
 router.put('/api/settings', async (ctx) => {
-  need(ctx, 'admin');
+  need(ctx, 'settings.clinic');
   const body = await readJson(ctx.req);
+  // Server papkasi (fayllar yoziladigan joy) faqat administrator tomonidan o'zgartiriladi
+  if ('word_save_dir' in body && !sec.can(ctx.user, 'admin')) {
+    const cur = (db.prepare("SELECT value FROM settings WHERE key = 'word_save_dir'").get() || {}).value || '';
+    if (String(body.word_save_dir || '').trim() !== cur) throw new HttpError(403, 'forbidden');
+    delete body.word_save_dir;
+  }
   const upd = db.prepare('INSERT INTO settings(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
   const changed = [];
   for (const [k, max] of Object.entries(SETTING_KEYS)) {
@@ -332,13 +338,14 @@ router.put('/api/patients/:id', async (ctx) => {
 });
 
 /* ================= Qabullar ================= */
-const CLINICAL_FIELDS = ['complaints', 'complaints_text', 'anamnesis', 'lor_status', 'diagnosis_main', 'diagnosis_extra',
+const CLINICAL_FIELDS = ['complaints', 'complaints_from', 'complaints_text', 'anamnesis', 'lor_status', 'diagnosis_main', 'diagnosis_extra',
   'treatment', 'recommendation', 'prescriptions', 'exams', 'followup_date', 'followup_note'];
 
 function clinicalInput(body) {
   const pres = Array.isArray(body.prescriptions) ? body.prescriptions.slice(0, 30) : [];
   return {
     complaints: JSON.stringify(LOR.sanitizeComplaints(body.complaints)),
+    complaints_from: LOR.relative(body.complaints_from) ? body.complaints_from : '',
     complaints_text: str(body.complaints_text, 4000, 'complaints_text'),
     anamnesis: str(body.anamnesis, 4000, 'anamnesis'),
     lor_status: JSON.stringify(LOR.sanitizeLor(body.lor_status)),

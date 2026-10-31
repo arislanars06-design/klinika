@@ -220,6 +220,8 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .hist { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .hist li { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 .complaints { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 16px; margin-bottom: 10px; }
+.complaints-from { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 12px; }
+.complaints-from__label { font-weight: 650; font-size: .85rem; }
 .complaints__title { font-weight: 650; font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 5px; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chip { display: inline-flex; cursor: pointer; user-select: none; }
@@ -235,6 +237,7 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 
 .lor-tabs { margin-bottom: 0; }
 .lor { padding-top: 10px; }
+.lor-group > .lor + .lor { margin-top: 14px; border-top: 2px solid var(--line); }
 .lor-part { display: grid; grid-template-columns: 180px 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
 .lor-part:last-of-type { border-bottom: 0; }
 .lor-part__title { font-weight: 600; font-size: .85rem; padding-top: 2px; }
