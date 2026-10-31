@@ -288,7 +288,7 @@ function chip(name, value, label, checked) {
 
 function complaintsBlock(v) {
   const sel = {};
-  (v.complaints || []).forEach((c) => { const x = typeof c === 'string' ? { code: c } : c; sel[x.code] = x; });
+  (v.complaints || []).forEach((c) => { const x = typeof c === 'string' ? { code: c } : c; sel[LOR.complaintCode(x.code)] = { ...x, code: LOR.complaintCode(x.code) }; });
   const dischargeBox = (i) => {
     const cur = sel[i.code] || {};
     return html`<span class="discharge ${cur.code ? '' : 'hidden'}" data-discharge-for="${i.code}">
