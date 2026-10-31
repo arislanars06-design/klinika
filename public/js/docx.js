@@ -69,7 +69,7 @@ function runXml(r, base = {}) {
   const b = r.b ?? base.b;
   const i = r.i ?? base.i;
   const sz = r.sz ?? base.sz;
-  const pr = `${b ? '<w:b/>' : ''}${i ? '<w:i/>' : ''}${r.gray ? '<w:color w:val="555555"/>' : ''}${sz ? `<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>` : ''}`;
+  const pr = `${b ? '<w:b/>' : ''}${i ? '<w:i/>' : ''}${r.u ? '<w:u w:val="single"/>' : ''}${r.gray ? '<w:color w:val="555555"/>' : ''}${sz ? `<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>` : ''}`;
   return `<w:r>${pr ? `<w:rPr>${pr}</w:rPr>` : ''}<w:t xml:space="preserve">${xmlEsc(r.t)}</w:t></w:r>`;
 }
 
@@ -231,26 +231,58 @@ function block(el, out) {
   flush();
 }
 
+/** Sarlavha jadvali: 1-qator (vazirlik, tavsif) birlashtirilgan; 2-qator: logo | Хизматлар | Реквизитлар */
 function header(el, out, media) {
-  const img = el.querySelector('img');
-  const name = el.querySelector('.doc__clinic');
-  const one = (sel) => el.querySelector(sel);
-  // Sarlavhadagi qatorlar tartib bilan; oxirgisi ostida chiziq
-  const lines = [];
-  const ministry = one('.doc__ministry');
-  if (ministry) lines.push([inline(ministry).map((r) => ({ ...r, t: r.t && r.t.toUpperCase() })), { sz: 13, after: 20 }]);
-  const logo = img ? logoRun(img, media) : null;
-  lines.push([[...(logo ? [logo, { t: '  ' }] : []), ...(name ? inline(name) : [])], { b: true, sz: 21 }]);
-  const sub = one('.doc__sub');
-  if (sub) lines.push([inline(sub), { sz: 14, i: true }]);
-  const services = one('.doc__services');
-  if (services) lines.push([inline(services), { sz: 13, b: true, after: 20 }]);
-  [...el.querySelectorAll('.doc__req')].filter((r) => r.textContent.trim()).forEach((r) => lines.push([inline(r), { sz: 14 }]));
-  lines.forEach(([runs, o], i) => out.push(P(runs, { after: 0, ...o, align: 'center', border: i === lines.length - 1 })));
-  out.push(P([], { after: 20, sz: 6 }));
+  const tbl = el.querySelector('table.doc__htable');
+  if (!tbl) return;
+  const rows = [...tbl.rows];
+  const main = rows[rows.length - 1];
+  const kinds = [...main.cells].map((c) => (c.classList.contains('doc__hlogo') ? 'logo' : c.classList.contains('doc__hserv') ? 'serv' : 'req'));
+  // Ustun kengliklari: logo 22%, xizmatlar 33%, qolgani rekvizitlar
+  const share = { logo: 0.22, serv: 0.33 };
+  const widths = kinds.map((k) => Math.round(CONTENT_W * (share[k] || 0)));
+  const rest = CONTENT_W - widths.reduce((a, b) => a + b, 0);
+  kinds.forEach((k, i) => { if (k === 'req' || (!kinds.includes('req') && i === kinds.length - 1)) widths[i] += rest; });
+  const SZ = 15;
+  const tc = (w, paras, x = {}) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${x.span ? `<w:gridSpan w:val="${x.span}"/>` : ''}`
+    + `${x.vcenter ? '<w:vAlign w:val="center"/>' : ''}</w:tcPr>${paras.join('') || P([])}</w:tc>`;
+  const trs = [];
+  if (rows.length > 1) {
+    const top = rows[0].cells[0];
+    const ps = [];
+    const mi = top.querySelector('.doc__ministry');
+    const su = top.querySelector('.doc__sub');
+    if (mi) ps.push(P(inline(mi).map((r) => ({ ...r, t: r.t && r.t.toUpperCase() })), { align: 'center', b: true, sz: 16, after: 0 }));
+    if (su) ps.push(P(inline(su), { align: 'center', b: true, i: true, sz: SZ + 1, after: 0 }));
+    trs.push(`<w:tr>${tc(CONTENT_W, ps, { span: kinds.length })}</w:tr>`);
+  }
+  const cells = [...main.cells].map((c, i) => {
+    const w = widths[i];
+    if (kinds[i] === 'logo') {
+      const img = c.querySelector('img');
+      const px = (w - 2 * 57) / 15; // katak ichki kengligi, px
+      const run = img ? logoRun(img, media, { w: px, h: 92 }) : null;
+      return tc(w, [P(run ? [run] : inline(c), { align: 'center', b: true, sz: 19, after: 0 })], { vcenter: true });
+    }
+    const ps = [];
+    for (const d of c.children) {
+      if (d.classList.contains('doc__hcap')) ps.push(P([{ t: d.textContent.trim(), b: true, u: true }], { align: 'center', sz: SZ, after: 20 }));
+      else ps.push(P(inline(d), { b: true, sz: SZ, after: d.classList.contains('doc__hgap') ? 80 : 0, align: kinds[i] === 'req' ? 'center' : undefined }));
+    }
+    return tc(w, ps);
+  });
+  trs.push(`<w:tr>${cells.join('')}</w:tr>`);
+  const b = '<w:top w:val="single" w:sz="6" w:color="000000"/><w:left w:val="single" w:sz="6" w:color="000000"/>'
+    + '<w:bottom w:val="single" w:sz="6" w:color="000000"/><w:right w:val="single" w:sz="6" w:color="000000"/>'
+    + '<w:insideH w:val="single" w:sz="6" w:color="000000"/><w:insideV w:val="single" w:sz="6" w:color="000000"/>';
+  out.push(`<w:tbl><w:tblPr><w:tblW w:w="${CONTENT_W}" w:type="dxa"/><w:tblBorders>${b}</w:tblBorders><w:tblLayout w:type="fixed"/>`
+    + '<w:tblCellMar><w:top w:w="28" w:type="dxa"/><w:left w:w="57" w:type="dxa"/><w:bottom w:w="28" w:type="dxa"/><w:right w:w="57" w:type="dxa"/></w:tblCellMar></w:tblPr>'
+    + `<w:tblGrid>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${trs.join('')}</w:tbl>`);
+  out.push(P([], { after: 40, sz: 6 }));
 }
 
-function logoRun(img, media) {
+/** Logo rasmi; box — ruxsat etilgan eng katta o'lcham (px, 96 dpi) */
+function logoRun(img, media, box = { w: 110, h: 36 }) {
   const m = /^data:image\/(png|jpeg);base64,(.+)$/.exec(img.getAttribute('src') || '');
   if (!m) return null; // WEBP va boshqalarni Word har doim ham ochmaydi
   const bin = atob(m[2]);
@@ -260,7 +292,7 @@ function logoRun(img, media) {
   media.push({ name: `word/media/logo.${ext}`, data, ext });
   const nw = img.naturalWidth || 1;
   const nh = img.naturalHeight || 1;
-  const scale = Math.min(36 / nh, 110 / nw);
+  const scale = Math.min(box.h / nh, box.w / nw);
   const cx = Math.round(nw * scale * 9525);
   const cy = Math.round(nh * scale * 9525);
   return {

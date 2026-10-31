@@ -117,7 +117,7 @@ const uz = {
   'rx.name': 'Дори / муолажа', 'rx.dose': 'Доза', 'rx.usage': 'Қабул қилиш усули', 'rx.duration': 'Муддати', 'rx.add': 'Қатор қўшиш',
 
   // hujjat
-  'doc.title': 'Амбулатор тиббий карта', 'doc.subtitle': 'Бирламчи кўрик', 'doc.addr': 'Манзил', 'doc.tel': 'Телефонлар',
+  'doc.title': 'Амбулатор тиббий карта', 'doc.subtitle': 'Бирламчи кўрик', 'doc.addr': 'Манзил', 'doc.tel': 'Телефонлар', 'doc.services': 'Хизматлар', 'doc.requisites': 'Реквизитлар',
   'admin.clinic_ministry': 'Юқори ташкилот (сарлавҳанинг биринчи қатори)', 'admin.clinic_subtitle': 'Клиника тавсифи (номи остида)',
   'admin.clinic_services': 'Йўналишлар', 'admin.clinic_services_hint': 'Ҳар бирини алоҳида қаторга ёзинг. Ҳужжат сарлавҳасида «•» билан бир қаторда чиқади.',
   'admin.clinic_phones': 'Телефонлар', 'doc.complaints': 'Шикояти', 'doc.lor_status': 'LOR STATUS',
@@ -166,8 +166,8 @@ const uz = {
   // administrator
   'admin.settings': 'Клиника', 'admin.users': 'Ходимлар', 'admin.services': 'Хизматлар ва нархлар', 'admin.audit': 'Аудит журнали',
   'admin.backup': 'Захира нусхалари', 'admin.clinic_name': 'Клиника номи', 'admin.requisites': 'Реквизитлар (лицензия, СТИР, банк ва ҳ.к.)',
-  'admin.logo': 'Лого', 'admin.logo_hint': 'PNG, JPG ёки WEBP, 500 KB гача. Тиббий ҳужжат сарлавҳасида чиқади.',
-  'admin.logo_big': 'Файл ҳажми 500 KB дан ошмаслиги керак', 'admin.add_user': 'Ходим қўшиш', 'admin.roles': 'Роллар',
+  'admin.logo': 'Лого', 'admin.logo_hint': 'PNG, JPG ёки WEBP. Катта расм ўзи кичрайтирилади. Ҳужжат сарлавҳасининг чап катагида чиқади.',
+  'admin.logo_big': 'Расмни ўқиб бўлмади. PNG ёки JPG файл танланг', 'admin.add_user': 'Ходим қўшиш', 'admin.roles': 'Роллар',
   'admin.active': 'Фаол', 'admin.inactive': 'Ўчирилган', 'admin.must_change': 'паролни алмаштириши керак',
   'admin.reset_password': 'Янги вақтинчалик парол (ўзгартирмаслик учун бўш қолдиринг)',
   'admin.password_hint': 'Камида 8 белги. Ходим биринчи киришда ўз паролини ўрнатади.',
@@ -306,7 +306,7 @@ const ru = {
   'lor.recorded': 'Отмечено', 'lor.not_recorded': 'Не зафиксировано',
   'rx.name': 'Препарат / процедура', 'rx.dose': 'Доза', 'rx.usage': 'Способ применения', 'rx.duration': 'Длительность', 'rx.add': 'Добавить строку',
 
-  'doc.title': 'Амбулаторная медицинская карта', 'doc.subtitle': 'Первичный осмотр', 'doc.addr': 'Адрес', 'doc.tel': 'Телефоны',
+  'doc.title': 'Амбулаторная медицинская карта', 'doc.subtitle': 'Первичный осмотр', 'doc.addr': 'Адрес', 'doc.tel': 'Телефоны', 'doc.services': 'Услуги', 'doc.requisites': 'Реквизиты',
   'admin.clinic_ministry': 'Вышестоящая организация (первая строка шапки)', 'admin.clinic_subtitle': 'Описание клиники (под названием)',
   'admin.clinic_services': 'Направления', 'admin.clinic_services_hint': 'Каждое с новой строки. В шапке документа выводятся в одну строку через «•».',
   'admin.clinic_phones': 'Телефоны', 'doc.complaints': 'Жалобы', 'doc.lor_status': 'LOR STATUS',
@@ -351,8 +351,8 @@ const ru = {
 
   'admin.settings': 'Клиника', 'admin.users': 'Сотрудники', 'admin.services': 'Услуги и цены', 'admin.audit': 'Журнал аудита',
   'admin.backup': 'Резервные копии', 'admin.clinic_name': 'Название клиники', 'admin.requisites': 'Реквизиты (лицензия, ИНН, банк и т.д.)',
-  'admin.logo': 'Логотип', 'admin.logo_hint': 'PNG, JPG или WEBP, до 500 КБ. Выводится в шапке медицинского документа.',
-  'admin.logo_big': 'Размер файла не должен превышать 500 КБ', 'admin.add_user': 'Добавить сотрудника', 'admin.roles': 'Роли',
+  'admin.logo': 'Логотип', 'admin.logo_hint': 'PNG, JPG или WEBP. Большое изображение уменьшается автоматически. Выводится в левой ячейке шапки документа.',
+  'admin.logo_big': 'Не удалось прочитать изображение. Выберите PNG или JPG', 'admin.add_user': 'Добавить сотрудника', 'admin.roles': 'Роли',
   'admin.active': 'Активен', 'admin.inactive': 'Отключён', 'admin.must_change': 'должен сменить пароль',
   'admin.reset_password': 'Новый временный пароль (оставьте пустым, чтобы не менять)',
   'admin.password_hint': 'Не менее 8 символов. Сотрудник задаст свой пароль при первом входе.',

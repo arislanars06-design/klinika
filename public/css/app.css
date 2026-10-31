@@ -318,14 +318,21 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 /* ---------- Chop etish: A5 qog'oz, ixcham matn, har doim oq fonda ---------- */
 .print-root { display: none; }
 .doc { color: #000; background: #fff; }
-.doc__head { border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; text-align: center; }
-.doc__ministry { font-size: .8em; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
-.doc__brand { display: flex; gap: 12px; align-items: center; justify-content: center; }
-.doc__sub { font-size: .9em; font-style: italic; }
-.doc__services { font-size: .85em; font-weight: 600; margin-top: 2px; }
-.doc__logo { max-height: 64px; max-width: 160px; object-fit: contain; }
+.doc__head { margin-bottom: 14px; }
+.doc__htable { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.doc__htable td { border: 1px solid #000; padding: 4px 8px; vertical-align: top; font-weight: 600; }
+.doc__htop { text-align: center; }
+.doc__col-logo { width: 22%; }
+.doc__col-serv { width: 33%; }
+.doc__hlogo { text-align: center; vertical-align: middle !important; }
+.doc__hreq { text-align: center; }
+.doc__hcap { font-weight: 700; text-decoration: underline; text-align: center; margin-bottom: 2px; }
+.doc__hgap { margin-bottom: .6em; }
+.doc__ministry { font-weight: 700; text-transform: uppercase; }
+.doc__sub { font-weight: 700; font-style: italic; }
+.doc__logo { display: block; margin: 0 auto; max-width: 100%; max-height: 120px; object-fit: contain; }
 .doc__clinic { font-size: 1.3em; font-weight: 800; }
-.doc__req { font-size: .9em; }
+
 .doc__title { text-align: center; font-size: 1.2em; margin: 6px 0 14px; text-transform: uppercase; letter-spacing: .03em; }
 .doc__subtitle { text-align: center; font-weight: 600; margin: -10px 0 14px; }
 .doc__block { margin-bottom: 12px; }
@@ -361,14 +368,13 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 
 /* Ixcham A5 hujjat ko'rinishi: chop etishda (.print-root) va qabul oynasidagi jonli ko'rinishda (.doc-live) bir xil */
 :is(.print-root, .doc-live) .doc { max-width: none; }
-:is(.print-root, .doc-live) .doc__head { padding-bottom: 3px; margin-bottom: 5px; border-bottom-width: 1.5px; }
-:is(.print-root, .doc-live) .doc__ministry { font-size: 6.8pt; margin-bottom: 2px; }
-:is(.print-root, .doc-live) .doc__brand { gap: 8px; }
-:is(.print-root, .doc-live) .doc__sub { font-size: 7.3pt; line-height: 1.2; }
-:is(.print-root, .doc-live) .doc__services { font-size: 7pt; line-height: 1.25; margin-top: 1px; }
-:is(.print-root, .doc-live) .doc__logo { max-height: 30px; max-width: 80px; }
+:is(.print-root, .doc-live) .doc__head { margin-bottom: 6px; }
+:is(.print-root, .doc-live) .doc__htable td { padding: 2px 5px; font-size: 7.3pt; line-height: 1.25; border-width: .75pt; }
+:is(.print-root, .doc-live) .doc__ministry { font-size: 8pt; }
+:is(.print-root, .doc-live) .doc__sub { font-size: 7.8pt; line-height: 1.2; }
+:is(.print-root, .doc-live) .doc__logo { max-height: 24mm; }
 :is(.print-root, .doc-live) .doc__clinic { font-size: 10.5pt; line-height: 1.15; }
-:is(.print-root, .doc-live) .doc__req { font-size: 7.3pt; line-height: 1.2; }
+
 :is(.print-root, .doc-live) .doc__title { font-size: 9.5pt; margin: 2px 0 5px; }
 :is(.print-root, .doc-live) .doc__subtitle { font-size: 8.6pt; margin: -4px 0 5px; }
 

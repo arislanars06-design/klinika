@@ -18,6 +18,38 @@ export async function adminView(el, query) {
   await ({ settings, users, services, audit, backup })[tab](body, query);
 }
 
+/**
+ * Logoni brauzerda kichraytirish: eng katta tomoni 480 px, PNG (shaffoflik saqlanadi).
+ * Juda katta bo'lsa JPEG. Natija Word ham tushunadigan data:image/png|jpeg.
+ */
+function shrinkImage(file, max = 480) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k));
+      c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      const g = c.getContext('2d');
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(img, 0, 0, c.width, c.height);
+      let data = c.toDataURL('image/png');
+      if (data.length > 600000) {
+        const j = document.createElement('canvas'); j.width = c.width; j.height = c.height;
+        const jg = j.getContext('2d'); jg.fillStyle = '#fff'; jg.fillRect(0, 0, j.width, j.height); jg.drawImage(c, 0, 0);
+        data = j.toDataURL('image/jpeg', 0.88);
+      }
+      resolve(data);
+    };
+    img.onerror = () => reject(new Error('bad image'));
+    // CSP faqat data: rasmlarga ruxsat beradi, shuning uchun fayl data URL sifatida o'qiladi
+    const r = new FileReader();
+    r.onload = () => { img.src = r.result; };
+    r.onerror = () => reject(new Error('read error'));
+    r.readAsDataURL(file);
+  });
+}
+
 /* ---------- Klinika rekvizitlari ---------- */
 async function settings(el) {
   const s = state.settings;
@@ -57,13 +89,13 @@ async function settings(el) {
   const f = $('#sf', el);
   let logo = s.clinic_logo || '';
   const prev = $('#logo-prev', el);
-  $('#logo', el).onchange = (e) => {
+  $('#logo', el).onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 500 * 1024) { toast(t('admin.logo_big'), 'err'); e.target.value = ''; return; }
-    const r = new FileReader();
-    r.onload = () => { logo = r.result; prev.src = logo; prev.classList.remove('hidden'); };
-    r.readAsDataURL(file);
+    try {
+      logo = await shrinkImage(file);
+      prev.src = logo; prev.classList.remove('hidden');
+    } catch { toast(t('admin.logo_big'), 'err'); e.target.value = ''; }
   };
   $('#logo-rm', el).onclick = () => { logo = ''; prev.classList.add('hidden'); $('#logo', el).value = ''; };
   f.onsubmit = async (e) => {
