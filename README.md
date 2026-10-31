@@ -19,7 +19,31 @@ Klinikaning lokal tarmog'ida ishlaydigan web-tizim: qabul (elektron LOR karta), 
 4. Birinchi ishga tushirishda terminalda **administrator logini (`admin`) va vaqtinchalik parol** chiqadi. Kirgandan keyin tizim parolni almashtirishni talab qiladi.
 5. Server kompyuterning IP manzilini aniqlang (Windows: `ipconfig`) va boshqa kompyuterlarda `http://192.168.x.x:3000` ni oching.
 6. Server kompyuterga **doimiy IP** bering (routerda) va Windows Firewall'da 3000-portni faqat lokal tarmoq uchun oching.
-7. Server kompyuter yoqilganda dastur avtomatik ishga tushishi uchun uni Windows xizmati sifatida qo'shing (masalan, NSSM yoki Task Scheduler orqali).
+7. Server kompyuter yoqilganda dastur o'zi ishga tushishi va PowerShell oynasisiz ishlashi uchun pastdagi **«Windows'da fonda ishlatish»** bo'limiga qarang.
+
+## Windows'da fonda ishlatish (PowerShell oynasisiz)
+
+`windows` papkasidagi fayllar serverni Task Scheduler'dagi **NURMED** vazifasi qilib o'rnatadi:
+
+- kompyuter yoqilganda server o'zi ishga tushadi (hech kim tizimga kirmasa ham);
+- oyna ochilmaydi, PowerShell'ni yopsangiz ham sayt ishlayveradi;
+- server to'xtab qolsa, 1 daqiqadan keyin qayta ishga tushadi;
+- jurnal `data\logs\server.log` fayliga yoziladi (10 MB dan oshsa `server.old.log` ga o'tadi).
+
+| Fayl (ikki marta bosing) | Vazifasi |
+|---|---|
+| `windows\install.bat` | **Bir marta**: o'rnatadi va ishga tushiradi. Ochiq `npm start` oynasi bo'lsa, uni o'zi to'xtatadi. 3000-portni lokal tarmoq uchun ochadi |
+| `windows\update.bat` | Yangilash: `git pull` qiladi va serverni qayta ishga tushiradi |
+| `windows\restart.bat` | Serverni qayta ishga tushiradi |
+| `windows\status.bat` | Holat, sayt manzillari va jurnalning oxirgi qatorlari |
+| `windows\uninstall.bat` | Vazifani olib tashlaydi (ma'lumotlar o'chmaydi) |
+
+Har bir fayl administrator huquqini so'raydi: «Ҳа / Да / Yes» ni bosing.
+
+Eslatmalar:
+- Server **SYSTEM** hisobida ishlaydi. «Word fayllar saqlanadigan papka» uchun lokal diskni ko'rsating (masalan, `D:\NURMED\Ҳужжатлар`). Tarmoq diskiga (`Z:\` kabi) SYSTEM yoza olmaydi.
+- Windows tarmog'i **«Общественная / Public»** turida bo'lsa, firewall qoidasi ishlamaydi. Tarmoqni «Частная / Private» qiling.
+- Birinchi o'rnatishda administratorning vaqtinchalik paroli oynada emas, `data\logs\server.log` faylida bo'ladi.
 
 ### Sozlamalar (muhit o'zgaruvchilari)
 
