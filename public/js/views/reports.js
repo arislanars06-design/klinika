@@ -1,5 +1,5 @@
 // Statistika: qabullar — «Беморлар тарихи → Статистика», moliya — «Касса → Статистика».
-import { html, raw, render, $, t, state, GET, qs, money, fmtDate, localDate, addDays, go, setQuery, can, busy, printDoc, docHeader } from '../core.js';
+import { html, raw, render, $, t, state, GET, qs, money, fmtDate, fmtDateTime, localDate, addDays, go, setQuery, can, busy, printDoc, docHeader } from '../core.js';
 
 const KINDS = {
   visits: {
@@ -108,8 +108,18 @@ export async function statsView(el, query, kind) {
   $('#stats-word', el).onclick = (e) => busy(e.target, () => statsWord(K, d, from, to, periodLabel));
 }
 
-/** Statistikani Word (A4) fayliga: ko'rsatkichlar jadvali va bo'limlar bo'yicha jadvallar */
-function statsWord(K, d, from, to, periodLabel) {
+/** Ro'yxat jadvali; cols: [{ h, w (%), num }] — w Word'da ustun kengligi */
+function listTable(title, cols, rows, foot) {
+  const cls = (c) => (c.num ? 'num' : '');
+  return html`<div class="doc__block"><h3>${title}</h3>${rows.length ? html`<table class="doc__table">
+    <thead><tr>${cols.map((c) => html`<th class="${cls(c)}" data-w="${c.w || ''}">${c.h}</th>`)}</tr></thead>
+    <tbody>${rows.map((r) => html`<tr>${r.map((v, i) => html`<td class="${cls(cols[i])}">${v}</td>`)}</tr>`)}
+      ${foot ? html`<tr>${foot.map((v, i) => html`<td class="${cls(cols[i])}"><b>${v}</b></td>`)}</tr>` : ''}</tbody></table>`
+    : html`<p>${t('empty')}</p>`}</div>`;
+}
+
+/** Statistikani Word (A4) fayliga: ko'rsatkichlar, bo'limlar bo'yicha jadvallar va bemorlar ro'yxati */
+async function statsWord(K, d, from, to, periodLabel) {
   const V = d.visits;
   const F = d.finance;
   const kv = (rows) => html`<table class="doc__table"><thead><tr><th>${t('rep.indicator')}</th><th class="num">${t('rep.value')}</th></tr></thead>
@@ -126,7 +136,8 @@ function statsWord(K, d, from, to, periodLabel) {
         [t('rep.new'), V.new_patients], [t('rep.returning'), V.returning_patients]])}</div>
       ${tbl(byPeriod, [t('rep.period_col'), t('rep.visits_total')], V.by_period.map((r) => [periodLabel(r), r.count]))}
       ${tbl(t('rep.by_doctor'), [t('doc.doctor'), t('rep.visits_total')], V.by_doctor.map((r) => [r.doctor, r.count]))}
-      ${tbl(t('rep.by_diagnosis'), [t('f.diagnosis_main'), t('rep.visits_total'), t('rep.patients')], V.by_diagnosis.map((r) => [r.diagnosis, r.count, r.patients]))}`;
+      ${tbl(t('rep.by_diagnosis'), [t('f.diagnosis_main'), t('rep.visits_total'), t('rep.patients')], V.by_diagnosis.map((r) => [r.diagnosis, r.count, r.patients]))}
+      ${await visitsList(from, to)}`;
   } else {
     body = html`
       <div class="doc__block">${kv([[t('cash.net'), money(F.net)], [t('cash.income'), money(F.income)], [t('cash.refunds'), money(F.refunds)],
@@ -134,7 +145,8 @@ function statsWord(K, d, from, to, periodLabel) {
         [t('rep.debts'), money(F.debt_sum)], [t('rep.debt_invoices'), F.debt_count]])}</div>
       ${tbl(t('cash.by_method'), [t('cash.method'), t('cash.net')], Object.entries(F.by_method).map(([m, v]) => [t('method.' + m), money(v.net)]))}
       ${tbl(byPeriod, [t('rep.period_col'), t('cash.net')], F.by_period.map((r) => [periodLabel(r), money(r.net)]))}
-      ${tbl(t('rep.services'), [t('cash.service'), t('cash.qty'), t('cash.amount')], F.services.map((s) => [s.name, s.qty, money(s.amount)]))}`;
+      ${tbl(t('rep.services'), [t('cash.service'), t('cash.qty'), t('cash.amount')], F.services.map((s) => [s.name, s.qty, money(s.amount)]))}
+      ${await invoicesList(from, to)}`;
   }
   const period = `${fmtDate(from)} — ${fmtDate(to)}`;
   return printDoc(html`<article class="doc">${docHeader()}
@@ -145,6 +157,29 @@ function statsWord(K, d, from, to, periodLabel) {
       <div><b>${t('rep.prepared')}:</b> ${state.user.full_name}</div>
       <div class="doc__sign">${t('doc.signature')}: ______________</div></div></footer>
   </article>`, { word: true, page: 'a4', name: `${t(K.doc)} ${fmtDate(from)}-${fmtDate(to)}` });
+}
+
+/** Беморлар рўйхати (қабуллар бўйича): № | Сана | Ф.И.Ш. | Туғилган сана | Ташхис | Шифокор */
+async function visitsList(from, to) {
+  const d = await GET('/api/visits' + qs({ all: 1, from, to }));
+  const rows = [...d.rows].sort((a, b) => a.visit_at.localeCompare(b.visit_at) || a.id - b.id)
+    .map((v, i) => [i + 1, fmtDateTime(v.visit_at), v.patient_name, fmtDate(v.birth_date) || '—', v.diagnosis_main || '—', v.doctor_name || '']);
+  return listTable(t('rep.patient_list'), [
+    { h: '№', w: 5 }, { h: t('date'), w: 14 }, { h: t('f.full_name'), w: 25 }, { h: t('f.birth_date'), w: 12 },
+    { h: t('f.diagnosis_main') }, { h: t('doc.doctor'), w: 16 },
+  ], rows);
+}
+
+/** Беморлар рўйхати хизматлар билан (ҳисоблар бўйича): № | Сана | Ф.И.Ш. | Хизматлар | Жами | Тўланган | Қарз */
+async function invoicesList(from, to) {
+  const d = await GET('/api/invoices' + qs({ all: 1, from, to }));
+  const list = [...d.rows].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id - b.id);
+  const sum = (k) => list.reduce((a, r) => a + (r[k] || 0), 0);
+  const rows = list.map((r, i) => [i + 1, fmtDateTime(r.created_at), r.patient_name, r.services || '—', money(r.total), money(r.paid), r.debt ? money(r.debt) : '—']);
+  return listTable(t('rep.patient_services'), [
+    { h: '№', w: 5 }, { h: t('date'), w: 13 }, { h: t('f.full_name'), w: 20 }, { h: t('rep.services_col') },
+    { h: t('cash.total'), w: 11, num: true }, { h: t('cash.paid'), w: 11, num: true }, { h: t('cash.debt'), w: 10, num: true },
+  ], rows, list.length ? ['', '', t('total'), '', money(sum('total')), money(sum('paid')), money(sum('debt'))] : null);
 }
 
 /** Eski «Ҳисоботлар» havolasi: mos statistika sahifasiga o'tkazadi */

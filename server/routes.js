@@ -658,6 +658,11 @@ router.get('/api/invoices', async (ctx) => {
   const params = [];
   const date = dateParam(ctx.query.get('date'), 'date', '');
   if (date) { where.push('substr(i.created_at, 1, 10) = ?'); params.push(date); }
+  // Davr (statistika → Word): from/to bo'yicha hisob sanasi
+  const from = dateParam(ctx.query.get('from'), 'from', '');
+  const to = dateParam(ctx.query.get('to'), 'to', '');
+  if (from) { where.push('substr(i.created_at, 1, 10) >= ?'); params.push(from); }
+  if (to) { where.push('substr(i.created_at, 1, 10) <= ?'); params.push(to); }
   const q = str(ctx.query.get('q') || '', 100, 'q');
   if (q) {
     where.push("(ulower(p.full_name) LIKE ulower(?) ESCAPE '\\' OR ulower(p.code) LIKE ulower(?) ESCAPE '\\' OR ulower(i.number) LIKE ulower(?) ESCAPE '\\')");
