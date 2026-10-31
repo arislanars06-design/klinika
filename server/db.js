@@ -205,6 +205,9 @@ const DEFAULT_SETTINGS = {
   clinic_telegram: '',
   clinic_instagram: '',
   clinic_logo: '',
+  // Ruscha variantlar (bo'sh bo'lsa, o'zbekchasi chiqadi)
+  clinic_name_ru: '', clinic_ministry_ru: '', clinic_subtitle_ru: '', clinic_services_ru: '', clinic_address_ru: '', clinic_requisites_ru: '',
+  treatment_template_ru: '',
   treatment_template: '1. №15-диета столи\n2. Томоқ ва бурунни фурациллин эритмасида 4–5 маҳал чайиш', // yangi qabulda «Даволаш режаси»ga yoziladi // data:image/... (ixtiyoriy)
   word_save_dir: '', // bo'sh bo'lmasa, Word fayllarning nusxasi server kompyuterdagi shu papkaga yoziladi
   print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
@@ -305,12 +308,32 @@ function applyClinicHeader() {
   });
 }
 
+// Klinika sarlavhasining ruscha matni: bir marta, faqat bo'sh maydonlarga yoziladi
+const CLINIC_HEADER_RU_VERSION = '2026-11-01';
+const CLINIC_HEADER_RU = {
+  clinic_ministry_ru: 'Министерство здравоохранения Республики Узбекистан',
+  clinic_subtitle_ru: 'Частная клиника современной диагностики и лечения оториноларингологических заболеваний',
+  clinic_services_ru: ['ЛОР', 'Ревматолог', 'Гирудотерапия (лечение пиявками)', 'Хиджама (баночная терапия)', 'Лаборатория'].join('\n'),
+  clinic_address_ru: 'г. Ташкент, Сергелийский район, ул. Мирзо Турсунзаде, дом 32, кв. 55',
+  treatment_template_ru: '1. Диета — стол №15\n2. Полоскание горла и промывание носа раствором фурацилина 4–5 раз в день',
+};
+function applyClinicHeaderRu() {
+  const done = db.prepare('SELECT value FROM settings WHERE key = ?').get('clinic_header_ru_version');
+  if (done && done.value === CLINIC_HEADER_RU_VERSION) return;
+  const upd = db.prepare("UPDATE settings SET value = ? WHERE key = ? AND value = ''");
+  tx(() => {
+    for (const [k, v] of Object.entries(CLINIC_HEADER_RU)) upd.run(v, k);
+    db.prepare('INSERT INTO settings(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run('clinic_header_ru_version', CLINIC_HEADER_RU_VERSION);
+  });
+}
+
 function seed() {
   const ins = db.prepare('INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)');
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) ins.run(k, v);
   applyPriceList();
   applyPriceGroups();
   applyClinicHeader();
+  applyClinicHeaderRu();
 }
 seed();
 

@@ -1,7 +1,7 @@
 // NURMED — ilovaning kirish nuqtasi: login, bosh menyu, til, soat va sahifalar marshruti.
 import {
   html, raw, render, $, t, state, GET, POST, can, toast, errorText, parseHash, setUnauthorizedHandler, setRefresh,
-  localDate, fmtDate, busy, modal, ApiError, downloadsList, clearDownloads, go,
+  localDate, fmtDate, busy, modal, ApiError, downloadsList, clearDownloads, go, setting,
 } from './core.js';
 import { dashboardView, historyView, patientView } from './views/main-views.js';
 import { newVisitView, visitView } from './views/visit.js';
@@ -180,7 +180,7 @@ function shell() {
     <header class="topbar">
       <a class="brand" href="#/">
         ${s.clinic_logo ? html`<img class="brand__logo" src="${s.clinic_logo}" alt="">` : html`<span class="brand__mark">N</span>`}
-        <span class="brand__name">${s.clinic_name || 'NURMED'}</span></a>
+        <span class="brand__name">${setting('clinic_name') || 'NURMED'}</span></a>
       <nav class="nav" id="nav">${NAV.filter(allowed).map((n) => html`<a href="${n.href}" data-match="${n.match.source}">${t(n.key)}</a>`)}</nav>
       <div class="topbar__right">
         <span class="clock" id="clock"></span>
@@ -266,7 +266,7 @@ async function start() {
     return;
   }
   if (state.user.must_change_password) { passwordScreen(true); return; }
-  document.title = state.settings.clinic_name || 'NURMED';
+  document.title = setting('clinic_name') || 'NURMED';
   shell();
   route();
 }

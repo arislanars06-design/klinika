@@ -335,8 +335,17 @@ export function printDoc(content, opts = {}) {
  *   1-qator: vazirlik + klinika tavsifi
  *   2-qator: logo (yo'q bo'lsa klinika nomi) | Хизматлар (ro'yxat) | Реквизитлар (manzil, telefonlar, Telegram/Instagram)
  */
+/** Sozlama qiymati joriy tilda: ruschada «<kalit>_ru» (bo'sh bo'lsa o'zbekchasi) */
+export function setting(key) {
+  const s = state.settings || {};
+  return (state.lang === 'ru' && s[key + '_ru']) || s[key] || '';
+}
+
 export function docHeader() {
-  const s = state.settings;
+  const s = {
+    ...state.settings,
+    ...Object.fromEntries(['clinic_name', 'clinic_ministry', 'clinic_subtitle', 'clinic_services', 'clinic_address', 'clinic_requisites'].map((k) => [k, setting(k)])),
+  };
   const services = String(s.clinic_services || '').split('\n').map((x) => x.trim()).filter(Boolean);
   const social = [s.clinic_telegram ? `Telegram: ${s.clinic_telegram}` : '', s.clinic_instagram ? `Instagram: ${s.clinic_instagram}` : ''].filter(Boolean).join(' · ');
   const hasReq = s.clinic_address || s.clinic_phone || social || s.clinic_requisites;

@@ -70,6 +70,15 @@ async function settings(el) {
       <label class="field"><span>${t('admin.treatment_template')}</span>
         <textarea name="treatment_template" rows="4" maxlength="2000">${s.treatment_template || ''}</textarea>
         <span class="hint">${t('admin.treatment_template_hint')}</span></label>
+      <fieldset class="field ru-fields"><legend>${t('admin.ru_title')}</legend>
+        <span class="hint">${t('admin.ru_hint')}</span>
+        ${[['clinic_name_ru', 'admin.clinic_name', 200], ['clinic_ministry_ru', 'admin.clinic_ministry', 200], ['clinic_subtitle_ru', 'admin.clinic_subtitle', 300]].map(([k, l, m]) => html`
+          <label class="field"><span>${t(l)} (рус.)</span><input name="${k}" maxlength="${m}" value="${s[k] || ''}"></label>`)}
+        <label class="field"><span>${t('admin.clinic_services')} (рус.)</span><textarea name="clinic_services_ru" rows="5" maxlength="600">${s.clinic_services_ru || ''}</textarea></label>
+        <label class="field"><span>${t('f.address')} (рус.)</span><input name="clinic_address_ru" maxlength="300" value="${s.clinic_address_ru || ''}"></label>
+        <label class="field"><span>${t('admin.requisites')} (рус.)</span><textarea name="clinic_requisites_ru" rows="2" maxlength="500">${s.clinic_requisites_ru || ''}</textarea></label>
+        <label class="field"><span>${t('admin.treatment_template')} (рус.)</span><textarea name="treatment_template_ru" rows="4" maxlength="2000">${s.treatment_template_ru || ''}</textarea></label>
+      </fieldset>
       <label class="field"><span>${t('admin.word_save_dir')}</span>
         <input name="word_save_dir" maxlength="400" placeholder="D:\\NURMED\\Ҳужжатлар" value="${s.word_save_dir || ''}" ${can('admin') ? '' : raw('disabled')}>
         <span class="hint">${can('admin') ? t('admin.word_save_dir_hint') : t('admin.word_save_dir_admin')}</span></label>
@@ -105,7 +114,8 @@ async function settings(el) {
     e.preventDefault();
     await busy(e.submitter, async () => {
       const body = Object.fromEntries(['clinic_ministry', 'clinic_name', 'clinic_subtitle', 'clinic_services', 'clinic_address', 'clinic_phone',
-        'clinic_telegram', 'clinic_instagram', 'clinic_requisites', 'treatment_template'].map((k) => [k, f.elements[k].value.trim()]));
+        'clinic_telegram', 'clinic_instagram', 'clinic_requisites', 'treatment_template', 'clinic_name_ru', 'clinic_ministry_ru', 'clinic_subtitle_ru',
+        'clinic_services_ru', 'clinic_address_ru', 'clinic_requisites_ru', 'treatment_template_ru'].map((k) => [k, f.elements[k].value.trim()]));
       if (can('admin')) body.word_save_dir = f.elements.word_save_dir.value.trim();
       state.settings = await PUT('/api/settings', { ...body, print_mode: f.elements.print_mode.value, clinic_logo: logo });
       document.dispatchEvent(new Event('nurmed:settings'));
