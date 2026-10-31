@@ -16,7 +16,8 @@ export async function newVisitView(el, query) {
   if (presetId) {
     try { patient = (await GET(`/api/patients/${presetId}`)).patient; } catch (e) { toast(errorText(e), 'err'); }
   }
-  if (can('visit.clinical.write')) return renderVisitForm(el, { status: 'open' }, patient, { isNew: true });
+  // «Даволаш режаси» yangi qabulda shablon bilan to'ladi (Созламалар → Клиника), shifokor tahrirlaydi
+  if (can('visit.clinical.write')) return renderVisitForm(el, { status: 'open', treatment: state.settings.treatment_template || '' }, patient, { isNew: true });
   return renderRegistrarForm(el, patient);
 }
 
@@ -833,9 +834,16 @@ function visitDocArticle(v) {
     </article>`;
 }
 
+/** Word fayl nomi: Фамилия_Исм_ТуғилганЙил (масалан, Абдуллаева_Фарангиз_2022) */
+export function visitFileName(v) {
+  const [fam, ism] = String(v.patient_name || '').trim().split(/\s+/);
+  const year = /^\d{4}/.test(v.birth_date || '') ? v.birth_date.slice(0, 4) : '';
+  return [fam, ism, year].filter(Boolean).join(' ') || 'hujjat';
+}
+
 export async function printVisit(id, mode = 'print') {
   try {
     const v = await GET(`/api/visits/${id}` + qs({ print: 1 }));
-    printDoc(visitDocArticle(v), { name: `${v.patient_name} ${fmtDate(v.visit_at)}`, word: mode === 'word' });
+    printDoc(visitDocArticle(v), { name: visitFileName(v), word: mode === 'word' });
   } catch (e) { toast(errorText(e), 'err'); }
 }

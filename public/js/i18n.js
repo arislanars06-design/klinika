@@ -8,7 +8,7 @@ const uz = {
 
   // menyu
   'nav.dashboard': 'Бош ойна', 'nav.visit': 'Қабул', 'nav.history': 'Беморлар тарихи', 'nav.cash': 'Касса',
-  'nav.reports': 'Ҳисоботлар', 'nav.admin': 'Созламалар',
+  'nav.reports': 'Ҳисоботлар', 'nav.admin': 'Созламалар', stats: 'Статистика',
 
   // rollar va holatlar
   'role.admin': 'Администратор', 'role.doctor': 'Шифокор', 'role.registrar': 'Регистратор', 'role.cashier': 'Кассир',
@@ -120,7 +120,8 @@ const uz = {
   'doc.title': 'Амбулатор тиббий карта', 'doc.subtitle': 'Бирламчи кўрик', 'doc.addr': 'Манзил', 'doc.tel': 'Телефонлар', 'doc.services': 'Хизматлар', 'doc.requisites': 'Реквизитлар',
   'admin.clinic_ministry': 'Юқори ташкилот (сарлавҳанинг биринчи қатори)', 'admin.clinic_subtitle': 'Клиника тавсифи (номи остида)',
   'admin.clinic_services': 'Йўналишлар', 'admin.clinic_services_hint': 'Ҳар бирини алоҳида қаторга ёзинг. Ҳужжат сарлавҳасида «•» билан бир қаторда чиқади.',
-  'admin.clinic_phones': 'Телефонлар', 'doc.complaints': 'Шикояти', 'doc.lor_status': 'LOR STATUS',
+  'admin.clinic_phones': 'Телефонлар', 'admin.treatment_template': 'Даволаш режаси шаблони',
+  'admin.treatment_template_hint': 'Янги қабулда «Даволаш режаси / муолажалар» майдонига ўзи ёзилади, шифокор уни ўзгартириши мумкин.', 'doc.complaints': 'Шикояти', 'doc.lor_status': 'LOR STATUS',
   'doc.diagnosis': 'Ташхис', 'doc.followup': 'Кейинги кўрик', 'doc.doctor': 'Шифокор', 'doc.signature': 'Имзо',
   'doc.printed': 'Чоп этилган',
 
@@ -204,7 +205,7 @@ const ru = {
   date: 'Дата', time: 'Время', status: 'Статус', reason: 'Причина', sum: 'сум', years: 'лет', logout: 'Выйти',
 
   'nav.dashboard': 'Главная', 'nav.visit': 'Приём', 'nav.history': 'История пациентов', 'nav.cash': 'Касса',
-  'nav.reports': 'Отчёты', 'nav.admin': 'Настройки',
+  'nav.reports': 'Отчёты', 'nav.admin': 'Настройки', stats: 'Статистика',
 
   'role.admin': 'Администратор', 'role.doctor': 'Врач', 'role.registrar': 'Регистратор', 'role.cashier': 'Кассир',
   'status.open': 'Открыт', 'status.done': 'Завершён', 'status.cancelled': 'Отменён',
@@ -309,7 +310,8 @@ const ru = {
   'doc.title': 'Амбулаторная медицинская карта', 'doc.subtitle': 'Первичный осмотр', 'doc.addr': 'Адрес', 'doc.tel': 'Телефоны', 'doc.services': 'Услуги', 'doc.requisites': 'Реквизиты',
   'admin.clinic_ministry': 'Вышестоящая организация (первая строка шапки)', 'admin.clinic_subtitle': 'Описание клиники (под названием)',
   'admin.clinic_services': 'Направления', 'admin.clinic_services_hint': 'Каждое с новой строки. В шапке документа выводятся в одну строку через «•».',
-  'admin.clinic_phones': 'Телефоны', 'doc.complaints': 'Жалобы', 'doc.lor_status': 'LOR STATUS',
+  'admin.clinic_phones': 'Телефоны', 'admin.treatment_template': 'Шаблон плана лечения',
+  'admin.treatment_template_hint': 'Автоматически вставляется в поле «План лечения / процедуры» нового приёма, врач может изменить.', 'doc.complaints': 'Жалобы', 'doc.lor_status': 'LOR STATUS',
   'doc.diagnosis': 'Диагноз', 'doc.followup': 'Повторный осмотр', 'doc.doctor': 'Врач', 'doc.signature': 'Подпись',
   'doc.printed': 'Распечатано',
 

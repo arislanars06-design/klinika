@@ -6,7 +6,7 @@ import {
 import { dashboardView, historyView, patientView } from './views/main-views.js';
 import { newVisitView, visitView } from './views/visit.js';
 import { cashListView, newInvoiceView, invoiceView, dailyView } from './views/cash.js';
-import { reportsView } from './views/reports.js';
+import { statsView, reportsRedirect } from './views/reports.js';
 import { adminView } from './views/admin.js';
 
 const app = $('#app');
@@ -16,12 +16,14 @@ const ROUTES = [
   { re: /^\/visit\/new$/, perm: 'visit.create', view: (el, q) => newVisitView(el, q) },
   { re: /^\/visit\/(\d+)$/, perm: 'visit.list', view: (el, q, m) => visitView(el, Number(m[1])) },
   { re: /^\/history$/, perm: 'visit.list', view: (el, q) => historyView(el, q) },
+  { re: /^\/history\/stats$/, perm: 'report.visits', view: (el, q) => statsView(el, q, 'visits') },
   { re: /^\/patient\/(\d+)$/, perm: 'patient.read', view: (el, q, m) => patientView(el, Number(m[1])) },
   { re: /^\/cash$/, perm: 'billing.read', view: (el, q) => cashListView(el, q) },
   { re: /^\/cash\/new$/, perm: 'billing.write', view: (el, q) => newInvoiceView(el, q) },
   { re: /^\/cash\/invoice\/(\d+)$/, perm: 'billing.read', view: (el, q, m) => invoiceView(el, Number(m[1])) },
   { re: /^\/cash\/daily$/, perm: 'billing.read', view: (el, q) => dailyView(el, q) },
-  { re: /^\/reports$/, any: ['report.visits', 'report.finance'], view: (el, q) => reportsView(el, q) },
+  { re: /^\/cash\/stats$/, perm: 'report.finance', view: (el, q) => statsView(el, q, 'finance') },
+  { re: /^\/reports$/, any: ['report.visits', 'report.finance'], view: () => reportsRedirect() },
   { re: /^\/admin$/, perm: 'settings.clinic', view: (el, q) => adminView(el, q) },
 ];
 
@@ -30,7 +32,6 @@ const NAV = [
   { href: '#/visit/new', key: 'nav.visit', perm: 'visit.create', match: /^\/visit/ },
   { href: '#/history', key: 'nav.history', perm: 'visit.list', match: /^\/(history|patient)/ },
   { href: '#/cash', key: 'nav.cash', perm: 'billing.read', match: /^\/cash/ },
-  { href: '#/reports', key: 'nav.reports', any: ['report.visits', 'report.finance'], match: /^\/reports/ },
   { href: '#/admin', key: 'nav.admin', perm: 'settings.clinic', match: /^\/admin/ },
 ];
 const allowed = (r) => (r.perm ? can(r.perm) : r.any ? r.any.some(can) : true);

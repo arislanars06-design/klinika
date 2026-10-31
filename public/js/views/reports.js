@@ -1,5 +1,16 @@
-// Hisobotlar: qabul statistikasi va moliyaviy statistika alohida.
-import { html, raw, render, $, t, GET, qs, money, fmtDate, localDate, addDays, go, setQuery } from '../core.js';
+// Statistika: qabullar — «Беморлар тарихи → Статистика», moliya — «Касса → Статистика».
+import { html, raw, render, $, t, GET, qs, money, fmtDate, localDate, addDays, go, setQuery, can } from '../core.js';
+
+const KINDS = {
+  visits: {
+    path: '/history/stats', title: 'nav.history', perm: 'report.visits',
+    tabs: () => [['#/history', 'hist.visits'], ['#/history?tab=patients', 'hist.patients'], ['#/history/stats', 'stats']],
+  },
+  finance: {
+    path: '/cash/stats', title: 'nav.cash', perm: 'report.finance',
+    tabs: () => [['#/cash', 'cash.invoices'], ['#/cash/daily', 'cash.daily'], ['#/cash/stats', 'stats']],
+  },
+};
 
 const PRESETS = ['today', '7', 'month', '30', '365', 'custom'];
 
@@ -21,16 +32,19 @@ function bars(rows, key, fmt, labelFmt) {
       <span class="bars__val">${fmt(r[key])}</span></div>`)}</div>`;
 }
 
-export async function reportsView(el, query) {
+/** kind: 'visits' | 'finance' */
+export async function statsView(el, query, kind) {
+  const K = KINDS[kind];
   const preset = PRESETS.includes(query.get('p')) ? query.get('p') : 'month';
   const [from, to] = range(preset, query.get('from'), query.get('to'));
-  const d = await GET('/api/reports' + qs({ from, to }));
+  const d = await GET('/api/reports' + qs({ from, to, part: kind }));
   const periodLabel = (r) => (d.group === 'month' ? r.period.split('-').reverse().join('.') : fmtDate(r.period));
   const V = d.visits;
   const F = d.finance;
 
   render(el, html`
-    <div class="page-head"><h1>${t('nav.reports')}</h1><span class="muted">${fmtDate(from)} — ${fmtDate(to)}</span></div>
+    <div class="page-head"><h1>${t(K.title)}</h1><span class="muted">${fmtDate(from)} — ${fmtDate(to)}</span></div>
+    <div class="tabs">${K.tabs().map(([href, key]) => html`<a class="tab ${key === 'stats' ? 'tab--active' : ''}" href="${href}">${t(key)}</a>`)}</div>
     <form class="filters card" id="f">
       <select name="p">${PRESETS.map((p) => html`<option value="${p}" ${p === preset ? raw('selected') : ''}>${t('rep.' + p)}</option>`)}</select>
       <span class="custom-range ${preset === 'custom' ? '' : 'hidden'}"><input type="date" name="from" value="${from}"> — <input type="date" name="to" value="${to}"></span>
@@ -87,7 +101,12 @@ export async function reportsView(el, query) {
   f.onsubmit = (e) => {
     e.preventDefault();
     const p = f.elements.p.value;
-    go('/reports' + qs(p === 'custom' ? { p, from: f.elements.from.value, to: f.elements.to.value } : { p }));
+    go(K.path + qs(p === 'custom' ? { p, from: f.elements.from.value, to: f.elements.to.value } : { p }));
   };
-  setQuery('/reports', preset === 'custom' ? { p: preset, from, to } : { p: preset });
+  setQuery(K.path, preset === 'custom' ? { p: preset, from, to } : { p: preset });
+}
+
+/** Eski «Ҳисоботлар» havolasi: mos statistika sahifasiga o'tkazadi */
+export function reportsRedirect() {
+  go(can('report.visits') ? '/history/stats' : '/cash/stats');
 }

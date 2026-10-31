@@ -70,6 +70,7 @@ export async function historyView(el, query) {
     <div class="tabs">
       <a class="tab ${tab === 'visits' ? 'tab--active' : ''}" href="#/history">${t('hist.visits')}</a>
       <a class="tab ${tab === 'patients' ? 'tab--active' : ''}" href="#/history?tab=patients">${t('hist.patients')}</a>
+      ${can('report.visits') ? html`<a class="tab" href="#/history/stats">${t('stats')}</a>` : ''}
     </div>
     <form class="filters card" id="filters">
       <input type="search" name="q" value="${f.q}" placeholder="${tab === 'visits' && can('visit.clinical.read') ? t('hist.search_ph_dx') : t('hist.search_ph')}" class="field--grow">
