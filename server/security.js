@@ -23,6 +23,7 @@ const PERMISSIONS = {
   'report.visits': ['admin', 'doctor'],
   'report.finance': ['admin', 'doctor', 'cashier'],
   'export': ['admin', 'doctor'],
+  'settings.clinic': ['admin', 'doctor', 'registrar', 'cashier'], // Sozlamalar → faqat «Клиника» bo'limi
   'admin': ['admin'],
 };
 

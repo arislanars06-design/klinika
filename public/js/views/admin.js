@@ -1,16 +1,18 @@
 // Administrator: klinika rekvizitlari, xodimlar va rollar, xizmatlar narxi, audit jurnali, zaxira nusxalari.
 import {
-  html, raw, render, $, $$, t, state, GET, POST, PUT, qs, toast, busy, fmtDateTime, pager, modal, refresh, confirmDialog,
+  html, raw, render, $, $$, t, state, GET, POST, PUT, qs, toast, busy, fmtDateTime, pager, modal, refresh, confirmDialog, can,
 } from '../core.js';
 
 const TABS = ['settings', 'users', 'services', 'audit', 'backup'];
 const ROLES = ['admin', 'doctor', 'registrar', 'cashier'];
 
 export async function adminView(el, query) {
-  const tab = TABS.includes(query.get('tab')) ? query.get('tab') : 'settings';
+  // Shifokor, registrator va kassir faqat «Клиника» bo'limini ko'radi
+  const tabs = can('admin') ? TABS : ['settings'];
+  const tab = tabs.includes(query.get('tab')) ? query.get('tab') : 'settings';
   render(el, html`
     <div class="page-head"><h1>${t('nav.admin')}</h1></div>
-    <div class="tabs">${TABS.map((x) => html`<a class="tab ${x === tab ? 'tab--active' : ''}" href="#/admin?tab=${x}">${t('admin.' + x)}</a>`)}</div>
+    <div class="tabs">${tabs.map((x) => html`<a class="tab ${x === tab ? 'tab--active' : ''}" href="#/admin?tab=${x}">${t('admin.' + x)}</a>`)}</div>
     <div id="admin-body"></div>`);
   const body = $('#admin-body', el);
   await ({ settings, users, services, audit, backup })[tab](body, query);
@@ -26,8 +28,8 @@ async function settings(el) {
       <label class="field"><span>${t('f.phone')}</span><input name="clinic_phone" maxlength="100" value="${s.clinic_phone}"></label>
       <label class="field"><span>${t('admin.requisites')}</span><textarea name="clinic_requisites" rows="2" maxlength="500">${s.clinic_requisites}</textarea></label>
       <label class="field"><span>${t('admin.word_save_dir')}</span>
-        <input name="word_save_dir" maxlength="400" placeholder="D:\\NURMED\\Ҳужжатлар" value="${s.word_save_dir || ''}">
-        <span class="hint">${t('admin.word_save_dir_hint')}</span></label>
+        <input name="word_save_dir" maxlength="400" placeholder="D:\\NURMED\\Ҳужжатлар" value="${s.word_save_dir || ''}" ${can('admin') ? '' : raw('disabled')}>
+        <span class="hint">${can('admin') ? t('admin.word_save_dir_hint') : t('admin.word_save_dir_admin')}</span></label>
       <label class="field"><span>${t('admin.print_mode')}</span>
         <select name="print_mode">
           <option value="word" ${s.print_mode !== 'browser' ? raw('selected') : ''}>${t('admin.print_word')}</option>
@@ -60,7 +62,8 @@ async function settings(el) {
     e.preventDefault();
     await busy(e.submitter, async () => {
       const body = Object.fromEntries(['clinic_name', 'clinic_address', 'clinic_phone', 'clinic_requisites'].map((k) => [k, f.elements[k].value.trim()]));
-      state.settings = await PUT('/api/settings', { ...body, word_save_dir: f.elements.word_save_dir.value.trim(), print_mode: f.elements.print_mode.value, clinic_logo: logo });
+      if (can('admin')) body.word_save_dir = f.elements.word_save_dir.value.trim();
+      state.settings = await PUT('/api/settings', { ...body, print_mode: f.elements.print_mode.value, clinic_logo: logo });
       document.dispatchEvent(new Event('nurmed:settings'));
       toast(t('saved'));
     });
