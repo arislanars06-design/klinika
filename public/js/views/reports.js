@@ -1,14 +1,14 @@
 // Statistika: qabullar — «Беморлар тарихи → Статистика», moliya — «Касса → Статистика».
-import { html, raw, render, $, t, GET, qs, money, fmtDate, localDate, addDays, go, setQuery, can } from '../core.js';
+import { html, raw, render, $, t, state, GET, qs, money, fmtDate, localDate, addDays, go, setQuery, can, busy, printDoc, docHeader } from '../core.js';
 
 const KINDS = {
   visits: {
-    path: '/history/stats', title: 'nav.history', perm: 'report.visits',
+    path: '/history/stats', title: 'nav.history', perm: 'report.visits', doc: 'rep.visits',
     tabs: () => [['#/history', 'hist.visits'], ['#/history?tab=patients', 'hist.patients'], ['#/history/stats', 'stats']],
   },
   finance: {
-    path: '/cash/stats', title: 'nav.cash', perm: 'report.finance',
-    tabs: () => [['#/cash', 'cash.invoices'], ['#/cash/daily', 'cash.daily'], ['#/cash/stats', 'stats']],
+    path: '/cash/stats', title: 'nav.cash', perm: 'report.finance', doc: 'rep.finance',
+    tabs: () => [['#/cash', 'cash.invoices'], ['#/cash/stats', 'stats']],
   },
 };
 
@@ -49,6 +49,7 @@ export async function statsView(el, query, kind) {
       <select name="p">${PRESETS.map((p) => html`<option value="${p}" ${p === preset ? raw('selected') : ''}>${t('rep.' + p)}</option>`)}</select>
       <span class="custom-range ${preset === 'custom' ? '' : 'hidden'}"><input type="date" name="from" value="${from}"> — <input type="date" name="to" value="${to}"></span>
       <button class="btn">${t('show')}</button>
+      <button type="button" class="btn btn--ghost" id="stats-word">${t('rep.download_word')}</button>
     </form>
 
     ${V ? html`
@@ -104,6 +105,46 @@ export async function statsView(el, query, kind) {
     go(K.path + qs(p === 'custom' ? { p, from: f.elements.from.value, to: f.elements.to.value } : { p }));
   };
   setQuery(K.path, preset === 'custom' ? { p: preset, from, to } : { p: preset });
+  $('#stats-word', el).onclick = (e) => busy(e.target, () => statsWord(K, d, from, to, periodLabel));
+}
+
+/** Statistikani Word (A4) fayliga: ko'rsatkichlar jadvali va bo'limlar bo'yicha jadvallar */
+function statsWord(K, d, from, to, periodLabel) {
+  const V = d.visits;
+  const F = d.finance;
+  const kv = (rows) => html`<table class="doc__table"><thead><tr><th>${t('rep.indicator')}</th><th class="num">${t('rep.value')}</th></tr></thead>
+    <tbody>${rows.map(([k, v]) => html`<tr><td>${k}</td><td class="num">${v}</td></tr>`)}</tbody></table>`;
+  const tbl = (title, head, rows) => html`<div class="doc__block"><h3>${title}</h3>${rows.length
+    ? html`<table class="doc__table"><thead><tr>${head.map((h, i) => html`<th class="${i ? 'num' : ''}">${h}</th>`)}</tr></thead>
+      <tbody>${rows.map((r) => html`<tr>${r.map((c, i) => html`<td class="${i ? 'num' : ''}">${c}</td>`)}</tr>`)}</tbody></table>`
+    : html`<p>${t('empty')}</p>`}</div>`;
+  const byPeriod = d.group === 'month' ? t('rep.by_month') : t('rep.by_day');
+  let body;
+  if (V) {
+    body = html`
+      <div class="doc__block">${kv([[t('rep.visits_total'), V.total], [t('rep.cancelled'), V.cancelled], [t('rep.patients'), V.patients],
+        [t('rep.new'), V.new_patients], [t('rep.returning'), V.returning_patients]])}</div>
+      ${tbl(byPeriod, [t('rep.period_col'), t('rep.visits_total')], V.by_period.map((r) => [periodLabel(r), r.count]))}
+      ${tbl(t('rep.by_doctor'), [t('doc.doctor'), t('rep.visits_total')], V.by_doctor.map((r) => [r.doctor, r.count]))}
+      ${tbl(t('rep.by_diagnosis'), [t('f.diagnosis_main'), t('rep.visits_total'), t('rep.patients')], V.by_diagnosis.map((r) => [r.diagnosis, r.count, r.patients]))}`;
+  } else {
+    body = html`
+      <div class="doc__block">${kv([[t('cash.net'), money(F.net)], [t('cash.income'), money(F.income)], [t('cash.refunds'), money(F.refunds)],
+        [t('rep.invoiced'), money(F.invoices_total)], [t('cash.invoices'), F.invoices_count], [t('cash.discount'), money(F.discounts)],
+        [t('rep.debts'), money(F.debt_sum)], [t('rep.debt_invoices'), F.debt_count]])}</div>
+      ${tbl(t('cash.by_method'), [t('cash.method'), t('cash.net')], Object.entries(F.by_method).map(([m, v]) => [t('method.' + m), money(v.net)]))}
+      ${tbl(byPeriod, [t('rep.period_col'), t('cash.net')], F.by_period.map((r) => [periodLabel(r), money(r.net)]))}
+      ${tbl(t('rep.services'), [t('cash.service'), t('cash.qty'), t('cash.amount')], F.services.map((s) => [s.name, s.qty, money(s.amount)]))}`;
+  }
+  const period = `${fmtDate(from)} — ${fmtDate(to)}`;
+  return printDoc(html`<article class="doc">${docHeader()}
+    <h2 class="doc__title">${t(K.doc)}</h2>
+    <div class="doc__subtitle">${t('rep.period')}: ${period}</div>
+    ${body}
+    <footer class="doc__foot"><div class="doc__foot-row">
+      <div><b>${t('rep.prepared')}:</b> ${state.user.full_name}</div>
+      <div class="doc__sign">${t('doc.signature')}: ______________</div></div></footer>
+  </article>`, { word: true, page: 'a4', name: `${t(K.doc)} ${fmtDate(from)}-${fmtDate(to)}` });
 }
 
 /** Eski «Ҳисоботлар» havolasi: mos statistika sahifasiga o'tkazadi */

@@ -131,7 +131,8 @@ export function statusBadge(s) {
 export function payBadge(s) {
   return html`<span class="badge badge--pay-${s}">${t('pay.' + s)}</span>`;
 }
-export const METHODS = ['cash', 'uzcard', 'humo', 'card_other', 'transfer', 'other'];
+// To'lov usullari: Нақд, Карта, Терминал (eski yozuvlardagi boshqa usullar faqat ko'rsatiladi)
+export const METHODS = ['cash', 'card', 'terminal'];
 
 /* ---------- Bildirishnoma va dialoglar ---------- */
 export function toast(msg, type = 'ok') {

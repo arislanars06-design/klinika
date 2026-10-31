@@ -8,7 +8,6 @@ import { invoiceTable, bindInvoiceDelete } from './main-views.js';
 function cashTabs(active) {
   return html`<div class="tabs">
     <a class="tab ${active === 'list' ? 'tab--active' : ''}" href="#/cash">${t('cash.invoices')}</a>
-    <a class="tab ${active === 'daily' ? 'tab--active' : ''}" href="#/cash/daily">${t('cash.daily')}</a>
     ${can('report.finance') ? html`<a class="tab" href="#/cash/stats">${t('stats')}</a>` : ''}
   </div>`;
 }
@@ -377,44 +376,4 @@ function printReceipt(inv, mode = 'print') {
       ${inv.payments.filter((p) => !p.voided).map((p) => html`<div class="small">${fmtDateTime(p.paid_at)} · ${t('kind.' + p.kind)} · ${t('method.' + p.method)} · ${money(p.amount)}</div>`)}
       <p class="small muted">${t('cash.receipt_note')}</p>
     </article>`, { name: `${t('cash.receipt')} ${inv.number} ${inv.patient_name}`, word: mode === 'word' });
-}
-
-/* ================= Kunlik kassa hisoboti ================= */
-export async function dailyView(el, query) {
-  const date = query.get('date') || localDate();
-  const d = await GET('/api/cash/daily' + qs({ date }));
-  const methodsTable = html`<table class="table"><thead><tr><th>${t('cash.method')}</th><th class="num">${t('cash.income')}</th>
-    <th class="num">${t('cash.refunds')}</th><th class="num">${t('cash.net')}</th></tr></thead>
-    <tbody>${Object.entries(d.by_method).map(([m, v]) => html`<tr><td>${t('method.' + m)}</td><td class="num">${money(v.income)}</td>
-      <td class="num">${money(v.refunds)}</td><td class="num"><b>${money(v.net)}</b></td></tr>`)}
-    <tr class="row--total"><td>${t('total')}</td><td class="num">${money(d.income)}</td><td class="num">${money(d.refunds)}</td><td class="num">${money(d.net)}</td></tr></tbody></table>`;
-  const list = html`<table class="table"><thead><tr><th>${t('time')}</th><th>№</th><th>${t('f.full_name')}</th><th>${t('cash.kind')}</th>
-    <th>${t('cash.method')}</th><th class="num">${t('cash.amount')}</th><th>${t('cash.cashier')}</th></tr></thead>
-    <tbody>${d.payments.map((p) => html`<tr class="${p.voided ? 'row--voided' : ''}"><td>${p.paid_at.slice(11, 16)}</td>
-      <td><a href="#/cash/invoice/${p.invoice_id}">${p.invoice_number}</a></td><td>${p.patient_name}</td>
-      <td>${t('kind.' + p.kind)}${p.voided ? html` <span class="text-err small">(${t('cash.voided')})</span>` : ''}</td>
-      <td>${t('method.' + p.method)}</td><td class="num">${p.kind === 'refund' ? '− ' : ''}${money(p.amount)}</td><td>${p.created_by_name || ''}</td></tr>`)}</tbody></table>`;
-
-  render(el, html`
-    <div class="page-head"><h1>${t('cash.daily')}</h1>
-      <label class="inline">${t('date')}: <input type="date" id="d" value="${date}"></label></div>
-    ${cashTabs('daily')}
-    <div class="stats">
-      <div class="stat"><div class="stat__label">${t('cash.net')}</div><div class="stat__value">${money(d.net)}</div></div>
-      <div class="stat"><div class="stat__label">${t('cash.refunds')}</div><div class="stat__value">${money(d.refunds)}</div></div>
-      <div class="stat"><div class="stat__label">${t('cash.invoices_today')}</div><div class="stat__value">${d.invoices_count}</div>
-        <div class="muted small">${money(d.invoices_total)}${d.discounts ? html` · ${t('cash.discount')}: ${money(d.discounts)}` : ''}</div></div>
-    </div>
-    <section class="card"><h2>${t('cash.by_method')}</h2>${methodsTable}</section>
-    <section class="card"><h2>${t('cash.payments')}</h2>${d.payments.length ? list : html`<p class="muted">${t('empty')}</p>`}</section>
-    <p class="hint">${t('cash.bank_hint')}</p>
-    <div class="actions"><button class="btn" id="print">${t('cash.print_daily')}</button>
-      ${showWordButton() ? html`<button class="btn btn--ghost" id="word">${t('word')}</button>` : ''}</div>`);
-  $('#d', el).onchange = (e) => go('/cash/daily' + qs({ date: e.target.value }));
-  const dailyDoc = (mode) => printDoc(html`<article class="doc">${docHeader()}
-    <h2 class="doc__title">${t('cash.daily')} — ${fmtDate(date)}</h2>${methodsTable}
-    <p>${t('cash.invoices_today')}: ${d.invoices_count} (${money(d.invoices_total)})</p>${list}
-    <div class="doc__sign">${t('cash.cashier')}: ____________________</div></article>`, { name: `${t('cash.daily')} ${fmtDate(date)}`, word: mode === 'word' });
-  $('#print', el).onclick = () => dailyDoc('print');
-  if ($('#word', el)) $('#word', el).onclick = () => dailyDoc('word');
 }

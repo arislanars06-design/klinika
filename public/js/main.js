@@ -1,11 +1,11 @@
 // NURMED — ilovaning kirish nuqtasi: login, bosh menyu, til, soat va sahifalar marshruti.
 import {
   html, raw, render, $, t, state, GET, POST, can, toast, errorText, parseHash, setUnauthorizedHandler, setRefresh,
-  localDate, fmtDate, busy, modal, ApiError, downloadsList, clearDownloads,
+  localDate, fmtDate, busy, modal, ApiError, downloadsList, clearDownloads, go,
 } from './core.js';
 import { dashboardView, historyView, patientView } from './views/main-views.js';
 import { newVisitView, visitView } from './views/visit.js';
-import { cashListView, newInvoiceView, invoiceView, dailyView } from './views/cash.js';
+import { cashListView, newInvoiceView, invoiceView } from './views/cash.js';
 import { statsView, reportsRedirect } from './views/reports.js';
 import { adminView } from './views/admin.js';
 
@@ -21,7 +21,7 @@ const ROUTES = [
   { re: /^\/cash$/, perm: 'billing.read', view: (el, q) => cashListView(el, q) },
   { re: /^\/cash\/new$/, perm: 'billing.write', view: (el, q) => newInvoiceView(el, q) },
   { re: /^\/cash\/invoice\/(\d+)$/, perm: 'billing.read', view: (el, q, m) => invoiceView(el, Number(m[1])) },
-  { re: /^\/cash\/daily$/, perm: 'billing.read', view: (el, q) => dailyView(el, q) },
+  { re: /^\/cash\/daily$/, perm: 'billing.read', view: () => go('/cash') }, // eski havola
   { re: /^\/cash\/stats$/, perm: 'report.finance', view: (el, q) => statsView(el, q, 'finance') },
   { re: /^\/reports$/, any: ['report.visits', 'report.finance'], view: () => reportsRedirect() },
   { re: /^\/admin$/, perm: 'settings.clinic', view: (el, q) => adminView(el, q) },
