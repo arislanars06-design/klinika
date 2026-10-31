@@ -199,6 +199,11 @@ const DEFAULT_SETTINGS = {
   clinic_address: '',
   clinic_phone: '',
   clinic_requisites: '',
+  clinic_ministry: '', // hujjat sarlavhasining eng yuqori qatori (masalan, vazirlik)
+  clinic_subtitle: '', // klinika tavsifi (nom ostida)
+  clinic_services: '', // yo'nalishlar, har biri alohida qatorda
+  clinic_telegram: '',
+  clinic_instagram: '',
   clinic_logo: '', // data:image/... (ixtiyoriy)
   word_save_dir: '', // bo'sh bo'lmasa, Word fayllarning nusxasi server kompyuterdagi shu papkaga yoziladi
   print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
@@ -276,11 +281,35 @@ function applyPriceGroups() {
   db.prepare('INSERT INTO settings(key, value) VALUES (?, ?)').run('price_groups_version', '1');
 }
 
+// Klinika so'ragan hujjat sarlavhasi: bir marta yoziladi, keyin «Созламалар → Клиника»da o'zgartiriladi
+const CLINIC_HEADER_VERSION = '2026-10-31';
+const CLINIC_HEADER = {
+  clinic_ministry: 'Ўзбекистон Республикаси Соғлиқни сақлаш вазирлиги',
+  clinic_subtitle: 'Оториноларингология касалликларини замонавий текшириш ва даволаш хусусий клиникаси',
+  clinic_services: ['ЛОР', 'Ревматолог', 'Гирудотерапия (зулук билан даволаш)', 'Ҳижома (банка ёрдамида даволаш)', 'Лаборатория'].join('\n'),
+  clinic_address: 'Тошкент шаҳри, Сергели тумани, Мирзо Турсунзода кўчаси, 32-уй, 55-хонадон',
+  clinic_phone: '+998 93 391 91 64; +998 99 981 91 64',
+  clinic_telegram: '@NURMED_shifo',
+  clinic_instagram: '@nurmed_lor',
+};
+function applyClinicHeader() {
+  const done = db.prepare('SELECT value FROM settings WHERE key = ?').get('clinic_header_version');
+  if (done && done.value === CLINIC_HEADER_VERSION) return;
+  const upd = db.prepare('INSERT INTO settings(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
+  tx(() => {
+    for (const [k, v] of Object.entries(CLINIC_HEADER)) upd.run(k, v);
+    upd.run('clinic_header_version', CLINIC_HEADER_VERSION);
+    db.prepare('INSERT INTO audit_logs(at, user_id, action, entity, details) VALUES (?, NULL, ?, ?, ?)')
+      .run(nowLocal(), 'settings.clinic_header', 'settings', JSON.stringify({ version: CLINIC_HEADER_VERSION, keys: Object.keys(CLINIC_HEADER) }));
+  });
+}
+
 function seed() {
   const ins = db.prepare('INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)');
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) ins.run(k, v);
   applyPriceList();
   applyPriceGroups();
+  applyClinicHeader();
 }
 seed();
 

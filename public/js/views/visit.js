@@ -760,6 +760,8 @@ export function bindPatientForm(f, id, onSaved) {
 export function visitDocBody(v) {
   const complaints = LOR.complaintsText(v.complaints || [], state.lang, { dative: true });
   const from = LOR.relative(v.complaints_from);
+  // «ШИКОЯТИ: Онасининг сўзидан бош оғриғига, …» / «ЖАЛОБЫ: Со слов матери: головная боль, …»
+  const fromPrefix = from ? upperFirst(L(from.from)) + (state.lang === 'ru' ? ': ' : ' ') : '';
   const lor = LOR.lorStatusText(v.lor_status || {}, state.lang);
   // LOR STATUS bo'limlar bo'yicha: ФАРИНГОСКОПИЯ (эпи-, мезо-, гипо-), РИНОСКОПИЯ, ОТОСКОПИЯ, …
   const lorGroups = [];
@@ -788,8 +790,9 @@ export function visitDocBody(v) {
       ${v.patient_address ? html`<div><b>${t('f.address')}:</b> ${v.patient_address}</div>` : ''}
       <div><b>${t('visit.date')}:</b> ${fmtDateTime(v.visit_at)}</div>
     </div>
-    ${block(t('doc.complaints') + (from ? ` (${L(from.from)})` : ''), complaints || v.complaints_text ? html`
-      ${complaints ? html`<p>${complaints}.</p>` : ''}${p(v.complaints_text)}` : '')}
+    ${block(t('doc.complaints'), complaints || v.complaints_text ? html`
+      ${complaints ? html`<p>${from ? fromPrefix + lowerFirst(complaints) : complaints}.</p>` : ''}
+      ${v.complaints_text ? html`<p class="pre">${from && !complaints ? fromPrefix : ''}${v.complaints_text}</p>` : ''}` : '')}
     ${block(t('f.anamnesis'), p(v.anamnesis))}
     ${block(t('doc.lor_status'), lorGroups.length ? html`${lorGroups.map(({ g, items }) => {
       // Bir nechta kichik bo'limli guruh: alohida sarlavha + «Эпифарингоскопия: …»; bitta bo'limli: «РИНОСКОПИЯ: …»
@@ -810,6 +813,8 @@ export function visitDocBody(v) {
 }
 
 const A5_PX = (148 / 25.4) * 96; // A5 kengligi CSS pikselda
+const upperFirst = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+const lowerFirst = (s) => (/^\p{Lu}\p{Ll}/u.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
 
 /** Qabul hujjati: chop etish, Word va jonli ko'rinish uchun bitta shablon */
 function visitDocArticle(v) {
@@ -817,6 +822,7 @@ function visitDocArticle(v) {
     <article class="doc">
       ${docHeader()}
       <h2 class="doc__title">${t('doc.title')}</h2>
+      <div class="doc__subtitle">${t('doc.subtitle')}</div>
       ${visitDocBody(v)}
       <footer class="doc__foot">
         <div class="doc__foot-row">

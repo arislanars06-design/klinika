@@ -325,15 +325,43 @@ export function printDoc(content, opts = {}) {
   });
 }
 
+/**
+ * Hujjat sarlavhasi (Созламалар → Клиника): vazirlik, logo + klinika nomi, tavsif, yo'nalishlar,
+ * manzil, telefonlar, Telegram/Instagram, rekvizitlar. Bo'sh maydonlar chiqmaydi.
+ */
+/** Yo'nalishlar bir qatorga sig'masa, ikki teng qatorga bo'linadi (Word'da ham shunday chiqadi) */
+function servicesLines(items, max = 70) {
+  const one = items.join(' • ');
+  if (one.length <= max || items.length < 2) return [one];
+  let best = 1; let diff = Infinity;
+  for (let k = 1; k < items.length; k++) {
+    const d = Math.abs(items.slice(0, k).join(' • ').length - items.slice(k).join(' • ').length);
+    if (d < diff) { diff = d; best = k; }
+  }
+  return [items.slice(0, best).join(' • '), items.slice(best).join(' • ')];
+}
+
 export function docHeader() {
   const s = state.settings;
+  const services = String(s.clinic_services || '').split('\n').map((x) => x.trim()).filter(Boolean);
+  const contacts = [
+    s.clinic_phone ? `${t('doc.tel')}: ${s.clinic_phone}` : '',
+    s.clinic_telegram ? `Telegram: ${s.clinic_telegram}` : '',
+    s.clinic_instagram ? `Instagram: ${s.clinic_instagram}` : '',
+  ].filter(Boolean).join('   ·   ');
   return html`
     <header class="doc__head">
-      ${s.clinic_logo ? html`<img class="doc__logo" src="${s.clinic_logo}" alt="">` : ''}
-      <div>
-        <div class="doc__clinic">${s.clinic_name}</div>
-        <div class="doc__req">${[s.clinic_address, s.clinic_phone].filter(Boolean).join(' · ')}</div>
-        ${s.clinic_requisites ? html`<div class="doc__req">${s.clinic_requisites}</div>` : ''}
+      ${s.clinic_ministry ? html`<div class="doc__ministry">${s.clinic_ministry}</div>` : ''}
+      <div class="doc__brand">
+        ${s.clinic_logo ? html`<img class="doc__logo" src="${s.clinic_logo}" alt="">` : ''}
+        <div class="doc__brand-text">
+          <div class="doc__clinic">${s.clinic_name}</div>
+          ${s.clinic_subtitle ? html`<div class="doc__sub">${s.clinic_subtitle}</div>` : ''}
+          ${services.length ? html`<div class="doc__services">${servicesLines(services).map((l, i) => html`${i ? raw('<br>') : ''}${l}`)}</div>` : ''}
+        </div>
       </div>
+      ${s.clinic_address ? html`<div class="doc__req">${t('doc.addr')}: ${s.clinic_address}</div>` : ''}
+      ${contacts ? html`<div class="doc__req">${contacts}</div>` : ''}
+      ${s.clinic_requisites ? html`<div class="doc__req">${s.clinic_requisites}</div>` : ''}
     </header>`;
 }

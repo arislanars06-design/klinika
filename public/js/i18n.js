@@ -117,7 +117,10 @@ const uz = {
   'rx.name': 'Дори / муолажа', 'rx.dose': 'Доза', 'rx.usage': 'Қабул қилиш усули', 'rx.duration': 'Муддати', 'rx.add': 'Қатор қўшиш',
 
   // hujjat
-  'doc.title': 'ЛОР кўрик баённомаси', 'doc.complaints': 'Шикояти', 'doc.lor_status': 'LOR STATUS',
+  'doc.title': 'Амбулатор тиббий карта', 'doc.subtitle': 'Бирламчи кўрик', 'doc.addr': 'Манзил', 'doc.tel': 'Телефонлар',
+  'admin.clinic_ministry': 'Юқори ташкилот (сарлавҳанинг биринчи қатори)', 'admin.clinic_subtitle': 'Клиника тавсифи (номи остида)',
+  'admin.clinic_services': 'Йўналишлар', 'admin.clinic_services_hint': 'Ҳар бирини алоҳида қаторга ёзинг. Ҳужжат сарлавҳасида «•» билан бир қаторда чиқади.',
+  'admin.clinic_phones': 'Телефонлар', 'doc.complaints': 'Шикояти', 'doc.lor_status': 'LOR STATUS',
   'doc.diagnosis': 'Ташхис', 'doc.followup': 'Кейинги кўрик', 'doc.doctor': 'Шифокор', 'doc.signature': 'Имзо',
   'doc.printed': 'Чоп этилган',
 
@@ -303,7 +306,10 @@ const ru = {
   'lor.recorded': 'Отмечено', 'lor.not_recorded': 'Не зафиксировано',
   'rx.name': 'Препарат / процедура', 'rx.dose': 'Доза', 'rx.usage': 'Способ применения', 'rx.duration': 'Длительность', 'rx.add': 'Добавить строку',
 
-  'doc.title': 'Протокол ЛОР-осмотра', 'doc.complaints': 'Жалобы', 'doc.lor_status': 'LOR STATUS',
+  'doc.title': 'Амбулаторная медицинская карта', 'doc.subtitle': 'Первичный осмотр', 'doc.addr': 'Адрес', 'doc.tel': 'Телефоны',
+  'admin.clinic_ministry': 'Вышестоящая организация (первая строка шапки)', 'admin.clinic_subtitle': 'Описание клиники (под названием)',
+  'admin.clinic_services': 'Направления', 'admin.clinic_services_hint': 'Каждое с новой строки. В шапке документа выводятся в одну строку через «•».',
+  'admin.clinic_phones': 'Телефоны', 'doc.complaints': 'Жалобы', 'doc.lor_status': 'LOR STATUS',
   'doc.diagnosis': 'Диагноз', 'doc.followup': 'Повторный осмотр', 'doc.doctor': 'Врач', 'doc.signature': 'Подпись',
   'doc.printed': 'Распечатано',
 

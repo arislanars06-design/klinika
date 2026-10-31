@@ -234,10 +234,19 @@ function block(el, out) {
 function header(el, out, media) {
   const img = el.querySelector('img');
   const name = el.querySelector('.doc__clinic');
-  const reqs = [...el.querySelectorAll('.doc__req')].filter((r) => r.textContent.trim());
+  const one = (sel) => el.querySelector(sel);
+  // Sarlavhadagi qatorlar tartib bilan; oxirgisi ostida chiziq
+  const lines = [];
+  const ministry = one('.doc__ministry');
+  if (ministry) lines.push([inline(ministry).map((r) => ({ ...r, t: r.t && r.t.toUpperCase() })), { sz: 13, after: 20 }]);
   const logo = img ? logoRun(img, media) : null;
-  out.push(P([...(logo ? [logo, { t: '  ' }] : []), ...(name ? inline(name) : [])], { b: true, sz: 21, after: 0, border: !reqs.length }));
-  reqs.forEach((r, i) => out.push(P(inline(r), { sz: 14, after: 0, border: i === reqs.length - 1 })));
+  lines.push([[...(logo ? [logo, { t: '  ' }] : []), ...(name ? inline(name) : [])], { b: true, sz: 21 }]);
+  const sub = one('.doc__sub');
+  if (sub) lines.push([inline(sub), { sz: 14, i: true }]);
+  const services = one('.doc__services');
+  if (services) lines.push([inline(services), { sz: 13, b: true, after: 20 }]);
+  [...el.querySelectorAll('.doc__req')].filter((r) => r.textContent.trim()).forEach((r) => lines.push([inline(r), { sz: 14 }]));
+  lines.forEach(([runs, o], i) => out.push(P(runs, { after: 0, ...o, align: 'center', border: i === lines.length - 1 })));
   out.push(P([], { after: 20, sz: 6 }));
 }
 
@@ -295,7 +304,8 @@ function blocks(el, out, media) {
     if (isBlock && prevBlock) out.push(P([]));
     prevBlock = isBlock;
     if (cl.contains('doc__head')) header(c, out, media);
-    else if (cl.contains('doc__title')) out.push(P(inline(c).map((r) => ({ ...r, t: r.t && r.t.toUpperCase() })), { align: 'center', b: true, sz: 19, after: 60 }));
+    else if (cl.contains('doc__title')) out.push(P(inline(c).map((r) => ({ ...r, t: r.t && r.t.toUpperCase() })), { align: 'center', b: true, sz: 19, after: c.nextElementSibling && c.nextElementSibling.classList.contains('doc__subtitle') ? 0 : 60 }));
+    else if (cl.contains('doc__subtitle')) out.push(P(inline(c), { align: 'center', b: true, sz: 17, after: 60 }));
     else if (cl.contains('doc__block')) block(c, out);
     else if (c.tagName === 'TABLE') out.push(table(c));
     else if (c.tagName === 'DL') totals(c, out);
