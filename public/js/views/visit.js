@@ -3,7 +3,7 @@
 import {
   html, raw, render, $, $$, t, L, state, GET, POST, PUT, qs, can, go, toast, errorText, busy,
   confirmDialog, fmtDate, fmtDateTime, age, genderText, statusBadge, patientSummary,
-  printDoc, docHeader, localDate, ApiError, refresh, showWordButton, modal,
+  printDoc, docHeader, localDate, ApiError, refresh, showWordButton, modal, setting,
 } from '../core.js';
 
 const LOR = window.LOR;
@@ -17,7 +17,7 @@ export async function newVisitView(el, query) {
     try { patient = (await GET(`/api/patients/${presetId}`)).patient; } catch (e) { toast(errorText(e), 'err'); }
   }
   // «Даволаш режаси» yangi qabulda shablon bilan to'ladi (Созламалар → Клиника), shifokor tahrirlaydi
-  if (can('visit.clinical.write')) return renderVisitForm(el, { status: 'open', treatment: state.settings.treatment_template || '' }, patient, { isNew: true });
+  if (can('visit.clinical.write')) return renderVisitForm(el, { status: 'open', treatment: setting('treatment_template') }, patient, { isNew: true });
   return renderRegistrarForm(el, patient);
 }
 
@@ -71,6 +71,14 @@ function addressFields(addr, locked) {
     <label class="field field--wide"><span>${t('addr.street')}</span>
       <input name="addr_rest" maxlength="200" placeholder="${t('addr.street_ph')}" value="${a.rest}" ${dis}></label>
     <input type="hidden" name="address" value="${addr}">`;
+}
+/** Hujjatda manzil joriy tilda: ruschada viloyat va tuman nomi ruscha («Ташкент (город), Сергелийский р-н, …») */
+export function addressText(addr) {
+  if (state.lang !== 'ru' || !addr) return addr || '';
+  const a = parseAddress(addr);
+  if (a.ri < 0) return addr;
+  const r = REGIONS[a.ri];
+  return [r[1], a.di >= 0 ? r[2][a.di][1] : '', a.rest].filter(Boolean).join(', ');
 }
 /** Manzil maydonlarini bog'lash: hudud tanlanganda tumanlar to'ladi, yashirin "address" yangilanadi */
 export function bindAddress(root) {
@@ -790,7 +798,7 @@ export function visitDocBody(v) {
       <div><b>${t('f.birth_date')}:</b> ${fmtDate(v.birth_date) || '—'}${v.birth_date ? ` (${age(v.birth_date)} ${t('years')})` : ''}
         ${v.gender ? html` &nbsp; <b>${t('f.gender')}:</b> ${genderText(v.gender)}` : ''}</div>
       ${v.patient_phone ? html`<div><b>${t('f.phone')}:</b> ${v.patient_phone}</div>` : ''}
-      ${v.patient_address ? html`<div><b>${t('f.address')}:</b> ${v.patient_address}</div>` : ''}
+      ${v.patient_address ? html`<div><b>${t('f.address')}:</b> ${addressText(v.patient_address)}</div>` : ''}
       <div><b>${t('visit.date')}:</b> ${fmtDateTime(v.visit_at)}</div>
     </div>
     ${block(t('doc.complaints'), complaints || v.complaints_text ? html`

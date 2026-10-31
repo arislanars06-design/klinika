@@ -144,7 +144,9 @@ router.post('/api/me/password', async (ctx) => {
 
 /* ================= Sozlamalar ================= */
 const SETTING_KEYS = { clinic_name: 200, clinic_address: 300, clinic_phone: 100, clinic_requisites: 500,
-  clinic_ministry: 200, clinic_subtitle: 300, clinic_services: 600, clinic_telegram: 60, clinic_instagram: 60, treatment_template: 2000 };
+  clinic_ministry: 200, clinic_subtitle: 300, clinic_services: 600, clinic_telegram: 60, clinic_instagram: 60, treatment_template: 2000,
+  clinic_name_ru: 200, clinic_ministry_ru: 200, clinic_subtitle_ru: 300, clinic_services_ru: 600, clinic_address_ru: 300,
+  clinic_requisites_ru: 500, treatment_template_ru: 2000 };
 
 function getSettings() {
   const out = {};

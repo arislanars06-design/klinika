@@ -3,7 +3,7 @@ import {
   html, raw, render, $, $$, t, state, GET, POST, PUT, can, qs, toast, confirmDialog, modal, printDoc, docHeader, errorText, money, fmtDate, fmtDateTime, age,
   genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go, showWordButton, busy,
 } from '../core.js';
-import { patientForm, bindPatientForm, printVisit } from './visit.js';
+import { patientForm, bindPatientForm, printVisit, addressText } from './visit.js';
 
 /* ================= Bosh oyna ================= */
 export async function dashboardView(el, query) {
@@ -176,7 +176,7 @@ async function visitsWord(params, range, o) {
     <table class="doc__table"><thead><tr><th>№</th><th>${t('date')}</th><th>ID</th><th>${t('f.full_name')}</th><th>${t('f.birth_year')}</th>
       <th>${t('f.phone')}</th><th>${t('f.address')}</th><th>${t('f.doctor_id')}</th>${clinical ? html`<th>${t('f.diagnosis_main')}</th>` : ''}<th>${t('status')}</th></tr></thead>
     <tbody>${d.rows.map((v, i) => html`<tr><td>${i + 1}</td><td>${fmtDateTime(v.visit_at)}</td><td>${v.patient_code}</td><td>${v.patient_name}</td>
-      <td>${v.birth_date ? v.birth_date.slice(0, 4) : ''}</td><td>${v.patient_phone}</td><td>${v.patient_address}</td><td>${v.doctor_name || ''}</td>
+      <td>${v.birth_date ? v.birth_date.slice(0, 4) : ''}</td><td>${v.patient_phone}</td><td>${addressText(v.patient_address)}</td><td>${v.doctor_name || ''}</td>
       ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${t('status.' + v.status)}</td></tr>`)}</tbody></table>
     <p>${t('total')}: ${d.total}${d.total > d.rows.length ? ` (${t('word.limited', { n: d.rows.length })})` : ''}</p>
     <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
@@ -223,7 +223,7 @@ export async function printPatientCard(id, mode = 'print') {
         <div><b>${t('f.birth_date')}:</b> ${fmtDate(p.birth_date) || '—'}${p.birth_date ? ` (${age(p.birth_date)} ${t('years')})` : ''}
           ${p.gender ? html` &nbsp; <b>${t('f.gender')}:</b> ${genderText(p.gender)}` : ''}</div>
         ${p.phone ? html`<div><b>${t('f.phone')}:</b> ${p.phone}</div>` : ''}
-        ${p.address ? html`<div><b>${t('f.address')}:</b> ${p.address}</div>` : ''}
+        ${p.address ? html`<div><b>${t('f.address')}:</b> ${addressText(p.address)}</div>` : ''}
       </div>
       <div class="doc__block"><h3>${t('hist.visits')} (${d.visits.length})</h3>
         ${d.visits.length ? html`<table class="doc__table"><thead><tr><th>${t('date')}</th><th>${t('f.doctor_id')}</th>
@@ -259,7 +259,7 @@ export async function patientView(el, id) {
           <dt>${t('f.birth_date')}</dt><dd>${fmtDate(p.birth_date) || '—'} ${p.birth_date ? `(${age(p.birth_date)} ${t('years')})` : ''}</dd>
           <dt>${t('f.gender')}</dt><dd>${genderText(p.gender) || '—'}</dd>
           <dt>${t('f.phone')}</dt><dd>${p.phone || '—'}</dd>
-          <dt>${t('f.address')}</dt><dd>${p.address || '—'}</dd>
+          <dt>${t('f.address')}</dt><dd>${addressText(p.address) || '—'}</dd>
           <dt>${t('patient.registered')}</dt><dd>${fmtDateTime(p.created_at)}</dd>
         </dl>
         ${can('patient.write') ? html`<details class="edit"><summary class="btn btn--ghost btn--sm">${t('edit')}</summary>${patientForm(p)}
