@@ -146,7 +146,8 @@ router.post('/api/me/password', async (ctx) => {
 const SETTING_KEYS = { clinic_name: 200, clinic_address: 300, clinic_phone: 100, clinic_requisites: 500,
   clinic_ministry: 200, clinic_subtitle: 300, clinic_services: 600, clinic_telegram: 60, clinic_instagram: 60, treatment_template: 2000,
   clinic_name_ru: 200, clinic_ministry_ru: 200, clinic_subtitle_ru: 300, clinic_services_ru: 600, clinic_address_ru: 300,
-  clinic_requisites_ru: 500, treatment_template_ru: 2000 };
+  clinic_requisites_ru: 500, treatment_template_ru: 2000,
+  clinic_slogan: 200, clinic_slogan_ru: 200, clinic_since: 4, stat_patients: 20, stat_operations: 20 };
 
 function getSettings() {
   const out = {};
@@ -157,6 +158,8 @@ function getSettings() {
 router.put('/api/settings', async (ctx) => {
   need(ctx, 'settings.clinic');
   const body = await readJson(ctx.req);
+  // Tekshiruvlar saqlashdan oldin: xato bo'lsa, hech narsa yozilmaydi
+  if (body.clinic_since && !/^(19|20)\d\d$/.test(String(body.clinic_since).trim())) throw new HttpError(400, 'invalid', { field: 'clinic_since' });
   // Server papkasi (fayllar yoziladigan joy) faqat administrator tomonidan o'zgartiriladi
   if ('word_save_dir' in body && !sec.can(ctx.user, 'admin')) {
     const cur = (db.prepare("SELECT value FROM settings WHERE key = 'word_save_dir'").get() || {}).value || '';
