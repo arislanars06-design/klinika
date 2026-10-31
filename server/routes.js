@@ -143,7 +143,7 @@ router.post('/api/me/password', async (ctx) => {
 
 /* ================= Sozlamalar ================= */
 const SETTING_KEYS = { clinic_name: 200, clinic_address: 300, clinic_phone: 100, clinic_requisites: 500,
-  clinic_ministry: 200, clinic_subtitle: 300, clinic_services: 600, clinic_telegram: 60, clinic_instagram: 60 };
+  clinic_ministry: 200, clinic_subtitle: 300, clinic_services: 600, clinic_telegram: 60, clinic_instagram: 60, treatment_template: 2000 };
 
 function getSettings() {
   const out = {};
@@ -830,8 +830,10 @@ router.get('/api/cash/daily', async (ctx) => {
 /* ================= Hisobotlar ================= */
 router.get('/api/reports', async (ctx) => {
   need(ctx);
-  const canV = sec.can(ctx.user, 'report.visits');
-  const canF = sec.can(ctx.user, 'report.finance');
+  // part=visits — «Беморлар тарихи → Статистика», part=finance — «Касса → Статистика»
+  const part = ctx.query.get('part') || '';
+  const canV = sec.can(ctx.user, 'report.visits') && part !== 'finance';
+  const canF = sec.can(ctx.user, 'report.finance') && part !== 'visits';
   if (!canV && !canF) throw new HttpError(403, 'forbidden');
   const to = dateParam(ctx.query.get('to'), 'to', todayLocal());
   const from = dateParam(ctx.query.get('from'), 'from', to.slice(0, 8) + '01');

@@ -204,7 +204,8 @@ const DEFAULT_SETTINGS = {
   clinic_services: '', // yo'nalishlar, har biri alohida qatorda
   clinic_telegram: '',
   clinic_instagram: '',
-  clinic_logo: '', // data:image/... (ixtiyoriy)
+  clinic_logo: '',
+  treatment_template: '1. №15-диета столи\n2. Томоқ ва бурунни фурациллин эритмасида 4–5 маҳал чайиш', // yangi qabulda «Даволаш режаси»ga yoziladi // data:image/... (ixtiyoriy)
   word_save_dir: '', // bo'sh bo'lmasa, Word fayllarning nusxasi server kompyuterdagi shu papkaga yoziladi
   print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
 };

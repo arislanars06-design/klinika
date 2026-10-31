@@ -9,6 +9,7 @@ function cashTabs(active) {
   return html`<div class="tabs">
     <a class="tab ${active === 'list' ? 'tab--active' : ''}" href="#/cash">${t('cash.invoices')}</a>
     <a class="tab ${active === 'daily' ? 'tab--active' : ''}" href="#/cash/daily">${t('cash.daily')}</a>
+    ${can('report.finance') ? html`<a class="tab" href="#/cash/stats">${t('stats')}</a>` : ''}
   </div>`;
 }
 

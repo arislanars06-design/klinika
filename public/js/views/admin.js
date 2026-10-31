@@ -67,6 +67,9 @@ async function settings(el) {
         <label class="field"><span>Instagram</span><input name="clinic_instagram" maxlength="60" placeholder="@username" value="${s.clinic_instagram || ''}"></label>
       </div>
       <label class="field"><span>${t('admin.requisites')}</span><textarea name="clinic_requisites" rows="2" maxlength="500">${s.clinic_requisites}</textarea></label>
+      <label class="field"><span>${t('admin.treatment_template')}</span>
+        <textarea name="treatment_template" rows="4" maxlength="2000">${s.treatment_template || ''}</textarea>
+        <span class="hint">${t('admin.treatment_template_hint')}</span></label>
       <label class="field"><span>${t('admin.word_save_dir')}</span>
         <input name="word_save_dir" maxlength="400" placeholder="D:\\NURMED\\Ҳужжатлар" value="${s.word_save_dir || ''}" ${can('admin') ? '' : raw('disabled')}>
         <span class="hint">${can('admin') ? t('admin.word_save_dir_hint') : t('admin.word_save_dir_admin')}</span></label>
@@ -102,7 +105,7 @@ async function settings(el) {
     e.preventDefault();
     await busy(e.submitter, async () => {
       const body = Object.fromEntries(['clinic_ministry', 'clinic_name', 'clinic_subtitle', 'clinic_services', 'clinic_address', 'clinic_phone',
-        'clinic_telegram', 'clinic_instagram', 'clinic_requisites'].map((k) => [k, f.elements[k].value.trim()]));
+        'clinic_telegram', 'clinic_instagram', 'clinic_requisites', 'treatment_template'].map((k) => [k, f.elements[k].value.trim()]));
       if (can('admin')) body.word_save_dir = f.elements.word_save_dir.value.trim();
       state.settings = await PUT('/api/settings', { ...body, print_mode: f.elements.print_mode.value, clinic_logo: logo });
       document.dispatchEvent(new Event('nurmed:settings'));
