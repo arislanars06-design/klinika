@@ -164,6 +164,7 @@ const uz = {
   'rep.invoiced': 'Ҳисобланган хизматлар', 'rep.debts': 'Тўланмаган қолдиқ', 'rep.debt_count': '{n} та ҳисоб, шундан {p} таси қисман тўланган',
   'rep.services': 'Хизматлар сони ва суммаси', 'rep.download_word': 'Word файлга юклаш', 'rep.indicator': 'Кўрсаткич', 'rep.value': 'Қиймат',
   'rep.period_col': 'Давр', 'rep.period': 'Давр', 'rep.prepared': 'Тузди', 'rep.debt_invoices': 'Қарздор ҳисоблар',
+  'rep.patient_list': 'Беморлар рўйхати', 'rep.patient_services': 'Беморлар рўйхати ва кўрсатилган хизматлар', 'rep.services_col': 'Хизматлар',
 
   // administrator
   'admin.settings': 'Клиника', 'admin.users': 'Ходимлар', 'admin.services': 'Хизматлар ва нархлар', 'admin.audit': 'Аудит журнали',
@@ -352,6 +353,7 @@ const ru = {
   'rep.invoiced': 'Начислено за услуги', 'rep.debts': 'Неоплаченный остаток', 'rep.debt_count': '{n} счетов, из них {p} частично оплачены',
   'rep.services': 'Количество и сумма услуг', 'rep.download_word': 'Скачать в Word', 'rep.indicator': 'Показатель', 'rep.value': 'Значение',
   'rep.period_col': 'Период', 'rep.period': 'Период', 'rep.prepared': 'Составил', 'rep.debt_invoices': 'Счета с долгом',
+  'rep.patient_list': 'Список пациентов', 'rep.patient_services': 'Список пациентов и оказанные услуги', 'rep.services_col': 'Услуги',
 
   'admin.settings': 'Клиника', 'admin.users': 'Сотрудники', 'admin.services': 'Услуги и цены', 'admin.audit': 'Журнал аудита',
   'admin.backup': 'Резервные копии', 'admin.clinic_name': 'Название клиники', 'admin.requisites': 'Реквизиты (лицензия, ИНН, банк и т.д.)',

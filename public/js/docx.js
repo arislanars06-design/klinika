@@ -160,15 +160,21 @@ function patientTable(cells) {
 function table(t) {
   const rows = [...t.rows];
   const n = Math.max(...rows.map((r) => r.cells.length));
+  // Ustun kengliklari: sarlavha katagidagi data-w (%) bo'yicha, qolgani teng bo'linadi
+  const hints = rows.length ? [...rows[0].cells].map((c) => Number(c.dataset && c.dataset.w) || 0) : [];
+  const fixed = hints.length === n && hints.some(Boolean);
+  const freeW = CONTENT_W - hints.reduce((a, w) => a + Math.round((CONTENT_W * w) / 100), 0);
+  const free = hints.filter((w) => !w).length;
+  const widths = fixed ? hints.map((w) => (w ? Math.round((CONTENT_W * w) / 100) : Math.floor(freeW / Math.max(1, free)))) : [];
   const colW = Math.floor(CONTENT_W / n);
   const border = '<w:top w:val="single" w:sz="4" w:color="777777"/><w:left w:val="single" w:sz="4" w:color="777777"/>'
     + '<w:bottom w:val="single" w:sz="4" w:color="777777"/><w:right w:val="single" w:sz="4" w:color="777777"/>'
     + '<w:insideH w:val="single" w:sz="4" w:color="777777"/><w:insideV w:val="single" w:sz="4" w:color="777777"/>';
-  const body = rows.map((r) => `<w:tr>${[...r.cells].map((c) => `<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/></w:tcPr>${
+  const body = rows.map((r) => `<w:tr>${[...r.cells].map((c, ci) => `<w:tc><w:tcPr>${fixed ? `<w:tcW w:w="${widths[ci]}" w:type="dxa"/>` : '<w:tcW w:w="0" w:type="auto"/>'}</w:tcPr>${
     P(inline(c), { after: 0, sz: TABLE_SZ, b: c.tagName === 'TH', align: c.classList.contains('num') ? 'right' : undefined })}</w:tc>`).join('')}</w:tr>`).join('');
-  return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>${border}</w:tblBorders>`
+  return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>${border}</w:tblBorders>${fixed ? '<w:tblLayout w:type="fixed"/>' : ''}`
     + '<w:tblCellMar><w:left w:w="57" w:type="dxa"/><w:right w:w="57" w:type="dxa"/></w:tblCellMar></w:tblPr>'
-    + `<w:tblGrid>${Array.from({ length: n }, () => `<w:gridCol w:w="${colW}"/>`).join('')}</w:tblGrid>${body}</w:tbl>`
+    + `<w:tblGrid>${(fixed ? widths : Array.from({ length: n }, () => colW)).map((w) => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${body}</w:tbl>`
     + P([], { after: 30, sz: 6 });
 }
 
