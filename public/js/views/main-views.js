@@ -101,7 +101,7 @@ export async function dashboardView(el, query) {
     <section class="achvs">
       ${statTile('smile', s.stat_patients, t('home.stat_patients'))}
       ${statTile('scalpel', s.stat_operations, t('home.stat_operations'))}
-      ${years ? statTile('calendar', `${years}+`, t('home.stat_years')) : ''}
+      ${s.stat_experience || years ? statTile('calendar', s.stat_experience || `${years}+`, t('home.stat_years')) : ''}
       ${services.length ? statTile('layers', String(services.length), t('home.stat_services')) : ''}
     </section>
 

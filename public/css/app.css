@@ -222,6 +222,11 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .complaints { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 16px; margin-bottom: 10px; }
 .complaints-from { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 12px; }
 .complaints-from__label { font-weight: 650; font-size: .85rem; }
+.anam { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); display: grid; gap: 8px; }
+.anam .complaints-from { margin-bottom: 0; }
+.anam__vitae { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; background: var(--surface-2); }
+.anam__head { font-weight: 650; font-size: .85rem; }
+.anam textarea::placeholder { color: var(--muted); opacity: .75; font-style: italic; }
 .complaints__title { font-weight: 650; font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 5px; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chip { display: inline-flex; cursor: pointer; user-select: none; }

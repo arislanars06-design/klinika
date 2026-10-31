@@ -161,7 +161,8 @@ function addColumn(table, column, ddl) {
   if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
 }
 addColumn('visits', 'recommendation', "TEXT NOT NULL DEFAULT ''");
-addColumn('visits', 'complaints_from', "TEXT NOT NULL DEFAULT ''"); // shikoyat yaqinining so'zidan (LOR.RELATIVES)
+addColumn('visits', 'complaints_from', "TEXT NOT NULL DEFAULT ''");
+addColumn('visits', 'anamnesis_vitae', "TEXT NOT NULL DEFAULT '{}'"); // Anamnesis vitae (LOR.ANAMNESIS_VITAE), JSON // shikoyat yaqinining so'zidan (LOR.RELATIVES)
 addColumn('users', 'deleted', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('services', 'deleted', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('services', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
@@ -209,7 +210,7 @@ const DEFAULT_SETTINGS = {
   clinic_name_ru: '', clinic_ministry_ru: '', clinic_subtitle_ru: '', clinic_services_ru: '', clinic_address_ru: '', clinic_requisites_ru: '',
   treatment_template_ru: '',
   // Bosh oyna: shior, ish boshlagan yil va yutuqlar (matn: «30 000+»)
-  clinic_slogan: '', clinic_slogan_ru: '', clinic_since: '', stat_patients: '', stat_operations: '',
+  clinic_slogan: '', clinic_slogan_ru: '', clinic_since: '', stat_patients: '', stat_operations: '', stat_experience: '',
   treatment_template: '1. №15-диета столи\n2. Томоқ ва бурунни фурациллин эритмасида 4–5 маҳал чайиш', // yangi qabulda «Даволаш режаси»ga yoziladi // data:image/... (ixtiyoriy)
   word_save_dir: '', // bo'sh bo'lmasa, Word fayllarning nusxasi server kompyuterdagi shu papkaga yoziladi
   print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
@@ -330,13 +331,14 @@ function applyClinicHeaderRu() {
 }
 
 // Bosh oyna uchun klinika ma'lumotlari: bir marta, faqat bo'sh maydonlarga
-const DASHBOARD_VERSION = '2026-11-01';
+const DASHBOARD_VERSION = '2026-11-02';
 const DASHBOARD_DEFAULTS = {
   clinic_slogan: 'Соғлом эшитиш, эркин нафас — бахтли ҳаёт',
   clinic_slogan_ru: 'Здоровый слух, свободное дыхание — счастливая жизнь',
   clinic_since: '2020',
   stat_patients: '30 000+',
   stat_operations: '5 000+',
+  stat_experience: '20+', // shifokorlarning ish tajribasi (yil)
 };
 function applyDashboardDefaults() {
   const done = db.prepare('SELECT value FROM settings WHERE key = ?').get('dashboard_version');

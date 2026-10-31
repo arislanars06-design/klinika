@@ -322,10 +322,30 @@ function complaintsBlock(v) {
       <div class="grid-fields">
         <label class="field field--wide"><span>${t('f.complaints_text')}</span>
           <textarea name="complaints_text" rows="2" maxlength="4000" placeholder="${t('visit.complaints_ph')}">${v.complaints_text || ''}</textarea></label>
-        <label class="field field--wide"><span>${t('f.anamnesis')}</span>
-          <textarea name="anamnesis" rows="2" maxlength="4000" placeholder="${t('visit.anamnesis_ph')}">${v.anamnesis || ''}</textarea></label>
       </div>
+      ${anamnesisBlock(v)}
     </section>`;
+}
+
+/** Анамнез: Anamnesis morbi va Anamnesis vitae (6 band) tanlash orqali. Tavsif maydonda soya (placeholder) ko'rinishida */
+function anamnesisBlock(v) {
+  const vit = v.anamnesis_vitae || {};
+  const morbiOn = v.id ? !!v.anamnesis : true;
+  const vitaeOn = Object.keys(vit).length > 0;
+  return html`
+    <div class="anam">
+      <div class="complaints-from"><span class="complaints-from__label">${t('anam.title')}:</span>
+        <div class="chips">${chip('anam_type', 'morbi', t('anam.morbi_chip'), morbiOn)}${chip('anam_type', 'vitae', t('anam.vitae_chip'), vitaeOn)}</div></div>
+      <label class="field ${morbiOn ? '' : 'hidden'}" data-anam="morbi"><span>Anamnesis morbi</span>
+        <textarea name="anamnesis" rows="2" maxlength="4000" placeholder="${t('visit.anamnesis_ph')}">${v.anamnesis || ''}</textarea></label>
+      <div class="anam__vitae ${vitaeOn ? '' : 'hidden'}" data-anam="vitae">
+        <div class="anam__head">Anamnesis vitae</div>
+        <div class="chips chips--sm">${LOR.ANAMNESIS_VITAE.map((it, i) => chip('vitae_item', it.code, `${i + 1}. ${L(it)}`, !!vit[it.code]))}</div>
+        ${LOR.ANAMNESIS_VITAE.map((it, i) => html`
+          <label class="field ${vit[it.code] ? '' : 'hidden'}" data-vitae="${it.code}"><span>${i + 1}. ${L(it)}</span>
+            <textarea name="vitae|${it.code}" rows="3" maxlength="3000" placeholder="${L(it.hint)}" title="${L(it.hint)}">${vit[it.code] || ''}</textarea></label>`)}
+      </div>
+    </div>`;
 }
 
 /* Input nomi: lor|<metod>|<tomon yoki ->|<qism>|<maydon>. Radio, tomon va daraja ham checkbox
@@ -560,8 +580,13 @@ function collect(form, legacyLor = {}) {
     return c;
   });
   const g = (k) => (fd.get(k) || '').trim();
+  const types = fd.getAll('anam_type');
   return {
-    complaints, complaints_from: fd.get('complaints_from') || '', complaints_text: g('complaints_text'), anamnesis: g('anamnesis'), lor_status: lor,
+    complaints, complaints_from: fd.get('complaints_from') || '', complaints_text: g('complaints_text'),
+    // faqat tanlangan anamnez turlari saqlanadi
+    anamnesis: types.includes('morbi') ? g('anamnesis') : '',
+    anamnesis_vitae: types.includes('vitae') ? Object.fromEntries(fd.getAll('vitae_item').map((c) => [c, g(`vitae|${c}`)]).filter(([, x]) => x)) : {},
+    lor_status: lor,
     diagnosis_main: g('diagnosis_main'), diagnosis_extra: g('diagnosis_extra'), treatment: g('treatment'), recommendation: g('recommendation'), prescriptions: [],
     exams: g('exams'), followup_date: g('followup_date'), followup_note: g('followup_note'),
   };
@@ -673,6 +698,13 @@ async function renderVisitForm(el, v, patient, { isNew }) {
       }
     }
     if (i.name.startsWith('cdis|')) i.nextElementSibling.classList.toggle('hidden', i.value !== 'other');
+    // Анамнез турлари ва Anamnesis vitae бандлари: tanlanganda maydon ochiladi
+    if (i.name === 'anam_type') $(`[data-anam="${i.value}"]`, form).classList.toggle('hidden', !i.checked);
+    if (i.name === 'vitae_item') {
+      const box = $(`[data-vitae="${i.value}"]`, form);
+      box.classList.toggle('hidden', !i.checked);
+      if (i.checked) $('textarea', box).focus();
+    }
     // «Яқинининг сўзидан»: bittasi tanlanadi, qayta bosilsa olib tashlanadi
     if (i.name === 'complaints_from' && i.checked) $$('input[name=complaints_from]', form).forEach((x) => { if (x !== i) x.checked = false; });
     markDirty();
@@ -770,6 +802,7 @@ export function bindPatientForm(f, id, onSaved) {
 export function visitDocBody(v) {
   const complaints = LOR.complaintsText(v.complaints || [], state.lang, { dative: true });
   const from = LOR.relative(v.complaints_from);
+  const vitae = LOR.ANAMNESIS_VITAE.filter((it) => (v.anamnesis_vitae || {})[it.code]).map((it) => [it, v.anamnesis_vitae[it.code]]);
   // «ШИКОЯТИ: Онасининг сўзидан бош оғриғига, …» / «ЖАЛОБЫ: Со слов матери: головная боль, …»
   const fromPrefix = from ? upperFirst(L(from.from)) + (state.lang === 'ru' ? ': ' : ' ') : '';
   const lor = LOR.lorStatusText(v.lor_status || {}, state.lang);
@@ -804,7 +837,8 @@ export function visitDocBody(v) {
     ${block(t('doc.complaints'), complaints || v.complaints_text ? html`
       ${complaints ? html`<p>${from ? fromPrefix + lowerFirst(complaints) : complaints}.</p>` : ''}
       ${v.complaints_text ? html`<p class="pre">${from && !complaints ? fromPrefix : ''}${v.complaints_text}</p>` : ''}` : '')}
-    ${block(t('f.anamnesis'), p(v.anamnesis))}
+    ${block('Anamnesis morbi', p(v.anamnesis))}
+    ${block('Anamnesis vitae', vitae.length ? html`${vitae.map(([it, x]) => html`<p><b>${L(it)}:</b> <span class="pre">${x}</span></p>`)}` : '', true)}
     ${block(t('doc.lor_status'), lorGroups.length ? html`${lorGroups.map(({ g, items }) => {
       // Bir nechta kichik bo'limli guruh: alohida sarlavha + «Эпифарингоскопия: …»; bitta bo'limli: «РИНОСКОПИЯ: …»
       const multi = g && g.methods.length > 1;
