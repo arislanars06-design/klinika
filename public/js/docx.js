@@ -225,6 +225,7 @@ function block(el, out) {
   const h = el.querySelector(':scope > h3');
   let heading = h ? [{ t: h.textContent.trim().toUpperCase() + ': ', b: true }] : null;
   const flush = () => { if (heading) { out.push(P(heading, { keepNext: true })); heading = null; } };
+  if (el.classList.contains('doc__block--stack')) flush(); // sarlavha alohida qatorda
   let groups = 0;
   for (const c of el.children) {
     if (c === h) continue;

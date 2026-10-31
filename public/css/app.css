@@ -393,6 +393,7 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 :is(.print-root, .doc-live) .doc__block > h3 + p { display: inline; }
 :is(.print-root, .doc-live) .doc__block > h3 + p + p, :is(.print-root, .doc-live) .doc__block > h3 + p + .pre { display: block; }
 :is(.print-root, .doc-live) .doc__block > h3 + .doc__lor { margin-top: 0; }
+:is(.print-root, .doc-live) .doc__block--stack > h3, :is(.print-root, .doc-live) .doc__block--stack > h3 + p { display: block; }
 :is(.print-root, .doc-live) .doc__block > h3 + .doc__lor, :is(.print-root, .doc-live) .doc__block > h3 ~ .doc__table { display: block; }
 
 /* Bemor ma'lumotlari ikki ustunda */
