@@ -23,9 +23,17 @@ async function settings(el) {
   const s = state.settings;
   render(el, html`
     <form class="form card" id="sf">
+      <label class="field"><span>${t('admin.clinic_ministry')}</span><input name="clinic_ministry" maxlength="200" value="${s.clinic_ministry || ''}"></label>
       <label class="field"><span>${t('admin.clinic_name')} *</span><input name="clinic_name" required maxlength="200" value="${s.clinic_name}"></label>
+      <label class="field"><span>${t('admin.clinic_subtitle')}</span><input name="clinic_subtitle" maxlength="300" value="${s.clinic_subtitle || ''}"></label>
+      <label class="field"><span>${t('admin.clinic_services')}</span><textarea name="clinic_services" rows="5" maxlength="600">${s.clinic_services || ''}</textarea>
+        <span class="hint">${t('admin.clinic_services_hint')}</span></label>
       <label class="field"><span>${t('f.address')}</span><input name="clinic_address" maxlength="300" value="${s.clinic_address}"></label>
-      <label class="field"><span>${t('f.phone')}</span><input name="clinic_phone" maxlength="100" value="${s.clinic_phone}"></label>
+      <label class="field"><span>${t('admin.clinic_phones')}</span><input name="clinic_phone" maxlength="100" value="${s.clinic_phone}" placeholder="+998 90 123 45 67; +998 99 765 43 21"></label>
+      <div class="grid-fields">
+        <label class="field"><span>Telegram</span><input name="clinic_telegram" maxlength="60" placeholder="@username" value="${s.clinic_telegram || ''}"></label>
+        <label class="field"><span>Instagram</span><input name="clinic_instagram" maxlength="60" placeholder="@username" value="${s.clinic_instagram || ''}"></label>
+      </div>
       <label class="field"><span>${t('admin.requisites')}</span><textarea name="clinic_requisites" rows="2" maxlength="500">${s.clinic_requisites}</textarea></label>
       <label class="field"><span>${t('admin.word_save_dir')}</span>
         <input name="word_save_dir" maxlength="400" placeholder="D:\\NURMED\\Ҳужжатлар" value="${s.word_save_dir || ''}" ${can('admin') ? '' : raw('disabled')}>
@@ -61,7 +69,8 @@ async function settings(el) {
   f.onsubmit = async (e) => {
     e.preventDefault();
     await busy(e.submitter, async () => {
-      const body = Object.fromEntries(['clinic_name', 'clinic_address', 'clinic_phone', 'clinic_requisites'].map((k) => [k, f.elements[k].value.trim()]));
+      const body = Object.fromEntries(['clinic_ministry', 'clinic_name', 'clinic_subtitle', 'clinic_services', 'clinic_address', 'clinic_phone',
+        'clinic_telegram', 'clinic_instagram', 'clinic_requisites'].map((k) => [k, f.elements[k].value.trim()]));
       if (can('admin')) body.word_save_dir = f.elements.word_save_dir.value.trim();
       state.settings = await PUT('/api/settings', { ...body, print_mode: f.elements.print_mode.value, clinic_logo: logo });
       document.dispatchEvent(new Event('nurmed:settings'));
