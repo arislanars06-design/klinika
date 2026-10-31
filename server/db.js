@@ -208,6 +208,8 @@ const DEFAULT_SETTINGS = {
   // Ruscha variantlar (bo'sh bo'lsa, o'zbekchasi chiqadi)
   clinic_name_ru: '', clinic_ministry_ru: '', clinic_subtitle_ru: '', clinic_services_ru: '', clinic_address_ru: '', clinic_requisites_ru: '',
   treatment_template_ru: '',
+  // Bosh oyna: shior, ish boshlagan yil va yutuqlar (matn: «30 000+»)
+  clinic_slogan: '', clinic_slogan_ru: '', clinic_since: '', stat_patients: '', stat_operations: '',
   treatment_template: '1. №15-диета столи\n2. Томоқ ва бурунни фурациллин эритмасида 4–5 маҳал чайиш', // yangi qabulda «Даволаш режаси»ga yoziladi // data:image/... (ixtiyoriy)
   word_save_dir: '', // bo'sh bo'lmasa, Word fayllarning nusxasi server kompyuterdagi shu papkaga yoziladi
   print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
@@ -327,6 +329,25 @@ function applyClinicHeaderRu() {
   });
 }
 
+// Bosh oyna uchun klinika ma'lumotlari: bir marta, faqat bo'sh maydonlarga
+const DASHBOARD_VERSION = '2026-11-01';
+const DASHBOARD_DEFAULTS = {
+  clinic_slogan: 'Соғлом эшитиш, эркин нафас — бахтли ҳаёт',
+  clinic_slogan_ru: 'Здоровый слух, свободное дыхание — счастливая жизнь',
+  clinic_since: '2020',
+  stat_patients: '30 000+',
+  stat_operations: '5 000+',
+};
+function applyDashboardDefaults() {
+  const done = db.prepare('SELECT value FROM settings WHERE key = ?').get('dashboard_version');
+  if (done && done.value === DASHBOARD_VERSION) return;
+  const upd = db.prepare("UPDATE settings SET value = ? WHERE key = ? AND value = ''");
+  tx(() => {
+    for (const [k, v] of Object.entries(DASHBOARD_DEFAULTS)) upd.run(v, k);
+    db.prepare('INSERT INTO settings(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run('dashboard_version', DASHBOARD_VERSION);
+  });
+}
+
 function seed() {
   const ins = db.prepare('INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)');
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) ins.run(k, v);
@@ -334,6 +355,7 @@ function seed() {
   applyPriceGroups();
   applyClinicHeader();
   applyClinicHeaderRu();
+  applyDashboardDefaults();
 }
 seed();
 

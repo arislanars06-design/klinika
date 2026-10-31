@@ -1,25 +1,119 @@
 // Bosh oyna, Bemorlar tarixi (qidiruv, filtr, eksport) va bemor kartasi.
 import {
   html, raw, render, $, $$, t, state, GET, POST, PUT, can, qs, toast, confirmDialog, modal, printDoc, docHeader, errorText, money, fmtDate, fmtDateTime, age,
-  genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go, showWordButton, busy,
+  genderText, statusBadge, payBadge, pager, setQuery, localDate, addDays, go, showWordButton, busy, setting,
 } from '../core.js';
 import { patientForm, bindPatientForm, printVisit, addressText } from './visit.js';
 
 /* ================= Bosh oyna ================= */
+// Ikonkalar (24×24, chiziqli)
+const ICONS = {
+  smile: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>',
+  scalpel: '<path d="M20 4 9.5 14.5"/><path d="m9.5 14.5-2 4.5-3-3 4.5-1.5"/><path d="m14 6 4 4"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  layers: '<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/>',
+  scope: '<path d="M6 3v6a4 4 0 0 0 8 0V3"/><path d="M10 13v3a5 5 0 0 0 10 0v-2"/><circle cx="20" cy="12" r="2"/>',
+  doctor: '<circle cx="12" cy="7" r="4"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/><path d="M12 14v4M10 16h4"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/>',
+  phone: '<path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+  send: '<path d="m21 3-9 18-2-8-8-2 19-8Z"/>',
+  camera: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/>',
+};
+const icon = (n) => raw(`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`);
+
+/** «30 000+» → { n: 30000, suffix: '+' } (sanab chiqish animatsiyasi uchun) */
+function statParts(s) {
+  const m = /^([\d\s.,]+)(.*)$/.exec(String(s || '').trim());
+  return m ? { n: Number(m[1].replace(/\D/g, '')), suffix: m[2] } : null;
+}
+const groupNum = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+function countUp(root) {
+  const items = $$('[data-count]', root);
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  items.forEach((elm) => {
+    const target = Number(elm.dataset.count);
+    const suffix = elm.dataset.suffix || '';
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / 1100);
+      const v = Math.round(target * (1 - Math.pow(1 - k, 3)));
+      elm.textContent = groupNum(v) + suffix;
+      if (k < 1 && elm.isConnected) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+function greeting() {
+  const h = new Date().getHours();
+  return t(h < 11 ? 'home.morning' : h < 17 ? 'home.day' : 'home.evening');
+}
+
 export async function dashboardView(el, query) {
   const date = query.get('date') || localDate();
   const d = await GET('/api/dashboard' + qs({ date }));
   const isToday = date === localDate();
+  const s = state.settings;
+  const since = /^\d{4}$/.test(s.clinic_since || '') ? Number(s.clinic_since) : null;
+  const years = since ? Math.max(1, new Date().getFullYear() - since) : null;
+  const services = setting('clinic_services').split('\n').map((x) => x.trim()).filter(Boolean);
 
   const visitLink = (v) => {
     if (can('visit.clinical.read') || can('visit.create')) return `#/visit/${v.id}`;
     if (can('billing.write')) return `#/cash/new?patient=${v.patient_id}&visit=${v.id}`;
     return `#/patient/${v.patient_id}`;
   };
+  const statTile = (ic, value, label) => {
+    const p = statParts(value);
+    if (!value) return '';
+    return html`<div class="achv"><span class="achv__icon">${icon(ic)}</span>
+      <div><div class="achv__value" ${p ? raw(`data-count="${p.n}" data-suffix="${p.suffix.replace(/"/g, '')}"`) : ''}>${value}</div>
+      <div class="achv__label">${label}</div></div></div>`;
+  };
+  const feature = (ic, title, text) => html`<div class="feature"><span class="feature__icon">${icon(ic)}</span>
+    <div><div class="feature__title">${title}</div><div class="feature__text">${text}</div></div></div>`;
+  const contacts = [
+    setting('clinic_address') ? html`<span>${icon('pin')} ${setting('clinic_address')}</span>` : '',
+    s.clinic_phone ? html`<span>${icon('phone')} ${s.clinic_phone}</span>` : '',
+    s.clinic_telegram ? html`<span>${icon('send')} ${s.clinic_telegram}</span>` : '',
+    s.clinic_instagram ? html`<span>${icon('camera')} ${s.clinic_instagram}</span>` : '',
+  ].filter(Boolean);
 
   render(el, html`
-    <div class="page-head">
-      <h1>${t('nav.dashboard')}</h1>
+    <section class="hero">
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="hero__main">
+        ${s.clinic_logo ? html`<div class="hero__logo"><img src="${s.clinic_logo}" alt=""></div>` : ''}
+        <div class="hero__text">
+          <div class="hero__hello">${greeting()}, ${state.user.full_name}</div>
+          <h1 class="hero__title">${setting('clinic_name')}</h1>
+          ${setting('clinic_slogan') ? html`<p class="hero__slogan">«${setting('clinic_slogan')}»</p>` : ''}
+          ${setting('clinic_subtitle') ? html`<p class="hero__sub">${setting('clinic_subtitle')}</p>` : ''}
+          ${since ? html`<span class="hero__badge">${t('home.since', { year: since })}</span>` : ''}
+        </div>
+      </div>
+      ${contacts.length ? html`<div class="hero__contacts">${contacts}</div>` : ''}
+    </section>
+
+    <section class="achvs">
+      ${statTile('smile', s.stat_patients, t('home.stat_patients'))}
+      ${statTile('scalpel', s.stat_operations, t('home.stat_operations'))}
+      ${years ? statTile('calendar', `${years}+`, t('home.stat_years')) : ''}
+      ${services.length ? statTile('layers', String(services.length), t('home.stat_services')) : ''}
+    </section>
+
+    <section class="features">
+      ${feature('scope', t('home.f_modern'), t('home.f_modern_text'))}
+      ${feature('doctor', t('home.f_doctors'), t('home.f_doctors_text'))}
+      ${feature('grid', t('home.f_complex'), services.length ? services.join(' · ') : t('home.f_complex_text'))}
+      ${feature('file', t('home.f_record'), t('home.f_record_text'))}
+    </section>
+
+    <div class="page-head home-day">
+      <h2>${isToday ? t('home.today') : t('home.day_of', { date: fmtDate(date) })}</h2>
       <label class="inline">${t('date')}: <input type="date" id="dash-date" value="${date}"></label>
     </div>
     <div class="stats">
@@ -43,6 +137,7 @@ export async function dashboardView(el, query) {
         </table>` : html`<p class="muted">${t('empty')}</p>`}
     </section>`);
   $('#dash-date', el).onchange = (e) => go('/' + qs({ date: e.target.value }));
+  countUp(el);
 }
 
 /* ================= Bemorlar tarixi ================= */
