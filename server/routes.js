@@ -143,6 +143,8 @@ router.post('/api/me/password', async (ctx) => {
 });
 
 /* ================= Sozlamalar ================= */
+// Word nusxalari papkalari: asosiy; «Беморлар тарихи» va «Касса» hujjatlari uchun alohida (bo'sh — asosiysi)
+const SAVE_DIR_KEYS = ['word_save_dir', 'word_save_dir_history', 'word_save_dir_cash'];
 const SETTING_KEYS = { clinic_name: 200, clinic_address: 300, clinic_phone: 100, clinic_requisites: 500,
   clinic_ministry: 200, clinic_subtitle: 300, clinic_services: 600, clinic_telegram: 60, clinic_instagram: 60, treatment_template: 2000,
   clinic_name_ru: 200, clinic_ministry_ru: 200, clinic_subtitle_ru: 300, clinic_services_ru: 600, clinic_address_ru: 300,
@@ -160,23 +162,26 @@ router.put('/api/settings', async (ctx) => {
   const body = await readJson(ctx.req);
   // Tekshiruvlar saqlashdan oldin: xato bo'lsa, hech narsa yozilmaydi
   if (body.clinic_since && !/^(19|20)\d\d$/.test(String(body.clinic_since).trim())) throw new HttpError(400, 'invalid', { field: 'clinic_since' });
-  // Server papkasi (fayllar yoziladigan joy) faqat administrator tomonidan o'zgartiriladi
-  if ('word_save_dir' in body && !sec.can(ctx.user, 'admin')) {
-    const cur = (db.prepare("SELECT value FROM settings WHERE key = 'word_save_dir'").get() || {}).value || '';
-    if (String(body.word_save_dir || '').trim() !== cur) throw new HttpError(403, 'forbidden');
-    delete body.word_save_dir;
+  // Server papkalari (fayllar yoziladigan joy) faqat administrator tomonidan o'zgartiriladi
+  for (const k of SAVE_DIR_KEYS) {
+    if (!(k in body) || sec.can(ctx.user, 'admin')) continue;
+    const cur = (db.prepare('SELECT value FROM settings WHERE key = ?').get(k) || {}).value || '';
+    if (String(body[k] || '').trim() !== cur) throw new HttpError(403, 'forbidden');
+    delete body[k];
+  }
+  // Papkalar avval tekshiriladi, keyin hammasi birga yoziladi
+  const dirs = {};
+  for (const k of SAVE_DIR_KEYS) {
+    if (!(k in body)) continue;
+    dirs[k] = str(body[k], 400, k);
+    if (dirs[k]) checkSaveDir(dirs[k]);
   }
   const upd = db.prepare('INSERT INTO settings(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
   const changed = [];
   for (const [k, max] of Object.entries(SETTING_KEYS)) {
     if (k in body) { upd.run(k, str(body[k], max, k, k === 'clinic_name')); changed.push(k); }
   }
-  if ('word_save_dir' in body) {
-    const dir = str(body.word_save_dir, 400, 'word_save_dir');
-    if (dir) checkSaveDir(dir);
-    upd.run('word_save_dir', dir);
-    changed.push('word_save_dir');
-  }
+  for (const [k, dir] of Object.entries(dirs)) { upd.run(k, dir); changed.push(k); }
   if ('print_mode' in body) {
     if (!['word', 'browser'].includes(body.print_mode)) throw new HttpError(400, 'invalid', { field: 'print_mode' });
     upd.run('print_mode', body.print_mode);
@@ -211,7 +216,9 @@ const safeFileName = (s) => String(s || '').normalize('NFC').replace(/[\\/:*?"<>
 
 router.post('/api/files', async (ctx) => {
   need(ctx, 'patient.read');
-  const dir = (db.prepare("SELECT value FROM settings WHERE key = 'word_save_dir'").get() || {}).value || '';
+  const get = (k) => (db.prepare('SELECT value FROM settings WHERE key = ?').get(k) || {}).value || '';
+  const folder = ctx.query.get('folder');
+  const dir = (['history', 'cash'].includes(folder) && get('word_save_dir_' + folder)) || get('word_save_dir');
   if (!dir) throw new HttpError(400, 'save_dir_not_set');
   const base = safeFileName(ctx.query.get('name')).replace(/\.docx$/i, '');
   if (!base) throw new HttpError(400, 'invalid', { field: 'name' });

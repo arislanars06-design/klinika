@@ -212,6 +212,7 @@ const DEFAULT_SETTINGS = {
   // Bosh oyna: shior, ish boshlagan yil va yutuqlar (matn: «30 000+»)
   clinic_slogan: '', clinic_slogan_ru: '', clinic_since: '', stat_patients: '', stat_operations: '', stat_experience: '',
   treatment_template: '1. №15-диета столи\n2. Томоқ ва бурунни фурациллин эритмасида 4–5 маҳал чайиш', // yangi qabulda «Даволаш режаси»ga yoziladi // data:image/... (ixtiyoriy)
+  word_save_dir_history: '', word_save_dir_cash: '', // «Беморлар тарихи» va «Касса» hujjatlari uchun (bo'sh — asosiysi)
   word_save_dir: '', // bo'sh bo'lmasa, Word fayllarning nusxasi server kompyuterdagi shu papkaga yoziladi
   print_mode: 'word', // 'word' — Чоп этиш Word fayl ochadi; 'browser' — brauzer orqali chop etiladi
 };

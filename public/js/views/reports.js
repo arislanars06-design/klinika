@@ -3,11 +3,11 @@ import { html, raw, render, $, t, state, GET, qs, money, fmtDate, fmtDateTime, l
 
 const KINDS = {
   visits: {
-    path: '/history/stats', title: 'nav.history', perm: 'report.visits', doc: 'rep.visits',
+    path: '/history/stats', title: 'nav.history', perm: 'report.visits', doc: 'rep.visits', folder: 'history',
     tabs: () => [['#/history', 'hist.visits'], ['#/history?tab=patients', 'hist.patients'], ['#/history/stats', 'stats']],
   },
   finance: {
-    path: '/cash/stats', title: 'nav.cash', perm: 'report.finance', doc: 'rep.finance',
+    path: '/cash/stats', title: 'nav.cash', perm: 'report.finance', doc: 'rep.finance', folder: 'cash',
     tabs: () => [['#/cash', 'cash.invoices'], ['#/cash/stats', 'stats']],
   },
 };
@@ -156,7 +156,7 @@ async function statsWord(K, d, from, to, periodLabel) {
     <footer class="doc__foot"><div class="doc__foot-row">
       <div><b>${t('rep.prepared')}:</b> ${state.user.full_name}</div>
       <div class="doc__sign">${t('doc.signature')}: ______________</div></div></footer>
-  </article>`, { word: true, page: 'a4', name: `${t(K.doc)} ${fmtDate(from)}-${fmtDate(to)}` });
+  </article>`, { word: true, page: 'a4', folder: K.folder, name: `${t(K.doc)} ${fmtDate(from)}-${fmtDate(to)}` });
 }
 
 /** Беморлар рўйхати (қабуллар бўйича): № | Сана | Ф.И.Ш. | Туғилган сана | Ташхис | Шифокор */

@@ -93,6 +93,11 @@ async function settings(el) {
       <label class="field"><span>${t('admin.word_save_dir')}</span>
         <input name="word_save_dir" maxlength="400" placeholder="D:\\NURMED\\Ҳужжатлар" value="${s.word_save_dir || ''}" ${can('admin') ? '' : raw('disabled')}>
         <span class="hint">${can('admin') ? t('admin.word_save_dir_hint') : t('admin.word_save_dir_admin')}</span></label>
+      <div class="grid-fields">
+        ${[['word_save_dir_history', 'admin.dir_history'], ['word_save_dir_cash', 'admin.dir_cash']].map(([k, l]) => html`
+          <label class="field field--wide"><span>${t(l)}</span>
+            <input name="${k}" maxlength="400" placeholder="${t('admin.dir_same')}" value="${s[k] || ''}" ${can('admin') ? '' : raw('disabled')}></label>`)}
+      </div>
       <label class="field"><span>${t('admin.print_mode')}</span>
         <select name="print_mode">
           <option value="word" ${s.print_mode !== 'browser' ? raw('selected') : ''}>${t('admin.print_word')}</option>
@@ -128,7 +133,7 @@ async function settings(el) {
         'clinic_telegram', 'clinic_instagram', 'clinic_requisites', 'treatment_template', 'clinic_name_ru', 'clinic_ministry_ru', 'clinic_subtitle_ru',
         'clinic_services_ru', 'clinic_address_ru', 'clinic_requisites_ru', 'treatment_template_ru',
         'clinic_slogan', 'clinic_slogan_ru', 'clinic_since', 'stat_patients', 'stat_operations', 'stat_experience'].map((k) => [k, f.elements[k].value.trim()]));
-      if (can('admin')) body.word_save_dir = f.elements.word_save_dir.value.trim();
+      if (can('admin')) ['word_save_dir', 'word_save_dir_history', 'word_save_dir_cash'].forEach((k) => { body[k] = f.elements[k].value.trim(); });
       state.settings = await PUT('/api/settings', { ...body, print_mode: f.elements.print_mode.value, clinic_logo: logo });
       document.dispatchEvent(new Event('nurmed:settings'));
       toast(t('saved'));
