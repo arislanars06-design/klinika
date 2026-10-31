@@ -758,14 +758,30 @@ export function bindPatientForm(f, id, onSaved) {
 
 /* ================= Tibbiy hujjat (chop etish) ================= */
 export function visitDocBody(v) {
-  const complaints = LOR.complaintsText(v.complaints || [], state.lang);
+  const complaints = LOR.complaintsText(v.complaints || [], state.lang, { dative: true });
   const from = LOR.relative(v.complaints_from);
   const lor = LOR.lorStatusText(v.lor_status || {}, state.lang);
+  // LOR STATUS bo'limlar bo'yicha: ФАРИНГОСКОПИЯ (эпи-, мезо-, гипо-), РИНОСКОПИЯ, ОТОСКОПИЯ, …
+  const lorGroups = [];
+  for (const s of lor) {
+    const g = s.group ? LOR.GROUPS.find((x) => x.code === s.group) : null;
+    const last = lorGroups[lorGroups.length - 1];
+    if (g && last && last.g === g) last.items.push(s); else lorGroups.push({ g, items: [s] });
+  }
+  const upper = (s) => String(s).toUpperCase();
+  const lorItem = (s, title) => html`
+      <div class="doc__lor"><h4>${title}</h4>
+        ${s.groups.map((g) => (g.table ? html`<table class="doc__table doc__lor-table"><thead><tr><th>${g.table.head[0]}</th><th>${g.table.test}</th><th>${g.table.head[1]}</th></tr></thead>
+          <tbody>${g.table.rows.map((r) => html`<tr><td>${r.vals[0]}</td><td>${r.label}</td><td>${r.vals[1]}</td></tr>`)}</tbody></table>`
+          : html`<div class="doc__grp">${g.sub ? html`<span class="doc__ear">${g.sub}</span> ` : ''}${g.lines.map((l) => html`<span class="doc__ln"><b>${l.label}:</b> ${l.text}</span>`)}</div>`))}
+        ${s.note ? html`<p class="pre">${s.note}</p>` : ''}
+      </div>`;
+  const rec = recommendationOf(v);
   const block = (title, content) => (content ? html`<div class="doc__block"><h3>${title}</h3>${content}</div>` : '');
   const p = (s) => (s ? html`<p class="pre">${s}</p>` : '');
   return html`
     <div class="doc__block doc__patient">
-      <div class="doc__wide"><b>${t('f.full_name')}:</b> ${v.patient_name}${v.patient_code ? html` <span class="muted">(${v.patient_code})</span>` : ''}</div>
+      <div class="doc__wide"><b>${t('f.full_name')}:</b> ${v.patient_name}</div>
       <div><b>${t('f.birth_date')}:</b> ${fmtDate(v.birth_date) || '—'}${v.birth_date ? ` (${age(v.birth_date)} ${t('years')})` : ''}
         ${v.gender ? html` &nbsp; <b>${t('f.gender')}:</b> ${genderText(v.gender)}` : ''}</div>
       ${v.patient_phone ? html`<div><b>${t('f.phone')}:</b> ${v.patient_phone}</div>` : ''}
@@ -775,18 +791,20 @@ export function visitDocBody(v) {
     ${block(t('doc.complaints') + (from ? ` (${L(from.from)})` : ''), complaints || v.complaints_text ? html`
       ${complaints ? html`<p>${complaints}.</p>` : ''}${p(v.complaints_text)}` : '')}
     ${block(t('f.anamnesis'), p(v.anamnesis))}
-    ${block(t('doc.lor_status'), lor.length ? html`${lor.map((s) => html`
-      <div class="doc__lor"><h4>${s.title}</h4>
-        ${s.groups.map((g) => (g.table ? html`<table class="doc__table doc__lor-table"><thead><tr><th>${g.table.head[0]}</th><th>${g.table.test}</th><th>${g.table.head[1]}</th></tr></thead>
-          <tbody>${g.table.rows.map((r) => html`<tr><td>${r.vals[0]}</td><td>${r.label}</td><td>${r.vals[1]}</td></tr>`)}</tbody></table>`
-          : html`<div class="doc__grp">${g.sub ? html`<span class="doc__ear">${g.sub}</span> ` : ''}${g.lines.map((l) => html`<span class="doc__ln"><b>${l.label}:</b> ${l.text}</span>`)}</div>`))}
-        ${s.note ? html`<p class="pre">${s.note}</p>` : ''}
-      </div>`)}` : '')}
-    ${block(t('doc.diagnosis'), v.diagnosis_main || v.diagnosis_extra ? html`
+    ${block(t('doc.lor_status'), lorGroups.length ? html`${lorGroups.map(({ g, items }) => {
+      // Bir nechta kichik bo'limli guruh: alohida sarlavha + «Эпифарингоскопия: …»; bitta bo'limli: «РИНОСКОПИЯ: …»
+      const multi = g && g.methods.length > 1;
+      return html`<div class="doc__lorgrp">${multi ? html`<div class="doc__lorhead">${upper(L(g))}</div>` : ''}
+        ${items.map((s) => lorItem(s, multi || !g ? s.title : upper(L(g))))}</div>`;
+    })}` : '')}
+    ${block(t('doc.diagnosis'), v.diagnosis_main || v.diagnosis_extra ? (v.diagnosis_main && !v.diagnosis_extra
+      ? html`<p>${v.diagnosis_main}</p>`
+      : html`
       ${v.diagnosis_main ? html`<p><b>${t('f.diagnosis_main')}:</b> ${v.diagnosis_main}</p>` : ''}
-      ${v.diagnosis_extra ? html`<p><b>${t('f.diagnosis_extra')}:</b> ${v.diagnosis_extra}</p>` : ''}` : '')}
+      ${v.diagnosis_extra ? html`<p><b>${t('f.diagnosis_extra')}:</b> ${v.diagnosis_extra}</p>` : ''}`) : '')}
     ${block(t('f.treatment'), p(v.treatment))}
-    ${block(t('f.recommendation'), p(recommendationOf(v)))}
+    ${rec ? html`<div class="doc__block"><table class="doc__table doc__rec"><thead><tr><th>${upper(t('f.recommendation'))}</th></tr></thead>
+      <tbody><tr><td><p class="pre">${rec}</p></td></tr></tbody></table></div>` : ''}
     ${block(t('f.exams'), p(v.exams))}
     ${block(t('doc.followup'), v.followup_date || v.followup_note ? html`<p>${v.followup_date ? fmtDate(v.followup_date) + '. ' : ''}${v.followup_note}</p>` : '')}`;
 }
@@ -805,7 +823,6 @@ function visitDocArticle(v) {
           <div><b>${t('doc.doctor')}:</b> ${v.doctor_name || ''}${v.doctor_phone ? ` · ${v.doctor_phone}` : ''}</div>
           <div class="doc__sign">${t('doc.signature')}: ______________</div>
         </div>
-        <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
       </footer>
     </article>`;
 }

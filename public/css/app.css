@@ -362,7 +362,12 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 :is(.print-root, .doc-live) .doc__req { font-size: 7.3pt; line-height: 1.2; }
 :is(.print-root, .doc-live) .doc__title { font-size: 9.5pt; margin: 2px 0 5px; }
 
-:is(.print-root, .doc-live) .doc__block { margin-bottom: 4px; }
+/* Har bir bo'lim orasida bitta bo'sh qator */
+:is(.print-root, .doc-live) .doc__block { margin-bottom: 1.3em; }
+:is(.print-root, .doc-live) .doc__lorgrp + .doc__lorgrp { margin-top: 1.3em; }
+:is(.print-root, .doc-live) .doc__lorhead { font-weight: 700; }
+:is(.print-root, .doc-live) .doc__lorhead::after { content: ':'; }
+:is(.print-root, .doc-live) .doc__rec th { text-align: left; }
 :is(.print-root, .doc-live) .doc__block h3 { font-size: 8.6pt; margin: 0 0 1px; padding-bottom: 0; border-bottom: .5pt solid #888; text-transform: uppercase; letter-spacing: .02em; }
 :is(.print-root, .doc-live) .doc__block p { margin: 0; }
 :is(.print-root, .doc-live) .pre { margin: 0; }
