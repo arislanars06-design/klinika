@@ -3,7 +3,7 @@
 import {
   html, raw, render, $, $$, t, L, state, GET, POST, PUT, qs, can, go, toast, errorText, busy,
   confirmDialog, fmtDate, fmtDateTime, age, genderText, statusBadge, patientSummary,
-  printDoc, docHeader, localDate, ApiError, refresh, showWordButton,
+  printDoc, docHeader, localDate, ApiError, refresh, showWordButton, modal,
 } from '../core.js';
 
 const LOR = window.LOR;
@@ -584,9 +584,16 @@ async function renderVisitForm(el, v, patient, { isNew }) {
           <span class="muted small" id="dirty-flag">${!isNew && v.updated_at ? `${t('visit.updated')}: ${fmtDateTime(v.updated_at)} · ${v.updated_by_name || ''}` : ''}</span>
         </div>
       </form>
-      <aside class="visit-side card card--tight">
-        <h3>${t('visit.history')}</h3>
-        <div id="history"><p class="muted small">—</p></div>
+      <aside class="visit-side">
+        <section class="card card--tight">
+          <h3>${t('visit.history')}</h3>
+          <div id="history"><p class="muted small">—</p></div>
+        </section>
+        <section class="card card--tight doc-live-card">
+          <div class="card-head"><h3>${t('visit.preview')}</h3>
+            <button type="button" class="btn btn--ghost btn--sm" id="preview-big">${t('visit.preview_big')}</button></div>
+          <div class="doc-live" id="doc-live"><div class="doc-live__page"></div></div>
+        </section>
       </aside>
     </div>`);
 
@@ -597,12 +604,42 @@ async function renderVisitForm(el, v, patient, { isNew }) {
     if (!p) { render(box, html`<p class="muted small">—</p>`); return; }
     try { render(box, historyList((await GET(`/api/patients/${p.id}`)).visits.filter((x) => x.id !== v.id && x.status !== 'cancelled'))); } catch { /* ixtiyoriy */ }
   };
-  const pas = pasportController($('[data-pasport]', el), patient, { canChange: isNew, onPatient: loadHistory });
+  const pas = pasportController($('[data-pasport]', el), patient, {
+    canChange: isNew, onPatient: (p) => { loadHistory(p); schedulePreview(); } });
   loadHistory(patient);
+
+  /* Jonli ko'rinish: Word/chop etish shablonining o'zi, formadagi joriy ma'lumot bilan (saqlanmagan bo'lsa ham) */
+  const live = $('#doc-live', el);
+  const page = $('.doc-live__page', live);
+  const previewVisit = () => {
+    const p = pas.get();
+    const f = (n) => { const i = $(`[data-pasport] [name=${n}]`, el); return i ? i.value.trim() : ''; };
+    const now = localDate() + ' ' + new Date().toTimeString().slice(0, 5);
+    const doctor = isNew ? state.user : {};
+    return {
+      ...v, ...collect(form, legacyLor),
+      patient_name: p ? p.full_name : f('full_name') || '—', patient_code: p ? p.code : '',
+      birth_date: p ? p.birth_date : f('birth_date'), gender: p ? p.gender : f('gender'),
+      patient_phone: p ? p.phone : f('phone'), patient_address: p ? p.address : f('address'),
+      visit_at: v.visit_at || now,
+      doctor_name: v.doctor_name || doctor.full_name || '', doctor_phone: v.doctor_phone || doctor.phone || '',
+    };
+  };
+  const drawPreview = () => { if (page.isConnected) render(page, visitDocArticle(previewVisit())); };
+  let previewTimer;
+  function schedulePreview() { clearTimeout(previewTimer); previewTimer = setTimeout(drawPreview, 250); }
+  // A5 sahifa (148 mm) yon panel kengligiga moslab kichraytiriladi
+  const fit = () => { const w = live.clientWidth - 12; if (w > 0) page.style.zoom = String(Math.min(1, w / A5_PX)); };
+  new ResizeObserver(fit).observe(live);
+  $('#preview-big', el).onclick = () => modal(html`
+    <div class="dialog__body">
+      <div class="doc-live doc-live--big"><div class="doc-live__page">${visitDocArticle(previewVisit())}</div></div>
+      <div class="dialog__actions"><button type="button" class="btn" data-close>${t('close')}</button></div>
+    </div>`, (dlg) => dlg.classList.add('dialog--doc'));
 
   let dirty = false;
   const flag = $('#dirty-flag', el);
-  const markDirty = () => { dirty = true; flag.textContent = t('visit.unsaved'); updateCounts(); };
+  const markDirty = () => { dirty = true; flag.textContent = t('visit.unsaved'); updateCounts(); schedulePreview(); };
   form.addEventListener('input', markDirty);
   form.addEventListener('change', (e) => {
     const i = e.target;
@@ -643,6 +680,7 @@ async function renderVisitForm(el, v, patient, { isNew }) {
     });
   }
   updateCounts();
+  drawPreview();
 
   $$('[data-norm-method]', form).forEach((b) => {
     b.onclick = () => {
@@ -719,7 +757,7 @@ export function visitDocBody(v) {
   const p = (s) => (s ? html`<p class="pre">${s}</p>` : '');
   return html`
     <div class="doc__block doc__patient">
-      <div class="doc__wide"><b>${t('f.full_name')}:</b> ${v.patient_name} <span class="muted">(${v.patient_code})</span></div>
+      <div class="doc__wide"><b>${t('f.full_name')}:</b> ${v.patient_name}${v.patient_code ? html` <span class="muted">(${v.patient_code})</span>` : ''}</div>
       <div><b>${t('f.birth_date')}:</b> ${fmtDate(v.birth_date) || '—'}${v.birth_date ? ` (${age(v.birth_date)} ${t('years')})` : ''}
         ${v.gender ? html` &nbsp; <b>${t('f.gender')}:</b> ${genderText(v.gender)}` : ''}</div>
       ${v.patient_phone ? html`<div><b>${t('f.phone')}:</b> ${v.patient_phone}</div>` : ''}
@@ -745,21 +783,28 @@ export function visitDocBody(v) {
     ${block(t('doc.followup'), v.followup_date || v.followup_note ? html`<p>${v.followup_date ? fmtDate(v.followup_date) + '. ' : ''}${v.followup_note}</p>` : '')}`;
 }
 
+const A5_PX = (148 / 25.4) * 96; // A5 kengligi CSS pikselda
+
+/** Qabul hujjati: chop etish, Word va jonli ko'rinish uchun bitta shablon */
+function visitDocArticle(v) {
+  return html`
+    <article class="doc">
+      ${docHeader()}
+      <h2 class="doc__title">${t('doc.title')}</h2>
+      ${visitDocBody(v)}
+      <footer class="doc__foot">
+        <div class="doc__foot-row">
+          <div><b>${t('doc.doctor')}:</b> ${v.doctor_name || ''}${v.doctor_phone ? ` · ${v.doctor_phone}` : ''}</div>
+          <div class="doc__sign">${t('doc.signature')}: ______________</div>
+        </div>
+        <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
+      </footer>
+    </article>`;
+}
+
 export async function printVisit(id, mode = 'print') {
   try {
     const v = await GET(`/api/visits/${id}` + qs({ print: 1 }));
-    printDoc(html`
-      <article class="doc">
-        ${docHeader()}
-        <h2 class="doc__title">${t('doc.title')}</h2>
-        ${visitDocBody(v)}
-        <footer class="doc__foot">
-          <div class="doc__foot-row">
-            <div><b>${t('doc.doctor')}:</b> ${v.doctor_name || ''}${v.doctor_phone ? ` · ${v.doctor_phone}` : ''}</div>
-            <div class="doc__sign">${t('doc.signature')}: ______________</div>
-          </div>
-          <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
-        </footer>
-      </article>`, { name: `${v.patient_name} ${fmtDate(v.visit_at)}`, word: mode === 'word' });
+    printDoc(visitDocArticle(v), { name: `${v.patient_name} ${fmtDate(v.visit_at)}`, word: mode === 'word' });
   } catch (e) { toast(errorText(e), 'err'); }
 }

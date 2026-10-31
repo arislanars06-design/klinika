@@ -213,9 +213,10 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
   border-radius: 999px; padding: 2px 10px; }
 
 /* Visit (clinical form) */
-.visit-layout { display: grid; grid-template-columns: 1fr 260px; gap: 14px; align-items: start; }
+.visit-layout { display: grid; grid-template-columns: 1fr minmax(300px, 30%); gap: 14px; align-items: start; }
 .visit-main > .card { margin-bottom: 12px; }
-.visit-side { position: sticky; top: 70px; max-height: calc(100vh - 160px); overflow-y: auto; }
+.visit-layout > * { min-width: 0; }
+.visit-side { position: sticky; top: 70px; max-height: calc(100vh - 90px); overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .hist { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .hist li { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 .complaints { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 16px; margin-bottom: 10px; }
@@ -344,51 +345,65 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
   .muted { color: #444; }
   .small { font-size: 7.5pt; }
 
-  .doc { max-width: none; }
-  .doc__head { gap: 8px; padding-bottom: 4px; margin-bottom: 5px; border-bottom-width: 1.5px; }
-  .doc__logo { max-height: 30px; max-width: 80px; }
-  .doc__clinic { font-size: 10.5pt; line-height: 1.15; }
-  .doc__req { font-size: 7.3pt; line-height: 1.2; }
-  .doc__title { font-size: 9.5pt; margin: 2px 0 5px; }
-
-  .doc__block { margin-bottom: 4px; }
-  .doc__block h3 { font-size: 8.6pt; margin: 0 0 1px; padding-bottom: 0; border-bottom: .5pt solid #888; text-transform: uppercase; letter-spacing: .02em; }
-  .doc__block p { margin: 0; }
-  .pre { margin: 0; }
-  /* Sarlavha matn bilan bir qatorda: "АНАМНЕЗ: ..." */
-  .doc__block > h3 { display: inline; border: 0; margin: 0; }
-  .doc__block > h3::after { content: ': '; }
-  .doc__block > h3 + p { display: inline; }
-  .doc__block > h3 + p + p, .doc__block > h3 + p + .pre { display: block; }
-  .doc__block > h3 + .doc__lor { margin-top: 0; }
-  .doc__block > h3 + .doc__lor, .doc__block > h3 ~ .doc__table { display: block; }
-
-  /* Bemor ma'lumotlari ikki ustunda */
-  .doc__patient { grid-template-columns: 1fr 1fr; gap: 0 10px; }
-  .doc__patient .doc__wide { grid-column: 1 / -1; }
-
-  /* LOR STATUS: har bir metod bitta ixcham paragraf, qismlar nuqtali vergul bilan */
-  .doc__lor { margin: 0 0 2px; }
-  .doc__lor h4 { display: inline; margin: 0; font-size: 8.6pt; text-decoration: none; }
-  .doc__lor h4::after { content: ': '; }
-  .doc__grp { display: inline; }
-  .doc__grp + .doc__grp::before { content: ' '; }
-  .doc__ear { display: inline; margin: 0; }
-  .doc__ln { display: inline; }
-  .doc__ln b { font-weight: 600; }
-  .doc__ln:not(:last-child)::after { content: '; '; }
-  .doc__grp:not(:last-of-type) .doc__ln:last-child::after { content: '. '; }
-  .doc__lor .pre { display: block; }
-
-  .doc__table { font-size: 8pt; }
-  .doc__table th, .doc__table td { padding: 1px 4px; border-color: #888; }
-  .doc__foot { margin-top: 8px; gap: 2px; }
-  .doc__sign { margin-top: 0; }
   .doc--receipt { max-width: none; }
   .totals { margin: 4px 0 0 auto; gap: 1px 12px; }
   .totals__big { font-size: 9.5pt; }
   h2, h3, h4 { break-after: avoid; }
 }
+
+/* Ixcham A5 hujjat ko'rinishi: chop etishda (.print-root) va qabul oynasidagi jonli ko'rinishda (.doc-live) bir xil */
+:is(.print-root, .doc-live) .doc { max-width: none; }
+:is(.print-root, .doc-live) .doc__head { gap: 8px; padding-bottom: 4px; margin-bottom: 5px; border-bottom-width: 1.5px; }
+:is(.print-root, .doc-live) .doc__logo { max-height: 30px; max-width: 80px; }
+:is(.print-root, .doc-live) .doc__clinic { font-size: 10.5pt; line-height: 1.15; }
+:is(.print-root, .doc-live) .doc__req { font-size: 7.3pt; line-height: 1.2; }
+:is(.print-root, .doc-live) .doc__title { font-size: 9.5pt; margin: 2px 0 5px; }
+
+:is(.print-root, .doc-live) .doc__block { margin-bottom: 4px; }
+:is(.print-root, .doc-live) .doc__block h3 { font-size: 8.6pt; margin: 0 0 1px; padding-bottom: 0; border-bottom: .5pt solid #888; text-transform: uppercase; letter-spacing: .02em; }
+:is(.print-root, .doc-live) .doc__block p { margin: 0; }
+:is(.print-root, .doc-live) .pre { margin: 0; }
+/* Sarlavha matn bilan bir qatorda: "АНАМНЕЗ: ..." */
+:is(.print-root, .doc-live) .doc__block > h3 { display: inline; border: 0; margin: 0; }
+:is(.print-root, .doc-live) .doc__block > h3::after { content: ': '; }
+:is(.print-root, .doc-live) .doc__block > h3 + p { display: inline; }
+:is(.print-root, .doc-live) .doc__block > h3 + p + p, :is(.print-root, .doc-live) .doc__block > h3 + p + .pre { display: block; }
+:is(.print-root, .doc-live) .doc__block > h3 + .doc__lor { margin-top: 0; }
+:is(.print-root, .doc-live) .doc__block > h3 + .doc__lor, :is(.print-root, .doc-live) .doc__block > h3 ~ .doc__table { display: block; }
+
+/* Bemor ma'lumotlari ikki ustunda */
+:is(.print-root, .doc-live) .doc__patient { grid-template-columns: 1fr 1fr; gap: 0 10px; }
+:is(.print-root, .doc-live) .doc__patient .doc__wide { grid-column: 1 / -1; }
+
+/* LOR STATUS: har bir metod bitta ixcham paragraf, qismlar nuqtali vergul bilan */
+:is(.print-root, .doc-live) .doc__lor { margin: 0 0 2px; }
+:is(.print-root, .doc-live) .doc__lor h4 { display: inline; margin: 0; font-size: 8.6pt; text-decoration: none; }
+:is(.print-root, .doc-live) .doc__lor h4::after { content: ': '; }
+:is(.print-root, .doc-live) .doc__grp { display: inline; }
+:is(.print-root, .doc-live) .doc__grp + .doc__grp::before { content: ' '; }
+:is(.print-root, .doc-live) .doc__ear { display: inline; margin: 0; }
+:is(.print-root, .doc-live) .doc__ln { display: inline; }
+:is(.print-root, .doc-live) .doc__ln b { font-weight: 600; }
+:is(.print-root, .doc-live) .doc__ln:not(:last-child)::after { content: '; '; }
+:is(.print-root, .doc-live) .doc__grp:not(:last-of-type) .doc__ln:last-child::after { content: '. '; }
+:is(.print-root, .doc-live) .doc__lor .pre { display: block; }
+
+:is(.print-root, .doc-live) .doc__table { font-size: 8pt; }
+:is(.print-root, .doc-live) .doc__table th, :is(.print-root, .doc-live) .doc__table td { padding: 1px 4px; border-color: #888; }
+:is(.print-root, .doc-live) .doc__foot { margin-top: 8px; gap: 2px; }
+:is(.print-root, .doc-live) .doc__sign { margin-top: 0; }
+
+/* Jonli ko'rinish: oq A5 varaq, yon panel kengligiga moslab kichraytiriladi (zoom JS'da) */
+.doc-live { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px; overflow: hidden; min-width: 0; }
+.doc-live__page { width: 148mm; min-height: 210mm; box-sizing: border-box; padding: 8mm 9mm 9mm; background: #fff; color: #000;
+  font: 8.6pt/1.3 "Segoe UI", Arial, sans-serif; box-shadow: 0 1px 6px rgba(0, 0, 0, .25); }
+.doc-live .muted { color: #444; }
+.doc-live .small { font-size: 7.5pt; }
+.doc-live h2, .doc-live h3, .doc-live h4 { color: #000; }
+.doc-live--big { padding: 0; border: 0; background: none; overflow: auto; max-height: 75vh; }
+.dialog.dialog--doc { width: calc(148mm + 58px); max-width: 96vw; }
+.doc-live-card .card-head { margin-bottom: 8px; }
+.doc-live-card h3 { margin: 0; }
 
 /* Jadval qatoridagi amallar */
 .row-actions { white-space: nowrap; text-align: right !important; }
@@ -410,4 +425,4 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .doc__lor-table { margin: 2px 0 4px; }
 .doc__lor-table td:nth-child(2) { width: 60%; }
 .doc__lor-table td:first-child, .doc__lor-table td:last-child, .doc__lor-table th:first-child, .doc__lor-table th:last-child { text-align: center; }
-@media print { .doc__lor .doc__lor-table { display: table; width: 100%; } }
+:is(.print-root, .doc-live) .doc__lor .doc__lor-table { display: table; width: 100%; }
