@@ -303,6 +303,7 @@ function complaintsBlock(v) {
       <h2>${t('visit.step_complaints')}</h2>
       <div class="complaints-from"><span class="complaints-from__label">${t('visit.complaints_from')}:</span>
         <div class="chips chips--sm">${LOR.RELATIVES.map((r) => chip('complaints_from', r.code, L(r), v.complaints_from === r.code))}</div></div>
+      ${Object.keys(sel).filter(LOR.isRetiredComplaint).map((c) => html`<input type="hidden" name="complaint" value="${c}">`)}
       <div class="complaints">
         ${LOR.COMPLAINTS.map((g) => html`
           <div class="complaints__group"><div class="complaints__title">${L(g)}</div>
