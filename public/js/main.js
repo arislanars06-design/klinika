@@ -134,6 +134,8 @@ function filesDialog() {
       <div class="card-head"><h2>${t('files.title')}</h2><button type="button" class="btn btn--ghost btn--sm" data-close>×</button></div>
       ${state.settings.word_save_dir ? html`<div class="alert alert--ok files-where">
         <div>${t('files.server_dir')}</div><code>${state.settings.word_save_dir}</code>
+        ${['history', 'cash'].filter((f) => state.settings['word_save_dir_' + f]).map((f) => html`
+          <div class="small">${t('admin.dir_' + f)}:</div><code>${state.settings['word_save_dir_' + f]}</code>`)}
         <div class="small">${t('files.server_dir_note')}</div></div>` : ''}
       <div class="alert alert--warn files-where">
         <div>${t('files.where')}</div>
@@ -236,17 +238,22 @@ function $$nav(path) {
 }
 
 let lastHash = location.hash;
-window.addEventListener('hashchange', () => {
-  // Saqlanmagan tibbiy yozuvni tasodifan yo'qotmaslik uchun
-  if (state.leaveGuard && state.leaveGuard.dirty() && !window.confirm(t('visit.leave_confirm'))) {
-    history.replaceState(null, '', lastHash || '#/');
-    return;
+window.addEventListener('hashchange', async () => {
+  // Saqlanmagan qabul: avval «Очиқ» holatda saqlashga urinamiz; bo'lmasa (masalan, F.И.Ш. yozilmagan) so'raymiz
+  const g = state.leaveGuard;
+  if (g && g.dirty()) {
+    const saved = g.autosave ? await g.autosave() : false;
+    if (!saved && !window.confirm(t('visit.leave_confirm'))) {
+      history.replaceState(null, '', lastHash || '#/');
+      return;
+    }
   }
   lastHash = location.hash;
   route();
 });
 window.addEventListener('beforeunload', (e) => {
-  if (state.leaveGuard && state.leaveGuard.dirty()) e.preventDefault();
+  const g = state.leaveGuard;
+  if (g && g.dirty() && !(g.autosaveOnClose && g.autosaveOnClose())) e.preventDefault();
 });
 
 setUnauthorizedHandler(() => { state.user = null; loginScreen(t('login.expired')); });

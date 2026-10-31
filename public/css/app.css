@@ -394,6 +394,9 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .doc__table th, .doc__table td { border: 1px solid #777; padding: 4px 6px; text-align: left; }
 .doc__foot { margin-top: 26px; display: grid; gap: 8px; break-inside: avoid; }
 .doc__foot-row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+/* Шифокор | Сана | Имзо — bitta qatorda: chap, o'rta, o'ng */
+.doc__foot-row--3 { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: baseline; }
+.doc__foot-row--3 > :nth-child(n+2) { white-space: nowrap; }
 .doc--receipt { max-width: 520px; }
 .doc-preview .doc__table th, .doc-preview .doc__table td { border-color: var(--line-strong); }
 
@@ -475,6 +478,8 @@ details.edit > summary { list-style: none; display: inline-flex; margin-bottom: 
 .doc-live--big { padding: 0; border: 0; background: none; overflow: auto; max-height: 75vh; }
 .dialog.dialog--doc { width: calc(148mm + 58px); max-width: 96vw; }
 .doc-live-card .card-head { margin-bottom: 8px; }
+/* Shrift masshtabini o'lchash uchun yashirin idish */
+.doc-measure { position: fixed; left: -10000px; top: 0; visibility: hidden; pointer-events: none; }
 .doc-live-card h3 { margin: 0; }
 
 /* Jadval qatoridagi amallar */

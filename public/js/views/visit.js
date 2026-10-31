@@ -664,17 +664,26 @@ async function renderVisitForm(el, v, patient, { isNew }) {
       doctor_name: v.doctor_name || doctor.full_name || '', doctor_phone: v.doctor_phone || doctor.phone || '',
     };
   };
-  const drawPreview = () => { if (page.isConnected) render(page, visitDocArticle(previewVisit())); };
+  const drawPreview = () => {
+    if (!page.isConnected) return;
+    const doc = visitDocArticle(previewVisit());
+    render(page, doc);
+    applyScale($('.doc', page), fitScale(doc));
+  };
   let previewTimer;
   function schedulePreview() { clearTimeout(previewTimer); previewTimer = setTimeout(drawPreview, 250); }
   // A5 sahifa (148 mm) yon panel kengligiga moslab kichraytiriladi
   const fit = () => { const w = live.clientWidth - 12; if (w > 0) page.style.zoom = String(Math.min(1, w / A5_PX)); };
   new ResizeObserver(fit).observe(live);
-  $('#preview-big', el).onclick = () => modal(html`
+  $('#preview-big', el).onclick = () => {
+    const doc = visitDocArticle(previewVisit());
+    const k = fitScale(doc);
+    modal(html`
     <div class="dialog__body">
-      <div class="doc-live doc-live--big"><div class="doc-live__page">${visitDocArticle(previewVisit())}</div></div>
+      <div class="doc-live doc-live--big"><div class="doc-live__page">${doc}</div></div>
       <div class="dialog__actions"><button type="button" class="btn" data-close>${t('close')}</button></div>
-    </div>`, (dlg) => dlg.classList.add('dialog--doc'));
+    </div>`, (dlg) => { dlg.classList.add('dialog--doc'); applyScale($('.doc-live__page .doc', dlg), k); });
+  };
 
   let dirty = false;
   const flag = $('#dirty-flag', el);
@@ -709,7 +718,32 @@ async function renderVisitForm(el, v, patient, { isNew }) {
     if (i.name === 'complaints_from' && i.checked) $$('input[name=complaints_from]', form).forEach((x) => { if (x !== i) x.checked = false; });
     markDirty();
   });
-  state.leaveGuard = { dirty: () => dirty };
+  /* Boshqa oynaga o'tilsa: qabul «Очиқ» holatda saqlanadi, «Беморлар тарихи»dan davom ettiriladi */
+  const nameTyped = () => { const i = $('[data-pasport] [name=full_name]', el); return !!(i && i.value.trim()); };
+  const autosave = async () => {
+    const p = pas.get() || (nameTyped() ? await pas.ensure() : null);
+    if (!p) return false;
+    const body = collect(form, legacyLor); // status yuborilmaydi: yangisi «Очиқ», mavjudi o'zgarmaydi
+    try {
+      if (isNew) await POST('/api/visits', { ...body, patient_id: p.id }); else await PUT(`/api/visits/${v.id}`, body);
+      dirty = false;
+      toast(t('visit.autosaved'));
+      return true;
+    } catch (e) { toast(errorText(e), 'err'); return false; }
+  };
+  // Brauzer yopilayotganda: so'rov fonda yuboriladi (bemor kartasi mavjud bo'lsa)
+  const autosaveOnClose = () => {
+    const p = pas.get();
+    if (!isNew || p) {
+      const body = JSON.stringify(isNew ? { ...collect(form, legacyLor), patient_id: p.id } : collect(form, legacyLor));
+      fetch(isNew ? '/api/visits' : `/api/visits/${v.id}`, { method: isNew ? 'POST' : 'PUT', keepalive: true, credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-Nurmed': '1' }, body });
+      dirty = false;
+      return true;
+    }
+    return false;
+  };
+  state.leaveGuard = { dirty: () => dirty, autosave, autosaveOnClose };
 
   // LOR STATUS tablari
   $$('[data-lor-tab]', form).forEach((b) => {
@@ -827,11 +861,11 @@ export function visitDocBody(v) {
   const p = (s) => (s ? html`<p class="pre">${s}</p>` : '');
   return html`
     <div class="doc__block doc__patient">
-      <div class="doc__wide"><b>${t('f.full_name')}:</b> ${v.patient_name}</div>
-      <div><b>${t('f.birth_date')}:</b> ${fmtDate(v.birth_date) || '—'}${v.birth_date ? ` (${age(v.birth_date)} ${t('years')})` : ''}
-        ${v.gender ? html` &nbsp; <b>${t('f.gender')}:</b> ${genderText(v.gender)}` : ''}</div>
-      ${v.patient_phone ? html`<div><b>${t('f.phone')}:</b> ${v.patient_phone}</div>` : ''}
-      ${v.patient_address ? html`<div><b>${t('f.address')}:</b> ${addressText(v.patient_address)}</div>` : ''}
+      <div><b>${t('f.full_name')}:</b> ${v.patient_name}</div>
+      <div><b>${t('f.birth_date')}:</b> ${fmtDate(v.birth_date) || '—'}${v.birth_date ? ` (${age(v.birth_date)} ${t('years')})` : ''}</div>
+      <div><b>${t('f.gender')}:</b> ${genderText(v.gender) || '—'}</div>
+      <div><b>${t('f.phone')}:</b> ${v.patient_phone || '—'}</div>
+      <div><b>${t('f.address')}:</b> ${addressText(v.patient_address) || '—'}</div>
       <div><b>${t('visit.date')}:</b> ${fmtDateTime(v.visit_at)}</div>
     </div>
     ${block(t('doc.complaints'), complaints || v.complaints_text ? html`
@@ -850,7 +884,7 @@ export function visitDocBody(v) {
       : html`
       ${v.diagnosis_main ? html`<p><b>${t('f.diagnosis_main')}:</b> ${v.diagnosis_main}</p>` : ''}
       ${v.diagnosis_extra ? html`<p><b>${t('f.diagnosis_extra')}:</b> ${v.diagnosis_extra}</p>` : ''}`) : '')}
-    ${block(t('f.treatment'), p(v.treatment), true)}
+    ${block(t('f.treatment'), v.treatment ? html`<p><b><span class="pre">${v.treatment}</span></b></p>` : '', true)}
     ${rec ? html`<div class="doc__block"><table class="doc__table doc__rec"><thead><tr><th>${upper(t('f.recommendation'))}</th></tr></thead>
       <tbody><tr><td><p class="pre">${rec}</p></td></tr></tbody></table></div>` : ''}
     ${block(t('f.exams'), p(v.exams))}
@@ -858,6 +892,39 @@ export function visitDocBody(v) {
 }
 
 const A5_PX = (148 / 25.4) * 96; // A5 kengligi CSS pikselda
+const MM = 96 / 25.4;
+const A5_INNER_W = 130 * MM; // 148 mm − chetlar 9 + 9
+const A5_INNER_H = 193 * MM; // 210 mm − chetlar 8 + 9
+let measureBox = null;
+/**
+ * Shrift masshtabi: matn kam bo'lsa kattaroq, ko'p bo'lsa kichikroq, hujjat A5 sahifani to'ldiradi.
+ * Hujjat yashirin idishda o'lchanadi: kenglik W/k bo'lganda balandlik × k ≤ sahifa balandligi bo'ladigan eng katta k.
+ */
+export function fitScale(content, min = 0.8, max = 1.45) {
+  if (!measureBox) {
+    measureBox = document.createElement('div');
+    measureBox.className = 'doc-live doc-measure';
+    measureBox.innerHTML = '<div class="doc-live__page"></div>';
+    document.body.appendChild(measureBox);
+  }
+  const pg = measureBox.firstChild;
+  render(pg, content);
+  const art = $('.doc', pg);
+  if (!art) return 1;
+  const target = A5_INNER_H * 0.94;
+  const h = (k) => { art.style.width = (A5_INNER_W / k) + 'px'; return art.offsetHeight * k; };
+  let k;
+  if (h(min) > target) k = min;
+  else if (h(max) <= target) k = max;
+  else {
+    let lo = min; let hi = max;
+    for (let i = 0; i < 10; i++) { const m = (lo + hi) / 2; if (h(m) <= target) lo = m; else hi = m; }
+    k = lo;
+  }
+  render(pg, '');
+  return Math.floor(k * 100) / 100;
+}
+const applyScale = (art, k) => { if (art) { art.style.zoom = k; art.style.width = (A5_INNER_W / k) + 'px'; } };
 const upperFirst = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const lowerFirst = (s) => (/^\p{Lu}\p{Ll}/u.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
 
@@ -870,9 +937,10 @@ function visitDocArticle(v) {
       <div class="doc__subtitle">${t('doc.subtitle')}</div>
       ${visitDocBody(v)}
       <footer class="doc__foot">
-        <div class="doc__foot-row">
-          <div><b>${t('doc.doctor')}:</b> ${v.doctor_name || ''}${v.doctor_phone ? ` · ${v.doctor_phone}` : ''}</div>
-          <div class="doc__sign">${t('doc.signature')}: ______________</div>
+        <div class="doc__foot-row doc__foot-row--3">
+          <div><b>${t('doc.doctor')}:</b>${raw('&nbsp;')}${v.doctor_name || ''}</div>
+          <div><b>${t('date')}:</b> ${fmtDate(v.visit_at) || fmtDate(localDate())}</div>
+          <div class="doc__sign">${t('doc.signature')}: __________</div>
         </div>
       </footer>
     </article>`;
@@ -888,6 +956,7 @@ export function visitFileName(v) {
 export async function printVisit(id, mode = 'print') {
   try {
     const v = await GET(`/api/visits/${id}` + qs({ print: 1 }));
-    printDoc(visitDocArticle(v), { name: visitFileName(v), word: mode === 'word' });
+    const doc = visitDocArticle(v);
+    printDoc(doc, { name: visitFileName(v), word: mode === 'word', scale: fitScale(doc), fitWidth: A5_INNER_W });
   } catch (e) { toast(errorText(e), 'err'); }
 }

@@ -287,10 +287,11 @@ function rememberDownload(name) {
 export function clearDownloads() { localStorage.removeItem(DL_KEY); }
 
 /** Sozlamada server papkasi berilgan bo'lsa, Word faylning nusxasi o'sha papkaga yoziladi */
-export async function saveCopyOnServer(blob, filename) {
-  if (!state.settings.word_save_dir) return null;
+export const saveDirFor = (folder) => (folder && state.settings['word_save_dir_' + folder]) || state.settings.word_save_dir || '';
+export async function saveCopyOnServer(blob, filename, folder) {
+  if (!saveDirFor(folder)) return null;
   try {
-    const r = await fetch('/api/files' + qs({ name: filename }), {
+    const r = await fetch('/api/files' + qs({ name: filename, folder: folder || '' }), {
       method: 'POST', body: blob, credentials: 'same-origin',
       headers: { 'X-Nurmed': '1', 'Content-Type': 'application/octet-stream' },
     });
@@ -309,20 +310,24 @@ export const showWordButton = () => !printsToWord();
 /**
  * Hujjatni chop etish yoki Word fayli (.docx) sifatida yuklab olish.
  * opts.name — Word fayl nomi (kengaytmasiz). opts.word = true bo'lsa yoki sozlamada Word tanlangan bo'lsa, .docx yuklanadi.
+ * opts.folder — 'history' | 'cash': server nusxasi shu bo'lim papkasiga. opts.scale — shrift masshtabi (sahifani to'ldirish).
+ * opts.fitWidth — masshtab qo'llanganda .doc kengligi (px, A5 ichki kengligi).
  */
 export function printDoc(content, opts = {}) {
   const root = $('#print-root');
   render(root, content);
+  const docEl = $('.doc', root);
+  if (docEl && opts.scale && opts.scale !== 1) { docEl.style.zoom = opts.scale; docEl.style.width = (opts.fitWidth / opts.scale) + 'px'; }
   const imgs = $$('img', root);
   return Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))).then(() => {
     if (!(opts.word || printsToWord())) { window.print(); return; }
     const doc = $('.doc', root) || root;
     const filename = safeName(opts.name || 'hujjat') + '.docx';
-    const blob = docToDocx(doc, opts.page);
+    const blob = docToDocx(doc, opts.page, opts.scale || 1);
     downloadBlob(blob, filename);
     rememberDownload(filename);
     toast(t('word.saved_to', { name: filename }));
-    return saveCopyOnServer(blob, filename);
+    return saveCopyOnServer(blob, filename, opts.folder);
   });
 }
 

@@ -80,6 +80,7 @@ function P(runs, opts = {}) {
     opts.keepNext ? '<w:keepNext/>' : '',
     opts.border ? '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="2" w:color="000000"/></w:pBdr>' : '',
     opts.tabRight ? `<w:tabs><w:tab w:val="right" w:pos="${CONTENT_W}"/></w:tabs>` : '',
+    opts.tabs3 ? `<w:tabs><w:tab w:val="center" w:pos="${Math.round(CONTENT_W / 2)}"/><w:tab w:val="right" w:pos="${CONTENT_W}"/></w:tabs>` : '',
     `<w:spacing w:before="${opts.before || 0}" w:after="${opts.after ?? 10}"/>`,
     opts.align ? `<w:jc w:val="${opts.align}"/>` : '',
   ].join('');
@@ -327,7 +328,11 @@ function footer(el, out) {
   for (const c of el.children) {
     const before = first ? 140 : 0;
     first = false;
-    if (c.classList.contains('doc__foot-row')) {
+    if (c.classList.contains('doc__foot-row') && c.children.length === 3) {
+      // Шифокор | Сана | Имзо — chap, o'rta, o'ng
+      const [a, b, d] = c.children;
+      out.push(P([...inline(a), { tab: true }, ...inline(b), { tab: true }, ...inline(d)], { tabs3: true, before }));
+    } else if (c.classList.contains('doc__foot-row')) {
       const [a, b] = c.children;
       out.push(P([...(a ? inline(a) : []), { tab: true }, ...(b ? inline(b) : [])], { tabRight: true, before }));
     } else out.push(P(inline(c), { before }));
@@ -357,7 +362,17 @@ function blocks(el, out, media) {
 }
 
 /** Chop etish uchun tayyorlangan hujjat elementidan (.doc) Word fayli (Blob) */
-export function docToDocx(docEl, pageName = 'a5') {
+/** Shrift o'lchamlari, oraliqlar va logo k marta: hujjat sahifani to'ldirishi uchun (k = 1 — o'zgarmaydi) */
+function scaleXml(xml, k) {
+  if (!k || k === 1) return xml;
+  const n = (v, min) => Math.max(min, Math.round(Number(v) * k));
+  return xml
+    .replace(/<w:(sz|szCs) w:val="(\d+)"\/>/g, (m, tag, v) => `<w:${tag} w:val="${n(v, 8)}"/>`)
+    .replace(/w:(before|after)="(\d+)"/g, (m, a, v) => `w:${a}="${n(v, 0)}"`)
+    .replace(/(<wp:extent|<a:ext) cx="(\d+)" cy="(\d+)"/g, (m, tag, x, y) => `${tag} cx="${n(x, 1)}" cy="${n(y, 1)}"`);
+}
+
+export function docToDocx(docEl, pageName = 'a5', scale = 1) {
   const pg = PAGES[pageName] || PAGES.a5;
   CONTENT_W = pg.w - 2 * pg.margin;
   TABLE_SZ = pg.table || (pg.landscape ? pg.font : 16);
@@ -368,12 +383,12 @@ export function docToDocx(docEl, pageName = 'a5') {
     + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
     + ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
     + ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>'
-    + body.join('')
+    + scaleXml(body.join(''), scale)
     + `<w:sectPr><w:pgSz w:w="${pg.w}" w:h="${pg.h}"${pg.landscape ? ' w:orient="landscape"' : ''}/><w:pgMar w:top="${pg.top}" w:right="${pg.margin}" w:bottom="${pg.margin}" w:left="${pg.margin}" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`
     + '</w:body></w:document>';
   const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults>'
-    + `<w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="${pg.font}"/><w:szCs w:val="${pg.font}"/><w:lang w:val="uz-Cyrl-UZ"/></w:rPr></w:rPrDefault>`
+    + `<w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="${Math.round(pg.font * scale)}"/><w:szCs w:val="${Math.round(pg.font * scale)}"/><w:lang w:val="uz-Cyrl-UZ"/></w:rPr></w:rPrDefault>`
     + '<w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="228" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
     + '</w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>';
   const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'

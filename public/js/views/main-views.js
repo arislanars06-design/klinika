@@ -275,7 +275,7 @@ async function visitsWord(params, range, o) {
       ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${t('status.' + v.status)}</td></tr>`)}</tbody></table>
     <p>${t('total')}: ${d.total}${d.total > d.rows.length ? ` (${t('word.limited', { n: d.rows.length })})` : ''}</p>
     <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
-  </article>`, { word: true, page: 'a4l', name: `${t('hist.visits')} ${period}` });
+  </article>`, { word: true, page: 'a4l', folder: 'history', name: `${t('hist.visits')} ${period}` });
 }
 
 /* ---------- Bemorlar ro'yxatidagi amallar: tahrirlash, chop etish, o'chirish (arxivlash) ---------- */
@@ -327,7 +327,7 @@ export async function printPatientCard(id, mode = 'print') {
           ${clinical ? html`<td>${v.diagnosis_main}</td>` : ''}<td>${t('status.' + v.status)}</td></tr>`)}</tbody></table>` : html`<p>—</p>`}
       </div>
       <div class="muted small">${t('doc.printed')}: ${fmtDate(localDate())} ${new Date().toTimeString().slice(0, 5)}</div>
-    </article>`, { name: `${p.full_name} ${fmtDate(localDate())}`, word: mode === 'word' });
+    </article>`, { name: `${p.full_name} ${fmtDate(localDate())}`, word: mode === 'word', folder: 'history' });
   } catch (e) { toast(errorText(e), 'err'); }
 }
 

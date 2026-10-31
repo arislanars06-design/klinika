@@ -82,7 +82,7 @@ async function invoicesWord(o) {
         <th class="num">${money(sum('total'))}</th><th class="num">${money(sum('paid'))}</th><th class="num">${money(sum('debt'))}</th><th></th></tr></tbody></table>
     ${d.total > d.rows.length ? html`<p>${t('word.limited', { n: d.rows.length })}</p>` : ''}
     <div class="doc__sign">${t('cash.cashier')}: ____________________</div>
-  </article>`, { word: true, page: 'a4l', name: title });
+  </article>`, { word: true, page: 'a4l', folder: 'cash', name: title });
 }
 
 /* ================= Hisob yaratish (kassa sahifasi) ================= */
@@ -375,5 +375,5 @@ function printReceipt(inv, mode = 'print') {
       </dl>
       ${inv.payments.filter((p) => !p.voided).map((p) => html`<div class="small">${fmtDateTime(p.paid_at)} · ${t('kind.' + p.kind)} · ${t('method.' + p.method)} · ${money(p.amount)}</div>`)}
       <p class="small muted">${t('cash.receipt_note')}</p>
-    </article>`, { name: `${t('cash.receipt')} ${inv.number} ${inv.patient_name}`, word: mode === 'word' });
+    </article>`, { name: `${t('cash.receipt')} ${inv.number} ${inv.patient_name}`, word: mode === 'word', folder: 'cash' });
 }
