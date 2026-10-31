@@ -147,7 +147,7 @@ const SETTING_KEYS = { clinic_name: 200, clinic_address: 300, clinic_phone: 100,
   clinic_ministry: 200, clinic_subtitle: 300, clinic_services: 600, clinic_telegram: 60, clinic_instagram: 60, treatment_template: 2000,
   clinic_name_ru: 200, clinic_ministry_ru: 200, clinic_subtitle_ru: 300, clinic_services_ru: 600, clinic_address_ru: 300,
   clinic_requisites_ru: 500, treatment_template_ru: 2000,
-  clinic_slogan: 200, clinic_slogan_ru: 200, clinic_since: 4, stat_patients: 20, stat_operations: 20 };
+  clinic_slogan: 200, clinic_slogan_ru: 200, clinic_since: 4, stat_patients: 20, stat_operations: 20, stat_experience: 20 };
 
 function getSettings() {
   const out = {};
@@ -345,7 +345,7 @@ router.put('/api/patients/:id', async (ctx) => {
 });
 
 /* ================= Qabullar ================= */
-const CLINICAL_FIELDS = ['complaints', 'complaints_from', 'complaints_text', 'anamnesis', 'lor_status', 'diagnosis_main', 'diagnosis_extra',
+const CLINICAL_FIELDS = ['complaints', 'complaints_from', 'complaints_text', 'anamnesis', 'anamnesis_vitae', 'lor_status', 'diagnosis_main', 'diagnosis_extra',
   'treatment', 'recommendation', 'prescriptions', 'exams', 'followup_date', 'followup_note'];
 
 function clinicalInput(body) {
@@ -355,6 +355,7 @@ function clinicalInput(body) {
     complaints_from: LOR.relative(body.complaints_from) ? body.complaints_from : '',
     complaints_text: str(body.complaints_text, 4000, 'complaints_text'),
     anamnesis: str(body.anamnesis, 4000, 'anamnesis'),
+    anamnesis_vitae: JSON.stringify(LOR.sanitizeVitae(body.anamnesis_vitae)),
     lor_status: JSON.stringify(LOR.sanitizeLor(body.lor_status)),
     diagnosis_main: str(body.diagnosis_main, 500, 'diagnosis_main'),
     diagnosis_extra: str(body.diagnosis_extra, 1000, 'diagnosis_extra'),
@@ -405,6 +406,7 @@ function presentVisit(v, user) {
   return {
     ...base, ...Object.fromEntries(CLINICAL_FIELDS.map((k) => [k, v[k]])),
     complaints: JSON.parse(v.complaints), lor_status: JSON.parse(v.lor_status), prescriptions: JSON.parse(v.prescriptions),
+    anamnesis_vitae: JSON.parse(v.anamnesis_vitae || '{}'),
   };
 }
 

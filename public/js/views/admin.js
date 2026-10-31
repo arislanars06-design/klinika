@@ -78,6 +78,7 @@ async function settings(el) {
           <label class="field"><span>${t('admin.since')}</span><input name="clinic_since" maxlength="4" inputmode="numeric" placeholder="2020" value="${s.clinic_since || ''}"></label>
           <label class="field"><span>${t('home.stat_patients')}</span><input name="stat_patients" maxlength="20" placeholder="30 000+" value="${s.stat_patients || ''}"></label>
           <label class="field"><span>${t('home.stat_operations')}</span><input name="stat_operations" maxlength="20" placeholder="5 000+" value="${s.stat_operations || ''}"></label>
+          <label class="field"><span>${t('home.stat_years')}</span><input name="stat_experience" maxlength="20" placeholder="20+" value="${s.stat_experience || ''}"></label>
         </div>
       </fieldset>
       <fieldset class="field ru-fields"><legend>${t('admin.ru_title')}</legend>
@@ -126,7 +127,7 @@ async function settings(el) {
       const body = Object.fromEntries(['clinic_ministry', 'clinic_name', 'clinic_subtitle', 'clinic_services', 'clinic_address', 'clinic_phone',
         'clinic_telegram', 'clinic_instagram', 'clinic_requisites', 'treatment_template', 'clinic_name_ru', 'clinic_ministry_ru', 'clinic_subtitle_ru',
         'clinic_services_ru', 'clinic_address_ru', 'clinic_requisites_ru', 'treatment_template_ru',
-        'clinic_slogan', 'clinic_slogan_ru', 'clinic_since', 'stat_patients', 'stat_operations'].map((k) => [k, f.elements[k].value.trim()]));
+        'clinic_slogan', 'clinic_slogan_ru', 'clinic_since', 'stat_patients', 'stat_operations', 'stat_experience'].map((k) => [k, f.elements[k].value.trim()]));
       if (can('admin')) body.word_save_dir = f.elements.word_save_dir.value.trim();
       state.settings = await PUT('/api/settings', { ...body, print_mode: f.elements.print_mode.value, clinic_logo: logo });
       document.dispatchEvent(new Event('nurmed:settings'));

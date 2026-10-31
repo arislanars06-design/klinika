@@ -118,7 +118,7 @@ function listTable(title, cols, rows, foot) {
     : html`<p>${t('empty')}</p>`}</div>`;
 }
 
-/** Statistikani Word (A4) fayliga: ko'rsatkichlar, bo'limlar bo'yicha jadvallar va bemorlar ro'yxati */
+/** Statistikani Word (A4) fayliga: avval bemorlar ro'yxati, keyin ko'rsatkichlar va bo'limlar bo'yicha jadvallar */
 async function statsWord(K, d, from, to, periodLabel) {
   const V = d.visits;
   const F = d.finance;
@@ -132,21 +132,21 @@ async function statsWord(K, d, from, to, periodLabel) {
   let body;
   if (V) {
     body = html`
+      ${await visitsList(from, to)}
       <div class="doc__block">${kv([[t('rep.visits_total'), V.total], [t('rep.cancelled'), V.cancelled], [t('rep.patients'), V.patients],
         [t('rep.new'), V.new_patients], [t('rep.returning'), V.returning_patients]])}</div>
       ${tbl(byPeriod, [t('rep.period_col'), t('rep.visits_total')], V.by_period.map((r) => [periodLabel(r), r.count]))}
       ${tbl(t('rep.by_doctor'), [t('doc.doctor'), t('rep.visits_total')], V.by_doctor.map((r) => [r.doctor, r.count]))}
-      ${tbl(t('rep.by_diagnosis'), [t('f.diagnosis_main'), t('rep.visits_total'), t('rep.patients')], V.by_diagnosis.map((r) => [r.diagnosis, r.count, r.patients]))}
-      ${await visitsList(from, to)}`;
+      ${tbl(t('rep.by_diagnosis'), [t('f.diagnosis_main'), t('rep.visits_total'), t('rep.patients')], V.by_diagnosis.map((r) => [r.diagnosis, r.count, r.patients]))}`;
   } else {
     body = html`
+      ${await invoicesList(from, to)}
       <div class="doc__block">${kv([[t('cash.net'), money(F.net)], [t('cash.income'), money(F.income)], [t('cash.refunds'), money(F.refunds)],
         [t('rep.invoiced'), money(F.invoices_total)], [t('cash.invoices'), F.invoices_count], [t('cash.discount'), money(F.discounts)],
         [t('rep.debts'), money(F.debt_sum)], [t('rep.debt_invoices'), F.debt_count]])}</div>
       ${tbl(t('cash.by_method'), [t('cash.method'), t('cash.net')], Object.entries(F.by_method).map(([m, v]) => [t('method.' + m), money(v.net)]))}
       ${tbl(byPeriod, [t('rep.period_col'), t('cash.net')], F.by_period.map((r) => [periodLabel(r), money(r.net)]))}
-      ${tbl(t('rep.services'), [t('cash.service'), t('cash.qty'), t('cash.amount')], F.services.map((s) => [s.name, s.qty, money(s.amount)]))}
-      ${await invoicesList(from, to)}`;
+      ${tbl(t('rep.services'), [t('cash.service'), t('cash.qty'), t('cash.amount')], F.services.map((s) => [s.name, s.qty, money(s.amount)]))}`;
   }
   const period = `${fmtDate(from)} — ${fmtDate(to)}`;
   return printDoc(html`<article class="doc">${docHeader()}
