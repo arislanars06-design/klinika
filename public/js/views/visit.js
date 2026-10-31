@@ -781,7 +781,8 @@ export function visitDocBody(v) {
         ${s.note ? html`<p class="pre">${s.note}</p>` : ''}
       </div>`;
   const rec = recommendationOf(v);
-  const block = (title, content) => (content ? html`<div class="doc__block"><h3>${title}</h3>${content}</div>` : '');
+  // stack: sarlavha alohida qatorda, matn uning tagidan boshlanadi (ro'yxat ko'rinishidagi bo'limlar)
+  const block = (title, content, stack) => (content ? html`<div class="doc__block ${stack ? 'doc__block--stack' : ''}"><h3>${title}</h3>${content}</div>` : '');
   const p = (s) => (s ? html`<p class="pre">${s}</p>` : '');
   return html`
     <div class="doc__block doc__patient">
@@ -807,7 +808,7 @@ export function visitDocBody(v) {
       : html`
       ${v.diagnosis_main ? html`<p><b>${t('f.diagnosis_main')}:</b> ${v.diagnosis_main}</p>` : ''}
       ${v.diagnosis_extra ? html`<p><b>${t('f.diagnosis_extra')}:</b> ${v.diagnosis_extra}</p>` : ''}`) : '')}
-    ${block(t('f.treatment'), p(v.treatment))}
+    ${block(t('f.treatment'), p(v.treatment), true)}
     ${rec ? html`<div class="doc__block"><table class="doc__table doc__rec"><thead><tr><th>${upper(t('f.recommendation'))}</th></tr></thead>
       <tbody><tr><td><p class="pre">${rec}</p></td></tr></tbody></table></div>` : ''}
     ${block(t('f.exams'), p(v.exams))}
