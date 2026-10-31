@@ -96,21 +96,33 @@ function Start-Server {
 try {
   switch ($Action) {
     'install' {
-      $node = (Get-Command node -ErrorAction SilentlyContinue).Source
+      # Avval o'rnatilgan Node.js (Program Files), bo'lmasa PATH dagisi
+      $node = Join-Path $env:ProgramFiles 'nodejs\node.exe'
+      if (-not (Test-Path $node)) { $node = (Get-Command node -ErrorAction SilentlyContinue).Source }
       if (-not $node) { throw 'Node.js topilmadi. Avval https://nodejs.org dan Node.js 22 yoki 24 (LTS) ni o''rnating.' }
-      Write-Host "Node.js: $node"
+      $ver = (& $node --version).Trim()
+      Write-Host "Node.js: $node ($ver)"
+      $m = [regex]::Match($ver, '^v(\d+)\.(\d+)')
+      if (-not $m.Success -or [int]$m.Groups[1].Value -lt 22 -or ([int]$m.Groups[1].Value -eq 22 -and [int]$m.Groups[2].Value -lt 13)) {
+        throw "Node.js $ver eski. Node.js 22.13 yoki undan yangisi kerak: https://nodejs.org (LTS) dan o'rnating."
+      }
+      if ($env:USERPROFILE -and $node -like "$env:USERPROFILE*") {
+        Write-Host 'Diqqat: Node.js foydalanuvchi papkasida turibdi. Uni o''chirib yuborsangiz, server ishlamay qoladi.' -ForegroundColor Yellow
+        Write-Host 'Yaxshisi https://nodejs.org dan Node.js LTS ni o''rnating va install.bat ni qayta bosing.' -ForegroundColor Yellow
+      }
       Write-Host "Papka:   $Root"
 
       Write-Host 'Eski nusxa (npm start oynasi) bo''lsa, to''xtatilmoqda...'
       Stop-Server
 
-      $action = New-ScheduledTaskAction -Execute $Runner -Argument "`"$node`"" -WorkingDirectory $Root
-      $trigger = New-ScheduledTaskTrigger -AtStartup
-      $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-      $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
+      # Diqqat: PowerShell'da $action va $Action bitta o'zgaruvchi, shuning uchun boshqa nomlar
+      $taskAction = New-ScheduledTaskAction -Execute $Runner -Argument "`"$node`"" -WorkingDirectory $Root
+      $taskTrigger = New-ScheduledTaskTrigger -AtStartup
+      $taskPrincipal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+      $taskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
         -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Seconds 0) `
         -MultipleInstances IgnoreNew
-      Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings `
+      Register-ScheduledTask -TaskName $TaskName -Action $taskAction -Trigger $taskTrigger -Principal $taskPrincipal -Settings $taskSettings `
         -Description 'NURMED LOR klinikasi serveri (fonda, kompyuter yoqilganda ishga tushadi)' -Force | Out-Null
       Write-Host "Task Scheduler'da '$TaskName' vazifasi yaratildi."
 
