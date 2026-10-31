@@ -8,6 +8,7 @@ const enc = new TextEncoder();
 // Sahifa o'lchamlari (twip = 1/1440 dyuym). A5 — hujjatlar, A4 yotiq — jadval ko'rinishidagi ro'yxatlar.
 const PAGES = {
   a5: { w: 8391, h: 11906, margin: 510, top: 454, font: 17 },          // 148 × 210 mm, chetlari ≈ 9 mm, 8.5 pt
+  a4: { w: 11906, h: 16838, margin: 851, top: 851, font: 20, table: 18 }, // 210 × 297 mm, chetlari 15 mm, 10 pt (statistika)
   a4l: { w: 16838, h: 11906, margin: 567, top: 567, font: 16, landscape: true }, // 297 × 210 mm, 8 pt
 };
 let TABLE_SZ = 16;
@@ -352,7 +353,7 @@ function blocks(el, out, media) {
 export function docToDocx(docEl, pageName = 'a5') {
   const pg = PAGES[pageName] || PAGES.a5;
   CONTENT_W = pg.w - 2 * pg.margin;
-  TABLE_SZ = pg.landscape ? pg.font : 16;
+  TABLE_SZ = pg.table || (pg.landscape ? pg.font : 16);
   const media = [];
   const body = [];
   blocks(docEl, body, media);

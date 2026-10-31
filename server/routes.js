@@ -11,7 +11,8 @@ const PRICING = require('../public/js/pricing.js');
 const router = new Router();
 const PAGE_SIZE = 20;
 const EXPORT_LIMIT = 5000;
-const PAY_METHODS = ['cash', 'uzcard', 'humo', 'card_other', 'transfer', 'other'];
+// Yangi to'lovlar uchun usullar. Eski yozuvlardagi uzcard/humo/… nomlari faqat ko'rsatish uchun saqlanadi (i18n).
+const PAY_METHODS = ['cash', 'card', 'terminal'];
 
 /* ================= Yordamchilar ================= */
 function need(ctx, perm) {
@@ -803,28 +804,6 @@ router.post('/api/invoices/:id/delete', async (ctx) => {
   });
   sec.audit(ctx.user, 'invoice.delete', 'invoice', id, { number: inv.number, total: inv.total, reason, voided_payments: voided }, ctx.ip);
   return { ok: true };
-});
-
-router.get('/api/cash/daily', async (ctx) => {
-  need(ctx, 'billing.read');
-  const date = dateParam(ctx.query.get('date'), 'date', todayLocal());
-  const payments = db.prepare(`
-    SELECT pm.*, i.number AS invoice_number, p.full_name AS patient_name, u.full_name AS created_by_name
-    FROM payments pm JOIN invoices i ON i.id = pm.invoice_id JOIN patients p ON p.id = i.patient_id
-    LEFT JOIN users u ON u.id = pm.created_by
-    WHERE substr(pm.paid_at, 1, 10) = ? ORDER BY pm.paid_at`).all(date);
-  const by_method = {};
-  let income = 0; let refunds = 0;
-  for (const p of payments) {
-    if (p.voided) continue;
-    const m = by_method[p.method] || (by_method[p.method] = { income: 0, refunds: 0, net: 0 });
-    if (p.kind === 'payment') { m.income += p.amount; income += p.amount; } else { m.refunds += p.amount; refunds += p.amount; }
-    m.net = m.income - m.refunds;
-  }
-  const inv = db.prepare(`SELECT COUNT(*) AS c, COALESCE(SUM(total), 0) AS total, COALESCE(SUM(discount), 0) AS discount
-    FROM invoices WHERE status = 'active' AND substr(created_at, 1, 10) = ?`).get(date);
-  return { date, payments, by_method, income, refunds, net: income - refunds,
-    invoices_count: inv.c, invoices_total: inv.total, discounts: inv.discount };
 });
 
 /* ================= Hisobotlar ================= */

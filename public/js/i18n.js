@@ -15,7 +15,7 @@ const uz = {
   'status.open': 'Очиқ', 'status.done': 'Якунланган', 'status.cancelled': 'Бекор қилинган',
   'pay.paid': 'Тўланган', 'pay.partial': 'Қисман тўланган', 'pay.unpaid': 'Тўланмаган', 'pay.cancelled': 'Бекор қилинган',
   'kind.payment': 'Тўлов', 'kind.refund': 'Қайтариш',
-  'method.cash': 'Нақд', 'method.uzcard': 'Uzcard', 'method.humo': 'Humo', 'method.card_other': 'Бошқа карта',
+  'method.cash': 'Нақд', 'method.card': 'Карта', 'method.terminal': 'Терминал', 'method.uzcard': 'Uzcard', 'method.humo': 'Humo', 'method.card_other': 'Бошқа карта',
   'method.transfer': 'Банк ўтказмаси', 'method.other': 'Бошқа',
   'gender.m': 'Эркак', 'gender.f': 'Аёл', 'side.r': 'Ўнг', 'side.l': 'Чап',
 
@@ -162,7 +162,8 @@ const uz = {
   'rep.finance': 'Молиявий статистика',
   'rep.finance_note': 'Қабул қайд этилгани тўлов қилинганини англатмайди: молиявий кўрсаткичлар фақат касса ёзувларидан ҳисобланади.',
   'rep.invoiced': 'Ҳисобланган хизматлар', 'rep.debts': 'Тўланмаган қолдиқ', 'rep.debt_count': '{n} та ҳисоб, шундан {p} таси қисман тўланган',
-  'rep.services': 'Хизматлар сони ва суммаси',
+  'rep.services': 'Хизматлар сони ва суммаси', 'rep.download_word': 'Word файлга юклаш', 'rep.indicator': 'Кўрсаткич', 'rep.value': 'Қиймат',
+  'rep.period_col': 'Давр', 'rep.period': 'Давр', 'rep.prepared': 'Тузди', 'rep.debt_invoices': 'Қарздор ҳисоблар',
 
   // administrator
   'admin.settings': 'Клиника', 'admin.users': 'Ходимлар', 'admin.services': 'Хизматлар ва нархлар', 'admin.audit': 'Аудит журнали',
@@ -211,7 +212,7 @@ const ru = {
   'status.open': 'Открыт', 'status.done': 'Завершён', 'status.cancelled': 'Отменён',
   'pay.paid': 'Оплачен', 'pay.partial': 'Частично оплачен', 'pay.unpaid': 'Не оплачен', 'pay.cancelled': 'Отменён',
   'kind.payment': 'Оплата', 'kind.refund': 'Возврат',
-  'method.cash': 'Наличные', 'method.uzcard': 'Uzcard', 'method.humo': 'Humo', 'method.card_other': 'Другая карта',
+  'method.cash': 'Наличные', 'method.card': 'Карта', 'method.terminal': 'Терминал', 'method.uzcard': 'Uzcard', 'method.humo': 'Humo', 'method.card_other': 'Другая карта',
   'method.transfer': 'Банковский перевод', 'method.other': 'Другое',
   'gender.m': 'Мужской', 'gender.f': 'Женский', 'side.r': 'Справа', 'side.l': 'Слева',
 
@@ -349,7 +350,8 @@ const ru = {
   'rep.finance': 'Финансовая статистика',
   'rep.finance_note': 'Зарегистрированный приём не означает оплату: финансовые показатели считаются только по записям кассы.',
   'rep.invoiced': 'Начислено за услуги', 'rep.debts': 'Неоплаченный остаток', 'rep.debt_count': '{n} счетов, из них {p} частично оплачены',
-  'rep.services': 'Количество и сумма услуг',
+  'rep.services': 'Количество и сумма услуг', 'rep.download_word': 'Скачать в Word', 'rep.indicator': 'Показатель', 'rep.value': 'Значение',
+  'rep.period_col': 'Период', 'rep.period': 'Период', 'rep.prepared': 'Составил', 'rep.debt_invoices': 'Счета с долгом',
 
   'admin.settings': 'Клиника', 'admin.users': 'Сотрудники', 'admin.services': 'Услуги и цены', 'admin.audit': 'Журнал аудита',
   'admin.backup': 'Резервные копии', 'admin.clinic_name': 'Название клиники', 'admin.requisites': 'Реквизиты (лицензия, ИНН, банк и т.д.)',
