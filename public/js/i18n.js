@@ -117,7 +117,7 @@ const uz = {
   'rx.name': 'Дори / муолажа', 'rx.dose': 'Доза', 'rx.usage': 'Қабул қилиш усули', 'rx.duration': 'Муддати', 'rx.add': 'Қатор қўшиш',
 
   // hujjat
-  'doc.title': 'ЛОР кўрик баённомаси', 'doc.complaints': 'Шикоятлар', 'doc.lor_status': 'ЛОР СТАТУС',
+  'doc.title': 'ЛОР кўрик баённомаси', 'doc.complaints': 'Шикояти', 'doc.lor_status': 'LOR STATUS',
   'doc.diagnosis': 'Ташхис', 'doc.followup': 'Кейинги кўрик', 'doc.doctor': 'Шифокор', 'doc.signature': 'Имзо',
   'doc.printed': 'Чоп этилган',
 
@@ -303,7 +303,7 @@ const ru = {
   'lor.recorded': 'Отмечено', 'lor.not_recorded': 'Не зафиксировано',
   'rx.name': 'Препарат / процедура', 'rx.dose': 'Доза', 'rx.usage': 'Способ применения', 'rx.duration': 'Длительность', 'rx.add': 'Добавить строку',
 
-  'doc.title': 'Протокол ЛОР-осмотра', 'doc.complaints': 'Жалобы', 'doc.lor_status': 'ЛОР-СТАТУС',
+  'doc.title': 'Протокол ЛОР-осмотра', 'doc.complaints': 'Жалобы', 'doc.lor_status': 'LOR STATUS',
   'doc.diagnosis': 'Диагноз', 'doc.followup': 'Повторный осмотр', 'doc.doctor': 'Врач', 'doc.signature': 'Подпись',
   'doc.printed': 'Распечатано',
 

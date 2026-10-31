@@ -153,7 +153,7 @@ function patientTable(cells) {
   for (let i = 0; i < rest.length; i += 2) rows.push(`<w:tr>${cell(rest[i])}${cell(rest[i + 1])}</w:tr>`);
   return `<w:tbl><w:tblPr><w:tblW w:w="${CONTENT_W}" w:type="dxa"/><w:tblLayout w:type="fixed"/>`
     + '<w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="57" w:type="dxa"/></w:tblCellMar></w:tblPr>'
-    + `<w:tblGrid><w:gridCol w:w="${half}"/><w:gridCol w:w="${half}"/></w:tblGrid>${rows.join('')}</w:tbl>${P([], { after: 30, sz: 6 })}`;
+    + `<w:tblGrid><w:gridCol w:w="${half}"/><w:gridCol w:w="${half}"/></w:tblGrid>${rows.join('')}</w:tbl>`;
 }
 
 function table(t) {
@@ -200,6 +200,15 @@ function lor(el, out) {
   if (groups || !titled) flush(false);
 }
 
+/** LOR STATUS bo'limi (ФАРИНГОСКОПИЯ, РИНОСКОПИЯ, …): oldidan bo'sh qator, kerak bo'lsa alohida sarlavha */
+function lorGroup(el, out, gap) {
+  if (gap) out.push(P([]));
+  for (const c of el.children) {
+    if (c.classList.contains('doc__lorhead')) out.push(P([{ t: c.textContent.trim() + ':', b: true }], { keepNext: true }));
+    else if (c.classList.contains('doc__lor')) lor(c, out);
+  }
+}
+
 /** Bo'lim: sarlavha birinchi matn bilan bir qatorda ("АНАМНЕЗ: …"), qolganlari alohida paragraf */
 function block(el, out) {
   if (el.classList.contains('doc__patient')) {
@@ -209,9 +218,11 @@ function block(el, out) {
   const h = el.querySelector(':scope > h3');
   let heading = h ? [{ t: h.textContent.trim().toUpperCase() + ': ', b: true }] : null;
   const flush = () => { if (heading) { out.push(P(heading, { keepNext: true })); heading = null; } };
+  let groups = 0;
   for (const c of el.children) {
     if (c === h) continue;
     if (c.classList.contains('doc__lor')) { flush(); lor(c, out); continue; }
+    if (c.classList.contains('doc__lorgrp')) { flush(); lorGroup(c, out, groups++ > 0); continue; }
     if (c.tagName === 'TABLE') { flush(); out.push(table(c)); continue; }
     if (hasBlocks(c)) { flush(); blocks(c, out); continue; }
     const runs = contentRuns(c);
@@ -275,9 +286,14 @@ function footer(el, out) {
 }
 
 function blocks(el, out, media) {
+  let prevBlock = false;
   for (const c of el.children) {
     const cl = c.classList;
     if (cl.contains('hidden')) continue;
+    // Bo'limlar (.doc__block) orasida bitta bo'sh qator
+    const isBlock = cl.contains('doc__block');
+    if (isBlock && prevBlock) out.push(P([]));
+    prevBlock = isBlock;
     if (cl.contains('doc__head')) header(c, out, media);
     else if (cl.contains('doc__title')) out.push(P(inline(c).map((r) => ({ ...r, t: r.t && r.t.toUpperCase() })), { align: 'center', b: true, sz: 19, after: 60 }));
     else if (cl.contains('doc__block')) block(c, out);
